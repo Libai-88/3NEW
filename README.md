@@ -30,13 +30,27 @@
 
 ```
 3NEW
-├── README.md                    # 本文件：项目总览、方法、结论、复现
-├── report/                      # 研究报告（可直接用浏览器打开）
+├── README.md                         # 本文件：项目总览、方法、结论、复现
+├── report/                           # 研究报告（直接用浏览器打开）
 │   ├── coating-model-optimization.html   # 主报告（含交互图表）
 │   └── assets/
-│       ├── charts.js            # ECharts 图表渲染脚本
-│       └── data.js              # 真实 PCA 数据注入
-└── data/                        # 增广数据集（可复现）
+│       ├── charts.js                 # ECharts 图表渲染脚本
+│       └── data.js                   # 真实 PCA 数据注入
+├── code/                             # 可复现脚本（详见 code/README.md）
+│   ├── predict_v3.py                 # 预测接口（可直接运行）
+│   ├── build3.py / blend_ir.py / build_ir.py   # 特征构建·重建红外
+│   ├── final_combined.py / transfer_c.py       # 三协议评估·跨批迁移
+│   ├── train_champion_v3.py / save_champ_v5~v7.py   # 各版本冠军模型
+│   ├── advanced_tech.py / advanced_clf.py      # 高级回归/分类技术对比
+│   ├── augment_clean.py / save_augset.py / deliver_aug.py / final_matrix.py  # 数据增强管线
+│   ├── generalization2.py             # 外部 PolySol 泛化验证
+│   ├── loo.py / cross_batch_diag.py / within_family.py / noise_floor.py / w_coupling.py  # 诊断
+│   └── pseudo_al.py / cotrain.py / mt_embed.py  # 主动学习/协同训练/多任务嵌入
+├── models/                           # 冠军模型 v3~v7
+│   ├── champion_models_v3.pkl  # §7.2 终训（33维交互特征）
+│   ├── champion_models_v4/v5/v6/v7.pkl  # §5.8/§5.9 增强/combo特征各版本
+└── data/                             # 编译特征矩阵 + 增广数据集
+    ├── master3.npz                   # build3.py 产物：O(371)+N(100) 对齐特征与目标
     ├── augmented_dataset_cleanprocess.csv   # 真实+增强混合（3,200 条，源/配方族列）
     └── augmented_only_cleanprocess.csv      # 仅增强样本
 ```
@@ -44,7 +58,9 @@
 ## 快速开始
 
 1. 直接打开 `report/coating-model-optimization.html`（浏览器即可渲染，无构建依赖；ECharts 走 CDN）。
-2. 数据集：`data/*.csv` 列为 `f0..f28`（29 维配方/工艺特征）+ 目标 `yT`（T弯）、`yM`（MEK）、`yW`（水煮等级）+ `source`（真实/增强）、`family`（配方族，用于 GroupKFold）。
+2. 跑通预测：`python3 code/predict_v3.py`（加载 `models/champion_models_v3.pkl`，输出更新批第 1 条的性能预测）。
+3. 数据集：`data/*.csv` 列为 `f0..f28`（29 维配方/工艺特征）+ 目标 `yT`（T弯）、`yM`（MEK）、`yW`（水煮等级）+ `source`（真实/增强）、`family`（配方族，用于 GroupKFold）。
+4. 完整代码与逐脚本说明见 `code/README.md`。
 
 ## 复现要点
 
