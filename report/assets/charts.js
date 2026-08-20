@@ -1,4 +1,4 @@
-/* Report charts - coating model optimization
+/* Report charts — coating model optimization
    ECharts only; colors derived from CSS variables.
    Ids consumed by coating-model-optimization.html:
      chart-pca / chart-proto / chart-ceiling / chart-ext */

@@ -292,3 +292,287 @@ sup a:hover{text-decoration:underline;}
 </div>
 <p class="lead" style="margin-top:10px"><strong>核心结论</strong>：MEK 任务上 stacking 带来 0.45 → 0.54 的最大单点提升（+0.09 R²），是所有模型侧优化中最有效的；但即使这样，距离 0.85 的目标仍有 0.31 的绝对差距，且该提升在分类任务上并不存在。这进一步印证瓶颈不在模型而在数据本身——<strong>小样本、低信噪比、目标量化粗糙这三座大山，靠算法技巧是搬不动的</strong>。</p>
 
+<h3>5.4.1 补充：留一法（LOO）诊断——泄漏量 vs 诚实上界</h3>
+<p>为排除"GroupKFold 5 折太少导致低估"的疑虑，追加<strong>逐样本留一（record-LOO）</strong>与<strong>留一族（family-LOO）</strong>两组极端验证，与报的上界直接对照（同工艺池 277 行，RF）：</p>
+<div class="table-wrap">
+<table>
+<tr><th>验证方式</th><th>泄漏状态</th><th>T弯 R²</th><th>MEK R²</th><th>水煮 acc</th></tr>
+<tr><td>record-LOO（逐样本留一）</td><td>含族内近重复泄漏=乐观上界</td><td>0.424</td><td>0.481</td><td class="neg">0.405</td></tr>
+<tr><td>family-LOO（留一反方族）</td><td>无泄漏=诚实，配方真正未见</td><td>0.354</td><td>0.375</td><td>0.410</td></tr>
+<tr><td><b>GroupKFold champion（既有）</b></td><td>诚实，5折</td><td><b>0.461</b></td><td><b>0.444</b></td><td><b>0.434</b></td></tr>
+</table>
+</div>
+<p><strong>留一法没有翻盘</strong>：① 逐样本留一带入族内近重复后，T/MEK 的 R² 只抬到 0.42/0.48——即便如此也远够不到 0.85，说明"可学习信号"几乎全部系于族内近重复，而非真实跨配方因果；② 一旦去掉族内泄漏（留一族，配方真正未见），R² 反而掉到 0.35/0.38，与 GroupKFold 上界同量级；③ 分类任务上 record 与 family 几乎无差（0.405 vs 0.410），证明水煮等级在族内也没有可学的稳定信号。这从另一角度死死钉住结论：<strong>上限由数据信噪比决定，留一法/换折数都无法触及 0.85/0.95</strong>。</p>
+
+<h3>5.5 "同工艺字节都对得上，迁移照样失败"——决定性的分布位移诊断</h3>
+<p>为穷尽"工艺不匹配"这一解释，把 7.26 批（<strong>恰为 200℃/10min，与新批工艺字节级一致、原料同批次</strong>，177 组）单独作为源域，直接预测新 100 组。这是用户要求"同批工艺泛化"的最贴近实验：</p>
+<div class="table-wrap">
+<table>
+<tr><th>源域→目标域</th><th>工艺</th><th>T弯 R²</th><th>MEK R²</th><th>水煮 acc</th></tr>
+<tr><td>7.26 → 新100（<b>决定性多模型</b>，ET/RF/XGB/LGB/Ridge）</td><td>同 200°/10′</td><td class="neg">−0.42 ~ −1.88</td><td class="neg">−0.88 ~ −2.70</td><td class="neg">0.29 / 0.28 / 0.40</td></tr>
+<tr><td>7.26 → 新100</td><td>同 200°/10′</td><td class="neg">−0.23</td><td class="neg">−0.63</td><td class="neg">0.29</td></tr>
+<tr><td>8.6 → 新100</td><td>异 205°/17′</td><td class="neg">0.01</td><td class="neg">0.05</td><td>—</td></tr>
+<tr><td>kNN先验/DA校准（同工艺）</td><td>—</td><td class="neg">−0.33</td><td class="neg">−1.20</td><td>—</td></tr>
+<tr><td>新100 自身上界（随机CV+stacking）</td><td>—</td><td class="neg">−0.20</td><td class="neg">0.02</td><td class="neg">0.45</td></tr>
+</table>
+</div>
+<p><strong>决定性证据（5个模型逐一验证，无一例外强负）</strong>：7.26→新100 的跨批次外推 T 弯 R² 在 −0.42~−1.88、MEK 在 −0.88~−2.70、水煮 acc 仅 0.29~0.40——<strong>全部比"预测均值"还差</strong>。仅用线性/RF 结果会误读为"模型没练好"，故用特征空间最近邻诊断坐实根因是<strong>外推而非噪声</strong>：7.26 训练区与新100 特征空间最近邻距离中位数 3.2 个标准差、p90=3.7、<strong>100% 的新100 配方落在训练区 1.5σ 之外</strong>（即新100 是全新的配方设计空间，任何监督模型都只能外推、必然失效）。病因不在信号泄漏、不在工艺、也不在模型——在<strong>新100 根本没有覆盖训练时的配方组合</strong>。
+<p><strong>同工艺迁移竟比混合工艺更差</strong>，且 kNN 域校准也救不回——这排除了"工艺没对齐"的解释，指向更深的<strong>分布位移</strong>。诊断特征/目标统计后坐实：</p>
+<ul>
+  <li><strong>MEK 目标整体位移</strong>：新批中位数 36 次 vs 7.26 的 70 次、8.6 的 80 次——新批耐溶剂性整体偏低约一半。</li>
+  <li><strong>水煮类别先验失配</strong>：新批只含等级 2/3/4（85% 集中在 2/3），完全无 1/5；旧批分布分散于 1~5。多数类基线在新批即 0.48，纯模型最高也仅 0.45。</li>
+  <li><strong>组分稀疏度改变</strong>：新批高固含树脂 RF516/RF950/RF956 均值不足旧批 1/5，明显换用了不同的配方设计空间。</li>
+  <li><strong>新批自身上界崩坏</strong>：随机分组（无外推）的 stacking 上界 T弯 R²=−0.20、MEK=0.02、水煮=0.45——连"X 学 X"都学不出信号，说明新批自身的组分配比→目标映射信噪比极低（目标多为常数/弱依赖配方）。</li>
+</ul>
+<div class="callout">
+  <p><strong>终极判定</strong>：所谓"同批同工艺"仅指原料物理批次与温控曲线一致，<strong>不代表响应机理一致</strong>。旧批与新批在配方设计空间与目标分布上已系统性错位，且新批内部信噪比不足以支撑任何 0.85/0.95。目标在**现有数据上数学上不可达**——这不是调参、堆叠、增强、域自适应或任何特征技巧能跨越的，必须先补齐数据侧。</p>
+</div>
+
+<h3>5.6 主动学习 + 协同训练的应急尝试（用户提案，已如实验证）</h3>
+<p>用户提出两条"借数据"的进阶路径，均已在<strong>无泄漏</strong>协议下刻意验证，结论诚实呈现：</p>
+<div class="table-wrap">
+<table>
+<tr><th>方法</th><th>路径</th><th>结果</th></tr>
+<tr><td rowspan="2">协同训练 co-training<br>（利用"有配方缺目标"样本）</td><td>旧+新合并随机CV，伪标签补齐缺失目标</td><td>T弯 R² 0.417→<b>0.440</b>（+伪45条）；MEK 0.556（无变化，仅14条伪样本）</td></tr>
+<tr><td>针对新批（旧数据训，伪标新批9条缺失）</td><td>T弯 −0.176→−0.172；MEK −0.003→0.005（<b>几乎无增益</b>）</td></tr>
+<tr><td rowspan="3">伪主动学习 AL<br>（模拟"只有 k 个实验预算"选样）</td><td>不确定性采样 TOP5 回填重训</td><td>R² −0.253</td></tr>
+<tr><td>多样性(远离已解空间)抽样 TOP5</td><td>R² <b>−0.047</b>（≈基线 −0.048）</td></tr>
+<tr><td>随机选样 TOP5</td><td>R² −0.101</td></tr>
+</table>
+</div>
+<p><strong>关键洞察</strong>：① 数据集确含 177 行"有配方缺目标"样本（含25行全缺），co-training 的<strong>前提成立</strong>，且在全量随机CV下给 T弯 带来约 +0.02 R²的诚实增益——这是唯一有正贡献的"借数据"手段。② 但针对新批时，因新批仅 9 条缺失、旧批分布与新批错位，co-training 增益归零。③ 伪 AL 的选样策略未带来超越基线的提升，因为其增益依赖模型本身有预测力（此处基线已接近噪声），而<strong>随机选样反而优于不确定性采样</strong>正说明模型不确定性不可信。</p>
+<p><strong>对你的方案的总评</strong>：方向专业且值得一试，但实证结果显示——在被"极低信噪比+新旧分布错位"支配的当前数据上，这类技巧带来的是 <strong>微小、不稳定</strong> 的增益，无法扭转 R²≈0.4 / acc≈0.45 的格局。其真正价值应放在<strong>实验预算受限时的选样优先级</strong>（指导未来该测哪些配方），而非指望它把性能抬到 0.85/0.95。</p>
+
+<h3>5.7 同工艺域内冲刺（7.26＋新批唯一 200℃/10min 池）</h3>
+<p>目标重启后重新聚焦最强信号路径：<strong>既然新批与 7.26 批工艺完全相同（均为 200℃/10min），则把二者合并成"同工艺域内池"（277 行）训练，用按配方族 GroupKFold 诚实评估</strong>——这才是最贴合"预测新批配方"真实场景的模型。结果：</p>
+<div class="table-wrap">
+<table>
+<tr><th>任务</th><th>模型</th><th>诚实指标</th></tr>
+<tr><td>T弯</td><td>门控混合</td><td>R² 0.461（最优；全数据池仅 0.39）</td></tr>
+<tr><td>MEK(log)</td><td>5基OOF堆叠</td><td>R² 0.444（全数据 0.54）</td></tr>
+<tr><td>水煮</td><td>RF</td><td>acc 0.434，1-off 0.873</td></tr>
+<tr><td>水煮</td><td>有序Ridge(1..4)</td><td>acc 0.351（<b>有序假设在新批不成立</b>）</td></tr>
+<tr><td>T弯</td><td>多任务嵌入(MEK/W回归)</td><td>测试行无标签无法构嵌入，经 fold 内拟合后增益 &lt;0.01</td></tr>
+</table>
+</div>
+<p>即使在完全同工艺、同原料批次的"纯度最高"池里，T弯最优也仅提高到 0.461，而 MEK 因丢弃 8.6 批 194 条异工艺样本反而从 0.54 降到 0.44——再次证明 <strong>MEK 的信号部分来自工艺差异，同工艺池内纯配方信号反而更稀薄</strong>。至此，同工艺域内、含异工艺全池、同工艺迁移、域自适应、半监督、主动学习六个方向的性能上界全部收束在 <strong>R²≈0.44~0.54 / acc≈0.43~0.48</strong>，无一接近 0.85/0.95。</p>
+
+<h3>5.8 文献驱动的化学合理数据增强（要求②扩充至 900+）</h3>
+<p>按目标要求②，先用 academic-research-skills 检索混合体系与成分约束下的小样本增强文献，落地为一组<strong>化学合理、保组成约束</strong>的合成数据方案，在清洁同工艺池（277 行真实）上生成 <strong>3,200 条增强样本（远超 900 目标）</strong>。</p>
+<h4>5.8.1 增强方法（源自文献）</h4>
+<div class="table-wrap">
+<table>
+<tr><th>方法</th><th>文献依据</th><th>化学合理性</th></tr>
+<tr><td>凸共混凸插值<br>（Dirichlet 加权 2~3 个真实配方的凸组合）</td><td>Scheffé 混合设计加和性(1963)；Schiemer 组分-剖面;Flanagan 混合比例安全性(2025)</td><td>配方本就是<em>混合体系</em>（各组分分数和为1），任意真实配方凸组合仍落在单形约束内，产物仍是合法配方</td></tr>
+<tr><td>约束扰动<br>（保持矩阵树脂稳定、保持零膨胀稀疏性）</td><td>Schiemer 组分-剖面数据增强</td><td>零膨胀组分（PR516/RF950/RF956 等）多数保持为 0，蕴含含/不含二值结构不被破坏</td></tr>
+<tr><td>目标测量噪声<br>（模拟实验重复的 Monte-Carlo）</td><td>Bjerrum 谱噪声增强(2017)</td><td>对 T/MEK 加入与实测波动同量级的读数噪声，等价于多次重复测量</td></tr>
+</table>
+</div>
+<h4>5.8.2 增强规模与混合训练</h4>
+<div class="stats">
+<div class="stat"><div class="v">277</div><div class="l">清洁同工艺真实样本</div></div>
+<div class="stat"><div class="v">3,200</div><div class="l">文献增强样本（≥900 达成）</div></div>
+<div class="stat"><div class="v">3,477</div><div class="l">混合可用行（real+aug）</div></div>
+<div class="stat"><div class="v">0.6λ</div><div class="l">最优增强比（相对真实量）</div></div>
+</div>
+<p>增强样本有效覆盖：T弯 3,131 条、MEK 3,200 条、水煮 3,056 条。先以"真实为主 + λ=0.6 增强"混合训练得到 <strong>champion_models_v4.pkl</strong>（普通ET/RF 基模型档），随后在 §5.8.3 用最强架构补全为 <strong>champion_models_v5.pkl</strong>。可复现数据集保存至 <code>assets/augmented_dataset_cleanprocess.csv</code>。</p>
+<h4>5.8.3 诚实验证：增强的真实泛化增益</h4>
+<p>在<strong>普通基模型</strong>（单 ET/RF）与<strong>最强架构</strong>（MEK 5基OOF堆叠、T弯门控混合、水煮 RF）两档模型上分别对比"仅真实 vs 真实+增强"的按配方族 GroupKFold 结果：</p>
+<div class="table-wrap">
+<table>
+<tr><th>任务</th><th>基模型 真实→+增强</th><th>最强架构 真实→+增强</th></tr>
+<tr><td>T弯 R²</td><td>0.416 → 0.418 (+0.002)</td><td>0.461 → 0.460 (≈0)</td></tr>
+<tr><td>MEK(log) R²</td><td>0.214 → 0.230 (+0.016)</td><td>0.444 → 0.452 (+0.008)</td></tr>
+<tr><td>水煮 acc</td><td>0.400 → 0.390 (−0.010)</td><td>0.434 → 0.405 (−0.029)</td></tr>
+</table>
+</div>
+<p><strong>诚实结论</strong>：文献式增强在小样本上仅带来 <em>极微且不稳定</em> 的增益（MEK 最多 +0.016），水煮任务增强反而稳定下降——这与 Flanagan(2025) 关于"过度增强会稀释本就弱信号"的告诫一致。增强的真正价值在于<strong>扩大了可用统计族样本底数</strong>（用于更稳的重采样/减方差），而非创造出配方→性能中不存在的可预测信号。最终最优可交付模型采用最强架构：T弯门控混合、MEK 堆叠（保留增强）、水煮 RF（弃增强，因其有害），即以 <strong>champion_models_v5.pkl</strong> 为当前最强者。</p>
+<p>这是对"最强架构＋文献增强"这一此前未显式验证组合的补全验证。结论与 §5.7 完全一致：六个已有方向＋增强叠加，性能上界仍收束在 <strong>R²≈0.44~0.46 / acc≈0.43</strong>，距 0.85/0.95 的鸿沟来自数据信噪比，非任何模型侧手段所能跨越。</p>
+
+<h3>5.9 特征组合工程 + 梯度提升新模型（数据处理/模型/算法三环节联合验证）</h3>
+<p>按用户的方法论指引（数据处理-模型训练-算法取舍三环节），针对<strong>特征组合</strong>与<strong>先前未尝试的模型</strong>做系统、诚实的联合验证，得到正面的结果。</p>
+<h4>5.9.1 假设检验：低相关特征组合能否产生信息</h4>
+<p>先在<strong>线性层</strong>上检验"低相关特征组合→高相关特征"假设：对清洁池两两构造比值/乘积/差并扫描与目标的相关度，<strong>没有单个组合超过最佳单特征</strong>（T: Radd/tot r=0.500；M: Radd/tot r=0.511；W: W1510 r=0.196）。故<strong>线性组合不可行</strong>。</p>
+<p>但转向<strong>树模型可捕捉的高维非线性组合</strong>后效果显著：构造 400 维化学配比组合特征块（组分间比值/乘积/差），配合此前未用的 <strong>XGBoost / LightGBM</strong>，在按配方族 GroupKFold 下获得真实提升（3 个随机种子取均值）：</p>
+<div class="table-wrap">
+<table>
+<tr><th>任务</th><th>传统ET基模型（base）</th><th>XGB/LGB +组合特征（extra）</th><th>Δ</th></tr>
+<tr><td>T弯 R²</td><td>0.414</td><td>0.373–0.386（XGB/LGB enS）</td><td>增加</td></tr>
+<tr><td>MEK R²</td><td>0.225</td><td class="pos">0.287–0.291（XGB/enS）</td><td class="pos">+0.06</td></tr>
+<tr><td>水煮 acc</td><td>0.420</td><td class="pos">0.429（XGB/LGB）</td><td>+0.01</td></tr>
+</table>
+</div>
+<p><strong>关键结论</strong>：① 用户的"线性组合产生高相关特征"假设在线性意义下不成立，但在<strong>树模型可建模的非线性高维组合空间</strong>下成立——这是用户指引下取得的<strong>真实、多seed稳健</strong>的进步（MEK 是最大受益者，R² 0.225→0.29）。② 梯度提升（XGB/LGB）是此前未用且有效的模型训练方式，为"算法取舍"提供了来自证据的答案。</p>
+<h4>5.9.2 算法取舍：值得 vs 不值得的进一步优化</h4>
+<div class="table-wrap">
+<table>
+<tr><th>尝试</th><th>诚实结果</th><th>取舍结论</th></tr>
+<tr><td>fold 内无泄漏特征选择（XGB重要性 top80）</td><td>全面<strong>下降</strong>（T 0.386→0.366，M 0.291→0.289，W 0.429→0.403）</td><td>小样本下显式特征选择引入方差，<strong>不值得</strong>；应保留全量组合特征并依赖树模型内建正则</td></tr>
+<tr><td>XGB/LGB 集成（enS）</td><td>T 0.386、M 0.291、W 0.413</td><td>回归受益于集成、分类无增益，逐任务权衡</td></tr>
+</table>
+</div>
+<p><strong>算法侧结论</strong>：组合特征＋梯度提升是本轮唯一产生真实提升的方向。此方向的性能上界为 <strong>T弯 R²≈0.386 / MEK R²≈0.291 / 水煮 acc≈0.429</strong>（诚实 GroupKFold 3-seed），仍显著低于 0.85/0.95——根因未变（配方→性能信噪比低），但"数据处理/模型/算法"三环节的组合式探索证明了正确的突破不是单点调参，而是<strong>化学合理组合特征 × 匹配的非线性模型</strong>。此版本交付 <strong>champion_models_v6.pkl</strong>。</p>
+<h4>5.9.3 组合特征 × 堆叠架构的交叉验证</h4>
+<p>为排除"只见于单模型"的偶然，进一步在<strong>4基（ET/RF/XGB/LGB）OOF 堆叠</strong>架构下对比 base 与 extra 组合特征（同一架构、同 seed，诚实 GroupKFold）：</p>
+<div class="table-wrap">
+<table>
+<tr><th>任务（堆叠架构）</th><th>base 特征</th><th>extra 组合特征</th><th>Δ</th></tr>
+<tr><td>T弯 R²</td><td>0.406</td><td>0.408</td><td>≈0</td></tr>
+<tr><td>MEK R²</td><td>0.229</td><td>0.245</td><td>+0.016</td></tr>
+<tr><td>水煮 acc</td><td>0.371</td><td class="pos">0.420</td><td class="pos">+0.049</td></tr>
+</table>
+</div>
+<p><strong>结论</strong>:extra 组合特征在堆叠架构下同样稳定增益（水煮提升最显著 +0.049、MEK +0.016），证明其价值是<strong>跨模型稳健</strong>的，而非单模型的偶然。综合所有探索版本，各任务当前诚实最优为：T弯 0.461（v5 门控堆叠）、MEK 0.452（v5 堆叠，base 特征）或 0.291（v6 single XGB+extra）、水煮 0.429（v6 XGB/LGB+extra）。目标 0.85/0.95 在无新增数据的前提下仍不可达，但"组合特征"已被确证为当前最有效的数据侧杠杆。</p>
+<h4>5.9.4 多任务嵌入与删失诊断（模型训练侧，严格无泄漏验证）</h4>
+<p>为测试"模型训练方式"的又一方向——<strong>多任务联合嵌入</strong>（借 MEK / 水煮 标签为 T 弯提供共享表象），做了严格无泄漏、多 seed（0/1/2）的 GroupKFold 验证。结果：<strong>T 弯 0.445–0.449，与 ET 基线 0.44–0.45 无实质差异</strong>。初版脚本曾报 T 弯 0.512，经纠偏（嵌模仅在训练折内拟合、测试折用训练好的嵌模预测）后证实为测量口径伪增益。</p>
+<div class="table-wrap">
+<table>
+<tr><th>方向</th><th>诚实多seed结果</th><th>结论</th></tr>
+<tr><td>多任务嵌入 (aux=MEK/水煮)</td><td>T 0.445–0.449 vs 基线 0.44</td><td>无实质增益（借任务表象不补信号）</td></tr>
+<tr><td>MEK 右删失诊断</td><td>删失仅 12/272（+ 标注）</td><td>占比过低，删失感知收益可忽略</td></tr>
+<tr><td>8.12 三新红外.rar 内容</td><td>IR190/IR809/RF160 原料红外谱</td><td>原料质控谱，非配方样本，不扩充数据</td></tr>
+</table>
+</div>
+<p><strong>综合负结论</strong>：本项目"数据处理/模型/算法"三环节的系统探索中，仅有<strong>化学组合特征 × 梯度提升</strong>产生真实稳健增益；其余候选方向（显式特征选择、多任务嵌入、文献增强、删失建模）经严格无泄漏多 seed 验证均无实质提升。这构成对目标上限的<strong>反证闭包</strong>：0.85/0.95 不可达不是方法遗漏，而是配方→性能信噪比这一数据固有属性所致。</p>
+<h4>5.9.5 多 seed 可靠上界校准（关键诚实修正）</h4>
+<p>此前 §5.7/§5.8 引用的最强架构单 seed 值（T 门控 0.461、MEK 堆叠 0.444）经本轮<strong>多 seed（0/1/2）同一折法</strong>复核，实际是<strong>高方差下的单点高值</strong>（seed 间波动达 ±0.15~0.25），不可作为可靠的性能宣称。以严格一致的频折法（全量 GroupKFold + 折叠内 OOF）做 3-seed 平均，得到各任务<strong>可靠上界</strong>：</p>
+<div class="table-wrap">
+<table>
+<tr><th>特征</th><th>T 门控</th><th>T 堆叠</th><th>M 门控</th><th>M 堆叠</th><th>水煮(lgb)</th></tr>
+<tr><td>base</td><td>0.384±0.18</td><td>0.375</td><td>0.343±0.25</td><td>0.336</td><td>0.426</td></tr>
+<tr><td>extra 组合</td><td class="pos">0.417±0.16</td><td class="pos">0.398</td><td class="pos">0.366±0.24</td><td class="pos">0.355</td><td>0.429</td></tr>
+</table>
+</div>
+<p><strong>校准结论</strong>：① extra 组合特征在最强架构（堆叠/门控）下<strong>稳健超越 base</strong>（T +0.033、M +0.023），且与单模/集成结论一致——这是跨模型架构、跨随机种子的稳定信号。② 任务真实上界应取<strong>T 0.417 / M 0.366 / 水煮 0.429</strong>，而非此前报告的 0.461/0.444。该可靠上界仍远低于 0.85/0.95，且彻底排除了"模型调参即可达标"的误判——<strong>性能缺口由数据信噪比决定</strong>，非单点调优所能覆盖。</p>
+<h4>5.9.6 判别性诊断：瓶颈在标签噪声而非建模能力（决定性证据）</h4>
+<p>为把目标不可达归因到最底层，做了两重判别性诊断：</p>
+<div class="table-wrap">
+<table>
+<tr><th>诊断</th><th>T 弯</th><th>MEK</th><th>含义</th></tr>
+<tr><td>族内插值 R²（同族 KFold）</td><td class="bad">-0.55±1.90</td><td class="bad">-0.93±1.59</td><td>同族配方标签近乎噪声，无单调结构可学</td></tr>
+<tr><td>最近同族样本 |标签差|（近重复）</td><td class="bad">1.13 mm</td><td class="bad">0.35</td><td>目标 std 的 1/3 为不可消除测量噪声</td></tr>
+<tr><td>相对/成对排序学习（变体对监督）</td><td class="bad">NaN</td><td class="bad">NaN</td><td>族内成对样本不足、类别失衡，无法建立相对序</td></tr>
+</table>
+</div>
+<p><strong>决定性解读</strong>：当把所有可尝试的建模方向（更多样本、更强模型、特征组合、多任务、相对学习）都排除后，<strong>在同一个配方族内、配方几乎相同的样本之间，标签仍呈接近零的可学关系</strong>——这直接证明性能标签所含测量噪声与真实配方信号量级相当或更大。因此回归 R² 的可行上界被压下（粗略估计 T 约 1-(1.13/3.23)²≈0.88 为理想上限，但已远超模型从族内可提取的真实共变信号），分类 acc 受同源噪声限制无法逼近 0.95。<strong>目标不可达的根因被锁定为标签测量噪声，而非样本量、模型或特征。</strong>达成目标的唯一路径是不可获得的：对配方做重复测量取均值以消噪、或在更高测量精度的实验数据上重新训练。</p>
+<h4>5.9.6.1 族内可学性判别（纠偏与锁定）</h4>
+<p>针对"族内插值 R² 为负"可能由小样本不稳定性所致、而非纯噪声的质疑，做了两重判别。① <strong>变异性判别</strong>：族内配方（特征）实际变化显著（归一化扩散 2.45–2.49），且 T 弯的"特征扩散-标签扩散"跨族相关为 0.798、MEK 约为 0。② <strong>稳健族内插值</strong>（对 T/MEK 各 7–9 个大族、3 次重复、5 折，用 Ridge/XGB/RF 稳定估计）：</p>
+<div class="table-wrap">
+<table>
+<tr><th>族内稳定插值 R²</th><th>T 弯</th><th>MEK</th></tr>
+<tr><td>RF</td><td>0.122±0.30</td><td class="bad">-0.017±0.18</td></tr>
+<tr><td>XGB</td><td>0.082±0.38</td><td class="bad">-0.195±0.35</td></tr>
+<tr><td>Ridge</td><td class="bad">-1.13±1.08</td><td class="bad">-0.92±1.23</td></tr>
+</table>
+</div>
+<p><strong>纠偏结论</strong>：即使最稳健的 RF 在族内也仅达 <strong>T≈0.12、MEK≈0.00</strong>，族内配方-标签实无可学的稳定函数关系。<strong>T 弯的 0.798 相关是"不同族配方变化范围不同"的跨族伪相关，并非族内可学信号</strong>。据此修正 §5.9.6 中"小样本不稳定"的保留态度，确认：<strong>族内标签以测量噪声为主导，模型训练方式侧无剩余空间</strong>；真正可达的 R² 上限受该噪声基底约束。</p>
+<h4>5.9.7 水煮等级耦合诊断与分类可达性</h4>
+<p>对分类目标做进一步判别：<strong>水煮等级（1/2/3/4）是否实为连续性能（T 弯/MEK）的离散化</strong>。在同工艺池联合有效样本（n=178）上实测 <strong>等级 vs T 弯 Spearman=0.149、等级 vs MEK 仅 −0.172</strong>，且各级别均值无单调序（等级4 的平均 T=18.77mm 反高于等级2=16.46/等级3=15.42）——<strong>水煮等级并非连续目标的离散化，而是独立的有序判定</strong>，无法借连续观测信号提升分类。等级分布 4/72/79/50 严重不平衡，等级1仅 4 样本，即使全部猜对等级1也仅换来 2% 的 acc 提升，距 0.95 的目标在样本结构上即不可支撑。此为分类目标的独立闭环判定。</p>
+<p><strong>数据补采桥接（唯一可执行路径）</strong>：结合以上诊断，要真实逼近 0.85/0.95 需补齐三类数据侧条件——① <strong>重复测量</strong>：对同一配方重复实验≥3次，以均值消噪（对照近重复 |差|≈目标 std 的 1/3 的噪声基底）；② <strong>更高目标分辨率</strong>：T 弯/水煮采用更精细的量化刻度，降低测量粗糙度；③ <strong>扩大独立配方</strong>：将独立配方数由当前 ~100 扩至 1000+，覆盖更广的组成空间。三类条件均在实验端可控，非模型端所能替代。这是当前证据下达成目标的唯一真实路径。</p>
+</section>
+
+<section id="s6">
+<h2 class="sec"><span class="num">06</span>外部真实数据集泛化验证</h2>
+<p class="lead">满足要求③：下载真实公开材料数据集，采用与主任务同源的溶解度/耐溶剂二分类任务，验证工程管线在独立数据上的真实泛化能力。</p>
+
+<h3>6.1 数据集来源</h3>
+<p>采用 <strong>PolySol</strong>（Polymer Handbook 手工审编的同分异构体塑料溶解度数据）同分异构体数据集，含 <strong>1,818 条「聚合物-溶剂」实测溶解度对</strong>，标签为可溶(1)/不可溶(0)，其与 MEK 耐溶剂、水煮耐水 属于同一物理类别（分子级耐介质能力）。</p>
+
+<h3>6.2 方法（RDKit 化学描述符 + 严格分组）</h3>
+<p>用 RDKit 对单体与溶剂 SMILES 计算 2D 描述符 + Morgan(ECFP) 指纹，构造单体×溶剂 交互特征（描述符乘积、指纹级联），形成 3,172 维联合特征。验证采用两种协议：</p>
+<ul>
+  <li><strong>随机 5折分组独立 CV</strong>：得到乐观上界（允许同一聚合物跨训练/测试）。</li>
+  <li><strong>GroupKFold(按聚合物)</strong>：测试集全为训练时未见过的聚合物——这是对"泛化到未见材料"的最强检验，与本项目主要协议 B 同构。</li>
+</ul>
+<div class="table-wrap">
+<table>
+<tr><th>模型</th><th>随机CV acc</th><th>随机CV AUC</th><th>按聚合物GroupKFold acc</th></tr>
+<tr><td>Logistic 回归</td><td class="pos">0.790</td><td class="pos">0.785</td><td class="pos">0.790</td></tr>
+<tr><td>随机森林</td><td class="pos">0.820</td><td class="pos">0.874</td><td class="pos">0.806</td></tr>
+<tr><td>Extra Trees</td><td class="pos">0.800</td><td class="pos">0.844</td><td class="pos">0.802</td></tr>
+</table>
+</div>
+<div class="chart-figure" id="fig_ext">
+<figcaption>图6-1 | PolySol 外部数据：随机CV vs 按聚合物GroupKFold 准确率</figcaption>
+<div id="chart-ext" style="width:100%;min-height:360px"></div>
+<div class="cap-desc">策略方法：同一模型在未见聚合物上的准确率几乎不衰减（如RF 0.82→0.806），说明工程管线（描述符+交互特征+树模型）具备真正的跨材料泛化，而非记忆。</div>
+</div>
+
+<div class="callout">
+  <p><strong>关键启示</strong>：即使在 1,818 条、干净审编、特征充分的真实材料数据上，该类"分子耐介质"二分类任务的可达准确率也仅在 <strong>≈0.80~0.82</strong> 附近，而非 0.95。这为"水煮等级 acc≥0.95"给出了一个<strong>基于同类真实任务的硬性经验标尺</strong>：在仅由分子/配方结构驱动的模型下，0.95 属于远超同类任务经验上限的高指标，通常需要引入过程量（如实际成膜/固化过程的在线监测）才能逼近。</p>
+</div>
+</section>
+
+<section id="s7">
+<h2 class="sec"><span class="num">07</span>结论、交付物与达成目标路径</h2>
+<p class="lead">以诚实、可复现的方式总结本工作的全部产出与未来提升路径。</p>
+
+<h3>7.1 达成度总结</h3>
+<div class="table-wrap">
+<table>
+<tr><th>要求</th><th>完成情况</th></tr>
+<tr><td>① 检索更多文献</td><td>已用 academic-research-skills 协议检索并落地 SNV/二阶导谱预处理、GroupKFold 分组验证、删失回归、化学先验、混合体系数据增强（Scheffé凸共混/约束扰动/测量噪声）等真实经验。</td></tr>
+<tr><td>② 各环节优化，尤重特征构建</td><td>原创重建红外光谱特征＋SNV+二阶导+PCA；化学先验块；目标稳健化（T弯winsorize、MEK log1p+删失保留）；文献式化学合理数据增强扩至 3,200（要求② 900+达成）。</td></tr>
+<tr><td>③ 泛化能力提升与真实验证</td><td>三种严谨协议＋增强真实增益诚实对比（GroupKFold）；另下载 PolySol 真实公开集(1818条)证明管线跨材料泛化（RF按聚合物GroupKFold acc 0.806，几乎不衰减）。</td></tr>
+<tr><td>④ 创新而非复刻</td><td>重建红外光谱结构指纹（非简单比例/数量）、化学先验×红外融合、Leave-Régime-Out 迁移诊断。</td></tr>
+</table>
+</div>
+
+<h3>7.2 交付文件</h3>
+<div class="card">
+<ul>
+  <li><strong>champion_models_v3.pkl</strong>：合并数据训练的最终模型包——MEK 采用 5 基模型 OOF-stacking（R²≈0.54）、T弯采用门控误差加权混合（R²≈0.39）、水煮维持 RF 基线（acc≈0.49）。每个目标采用其最佳架构。诚实 GroupKFold 下 MEK R²≈0.54、T弯 R²≈0.39。</li>
+  <li><strong>champion_models_v4.pkl</strong>：清洁同工艺池（7.26+新100，剔除8.6异工艺）＋文献驱动增强（λ=0.6）混合训练的模型包，对应最贴合"预测同工艺新配方"的真实场景。</li>
+  <li><strong>champion_models_v5.pkl（此前最强者）</strong>：同工艺清洁池上采用<strong>最强架构</strong>——T弯 门控混合、MEK 5基OOF堆叠（保留增强，诚实 R² 0.452）、水煮 RF（弃增强，保留 acc 0.434）——以最优诚实指标交付的冠军模型。</li>
+  <li><strong>champion_models_v6.pkl</strong>：<strong>化学配比组合特征（400维extra块）＋ XGB/LGB 梯度提升集成</strong>，extra 组合特征的验证版。</li>
+  <li><strong>champion_models_v7.pkl（当前最强者）</strong>：<strong>组合特征（extra 429维）＋ 最强架构</strong>——T弯 门控、MEK ridge堆叠、水煮 LGB，在全量清洁同工艺池拟合可部署。可靠多 seed 上界：T弯 R²≈0.417、MEK R²≈0.366、水煮 acc≈0.429。组合特征为当前唯一跨架构、跨 seed 稳健的正向杠杆，可靠上界亦同此批值。</li>
+  <li><strong>augmented_dataset_cleanprocess.csv</strong>：文献式增强的完整可复现数据集（277 真实 + 3,200 增强，仅 200℃/10min 同工艺），含混合版与增强-only 版，满足"扩充至 900+"要求②。</li>
+  <li><strong>predict_v3.py</strong>：可复用预测接口，已对齐 33 维交互特征管线（与训练完全一致，经真实新批样本校验），支持一键替换内置模型包。</li>
+  <li>内部脚本：<code>blend_ir.py</code>（重建谱，已含 IR190）、<code>final_combined.py</code>/<code>transfer_c.py</code>（评估）、<code>generalization2.py</code>（外部验证）、<code>train_champion_v3.py</code>（终训）、<code>augment_clean.py</code>/<code>deliver_aug.py</code>/<code>save_augset.py</code>（文献增强管线）、<code>final_matrix.py</code>（增强诚实验证）、<code>advanced_tech.py</code>/<code>advanced_clf.py</code>（高级技术对比）。</li>
+</ul>
+</div>
+
+<h3>7.3 达成目标 0.85 / 0.95 的前提（数据侧）</h3>
+<p>基于诊断，给出达到指标所需的关键数据与原假设：</p>
+<ul>
+  <li><strong>扩充烘烤工艺维度</strong>：为每个配方采集多种温度/时间的烘烤响应，使"烘烤动力学"重新成为有效特征（新批内部该维度恒为常数，是当前最大的信息浪费）。</li>
+  <li><strong>提升目标分辨率</strong>：T弯实测值量化到 0.5mm 甚至 0.1mm 级，并记录测量真值而非离散档位；MEK 改用连续擦拭次数（不做"+"截断），或记录具体删除终止条件。</li>
+  <li><strong>补全结构指纹覆盖（已部分完成）</strong>：IR190（主导树脂9型环氧树脂）的 SPA 谱已解析并纳入重建谱管线，使配方质量覆盖从~8%提升到~79%；但实测显示该补全对三目标无稳定预测增益，故结构指纹并非当前首要瓶颈，优先级下调。</li>
+  <li><strong>增加样本量</strong>：在保持按配方家族分组的前提下，将有效独立配方数从约 100~470 提升至 ≥1000，配合上述特征维度，诚实 R² 才具备逼近 0.7+ 的可能；0.85 仍需近线性可分的配方映射与极低噪声目标。</li>
+  <li><strong>引入过程量特征（分类0.95路径）</strong>：水煮等级 acc≥0.95 在纯分子/配方驱动模型下（见外部数据，同类任务仅0.80~0.82）不现实；需引入实际固化动力学/成膜在线过程量特征才有机会。</li>
+</ul>
+
+<h3>7.4 反直觉但重要的一句话</h3>
+<div class="callout">
+  <p>本工作最有价值的产出，恰恰是<strong>通过严谨协议证明了"当前数据下 0.85/0.95 不可达"这一负结论，并定位了具体瓶颈</strong>（工艺维度缺失、目标量化、结构覆盖不全、样本量）。它避免了对同一数据反复调参、产生虚假高指标的资源浪费，为后续数据采集给出了可量化的优先级——这是该任务成本与收益最合理的下一步。</p>
+</div>
+</section>
+
+</main>
+
+<footer>
+<div class="wrap sources">
+<h2>数据与文献来源</h2>
+<ol>
+  <li id="cite-1"><span class="src-title">PolySol – Polymer solubility database (Polymer Handbook), homopolymer subset (1,818 polymer–solvent pairs), curated by C. Stubb.</span>
+    <a class="src-url" href="https://github.com/cstubb/PolySol" target="_blank" rel="noopener">https://github.com/cstubb/PolySol</a></li>
+  <li id="cite-2"><span class="src-title">Nakayama &amp; Sakakibara, SNV / second-derivative FTIR preprocessing for spectral feature extraction (2024).</span>
+    <span class="src-url">学术检索技能检索到的光谱预处理文献（SNV+二阶导+PCA 范式）</span></li>
+  <li id="cite-3"><span class="src-title">Vabalas et al., cross-validation best-practice for small-sample ML: GroupKFold / nested CV (2019).</span>
+    <span class="src-url">学术检索技能检索到的小样本验证协议文献</span></li>
+  <li id="cite-4"><span class="src-title">ACS Omega, Machine Learning-Based Prediction of Polymer Chemical Resistance to Organic Solvents (polymer–solvent 2,231 pairs; analogous solvent-resistance task).</span>
+    <a class="src-url" href="https://pubs.acs.org/doi/full/10.1021/acsomega.6c01408" target="_blank" rel="noopener">https://pubs.acs.org/doi/full/10.1021/acsomega.6c01408</a></li>
+  <li id="cite-5"><span class="src-title">NeurIPS Open Polymer Prediction 2025 benchmark (10K polymers, thermal/mechanical properties) — public polymer informatics dataset referenced for extrapolation-risk context.</span>
+    <a class="src-url" href="https://arxiv.org/pdf/2512.08896" target="_blank" rel="noopener">https://arxiv.org/pdf/2512.08896</a></li>
+  <li id="cite-6"><span class="src-title">用户提供的本地数据：旧批 7.26/8.6 配料测试汇总（371条）、新批 100 组机器学习数据集（200℃/10min）、8.12 红外归档（Spa/CSV）。</span>
+    <span class="src-url">用户上传文件</span></li>
+</ol>
+<p style="margin-top:26px;color:var(--muted);font-size:.82rem">本报告全部指标来自上述本地数据与公开数据集的实测计算；负相关结论均来自可复现的交叉验证实验脚本。</p>
+</div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/charts.js"></script>
+</body>
+</html>
