@@ -40,6 +40,7 @@ from CoatingModelWorkbench import (
     canon, ENH_FEATURES, SMI_AGG_KEYS, CONT_DESC, ROLES, RTYPES,
 )
 from materials import MAT, ALIAS
+from flow import suggest_type, validate_file, build_manifest, FILE_TYPES
 
 # ---------- 数据整理：格式识别与解析（复用 DataPrepWorkbench 逻辑） ----------
 NOISE = {'合计', '固含', '硬度', '刮伤', '度系数最终值', '佳仪滑度'}
@@ -706,6 +707,19 @@ class Handler(BaseHTTPRequestHandler):
         elif p == '/api/meta':
             body, ctype = _json_ok({'ok': True, **build_manual_entry()})
             self._send(body, ctype)
+        elif p == '/api/export/manifest':
+            # 导出流水线清单（可复现审计）
+            try:
+                manifest = build_manifest(STATE.get('_files', []), STATE.get('_ftypes', {}),
+                                          {'mat_count': len(STATE['mat_lib'] or {}),
+                                           'sample_count': len(STATE['samples'] or {}),
+                                           'labeled_count': sum(1 for s in (STATE['samples'] or {}).values() if s.get('标签状态') == '实测'),
+                                           'perf_count': sum(len(v) for v in (STATE['perf'] or {}).values())})
+                body, ctype = _json_ok({'ok': True, 'manifest': manifest})
+                self._send(body, ctype)
+            except Exception as e:
+                body, ctype = _json_err(e)
+                self._send(body, ctype)
         elif p == '/api/export/template':
             try:
                 if not STATE['samples']:
@@ -737,6 +751,42 @@ class Handler(BaseHTTPRequestHandler):
                 _reset_state()
                 body, ctype = _json_ok({'ok': True, 'report': STATE['report']})
                 self._send(body, ctype)
+            elif p == '/api/upload':
+                # 仅上传到临时目录（供预校验使用，不整理）
+                ctype = self.headers.get('Content-Type', '')
+                if 'multipart/form-data' not in ctype:
+                    raise ValueError('需要 multipart/form-data 上传')
+                boundary = ctype.split('boundary=')[1].strip().strip('"')
+                raw = self.rfile.read(int(self.headers.get('Content-Length', 0)))
+                files = _parse_multipart(raw, boundary)
+                if not files:
+                    raise ValueError('未收到文件')
+                paths = []
+                for name, data in files:
+                    paths.append(_save_upload(data, name))
+                body, ctype = _json_ok({'ok': True, 'paths': paths})
+                self._send(body, ctype)
+            elif p == '/api/validate':
+                # 预校验：文件类型声明 + 校验（写死规则），返回错误/警告/建议
+                n = int(self.headers.get('Content-Length', 0))
+                payload = json.loads(self.rfile.read(n).decode('utf-8'))
+                paths = payload.get('paths', [])
+                declared = payload.get('declared', {})
+                results = []
+                for pth in paths:
+                    if not os.path.exists(pth):
+                        results.append({'name': os.path.basename(pth), 'ok': False,
+                                        'errors': ['文件不存在'], 'warnings': [], 'info': {}})
+                        continue
+                    ftype = declared.get(os.path.basename(pth)) or suggest_type(pth)
+                    r = validate_file(pth, ftype, STATE['mat_lib'])
+                    r['name'] = os.path.basename(pth)
+                    r['suggested'] = suggest_type(pth)
+                    r['declared'] = ftype
+                    r['type_desc'] = FILE_TYPES.get(ftype, '')
+                    results.append(r)
+                body, ctype = _json_ok({'ok': True, 'results': results})
+                self._send(body, ctype)
             elif p == '/api/organize':
                 # multipart 文件上传
                 ctype = self.headers.get('Content-Type', '')
@@ -752,6 +802,8 @@ class Handler(BaseHTTPRequestHandler):
                     paths.append(_save_upload(data, name))
                 _reset_state()
                 STATE['mat_lib'], STATE['samples'], STATE['perf'], STATE['proc'], STATE['report'] = organize_files(paths)
+                STATE['_files'] = paths
+                STATE['_ftypes'] = {os.path.basename(p): detect_format(p) for p in paths}
                 n_lab = sum(1 for s in STATE['samples'].values() if s.get('标签状态') == '实测')
                 body, ctype = _json_ok({
                     'ok': True,

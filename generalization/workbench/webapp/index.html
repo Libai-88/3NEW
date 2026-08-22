@@ -113,9 +113,15 @@ input:focus, select:focus { outline: 2px solid var(--accent); border-color: tran
       </div>
       <div class="file-list" id="flist1"></div>
       <div class="btn-row">
+        <button class="btn ghost" id="btn_validate">预校验（类型声明+规则检查）</button>
         <button class="btn" id="btn_organize">一键整理</button>
         <button class="btn ghost" id="btn_reset">清空数据</button>
       </div>
+      <p class="tip">固定流程：① 选择数据源 → ② 预校验（自动建议文件类型，可改）→ ③ 一键整理 → ④ 确认报告 → ⑤ 导出。类型声明与校验规则为写死逻辑，领域内容（体系/描述符/工艺）由用户在模板配置表中维护。</p>
+    </div>
+    <div class="card">
+      <h2>预校验结果</h2>
+      <div class="log" id="log_val">选择文件后点击「预校验」…</div>
     </div>
     <div class="card">
       <h2>整理日志</h2>
@@ -126,6 +132,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); border-color: tran
       <p class="hint" style="margin-bottom:0.8rem">整理完成后，可导出为终极版模板结构 Excel，或直接进入「特征一键转换」。</p>
       <div class="btn-row">
         <button class="btn green" id="btn_export_tpl">导出终极版模板 Excel</button>
+        <button class="btn ghost" id="btn_export_manifest">导出流水线清单（JSON）</button>
       </div>
     </div>
   </div>
@@ -283,8 +290,51 @@ $('btn_reset').addEventListener('click', async () => {
   await fetch('/api/reset', { method: 'POST' });
   files = []; renderFileList();
   $('log1').textContent = '已清空数据。';
+  $('log_val').textContent = '已清空。';
   refreshState();
   toast('已清空');
+});
+$('btn_validate').addEventListener('click', async () => {
+  if (!files.length) { toast('请先选择数据源文件', true); return; }
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f);
+  $('btn_validate').disabled = true;
+  try {
+    // 先上传到临时目录
+    const up = await fetch('/api/upload', { method: 'POST', body: fd });
+    const upd = await up.json();
+    if (!upd.ok) { toast('上传失败: ' + upd.error, true); return; }
+    const r = await fetch('/api/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paths: upd.paths, declared: {} }),
+    });
+    const d = await r.json();
+    if (!d.ok) { toast('校验失败: ' + d.error, true); return; }
+    const box = $('log_val');
+    box.innerHTML = '';
+    for (const res of d.results) {
+      const cls = res.ok ? 'ok' : 'err';
+      let html = `<div class="${cls}">【${esc(res.name)}】建议类型: ${esc(res.type_desc)}${res.declared !== res.suggested ? '（已声明: ' + esc(res.declared) + '）' : ''}</div>`;
+      for (const e of res.errors) html += `<div class="err">  ✗ ${esc(e)}</div>`;
+      for (const w of res.warnings) html += `<div class="warn">  ! ${esc(w)}</div>`;
+      if (res.ok && !res.errors.length && !res.warnings.length) html += `<div class="ok">  ✓ 通过</div>`;
+      box.innerHTML += html;
+    }
+    toast('预校验完成');
+  } catch (e) { toast('请求失败: ' + e, true); }
+  finally { $('btn_validate').disabled = false; }
+});
+$('btn_export_manifest').addEventListener('click', async () => {
+  const r = await fetch('/api/export/manifest');
+  if (!r.ok) { const d = await r.json().catch(() => ({})); toast('导出失败: ' + (d.error || r.status), true); return; }
+  const d = await r.json();
+  const blob = new Blob([JSON.stringify(d.manifest, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '流水线清单.json';
+  a.click();
+  toast('已导出流水线清单');
 });
 $('btn_export_tpl').addEventListener('click', async () => {
   const r = await fetch('/api/export/template');
