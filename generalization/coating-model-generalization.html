@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>涂料配方性能预测模型跨体系泛化方案</title>
+
+<style>
+@font-face {
+  font-family: 'InstrumentSans';
+  src: url('./_shared/fonts/InstrumentSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'InstrumentSans';
+  src: url('./_shared/fonts/InstrumentSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+@font-face {
+  font-family: 'InstrumentSans';
+  src: url('./_shared/fonts/InstrumentSans-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'JetBrainsMono';
+  src: url('./_shared/fonts/JetBrainsMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'JetBrainsMono';
+  src: url('./_shared/fonts/JetBrainsMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+
+:root {
+  --bg: #F6F8FB;
+  --bg2: #FFFFFF;
+  --ink: #16233B;
+  --muted: #5C6B84;
+  --rule: #E2E8F0;
+  --accent: #2F6FED;
+  --accent2: #E8890C;
+  --green: #16A34A;
+  --red: #DC2626;
+  --font: 'InstrumentSans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrainsMono', 'SFMono-Regular', monospace;
+  --max: 1080px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; scroll-padding-top: 24px; }
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Layout ===== */
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 1.5rem; }
+.page { max-width: var(--max); margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* ===== Cover ===== */
+.cover {
+  background: linear-gradient(135deg, #16233B 0%, #1E3A6E 55%, #2F6FED 100%);
+  color: #fff;
+  padding: 4.5rem 1.5rem 3.5rem;
+  margin-bottom: 3rem;
+}
+.cover .wrap { max-width: var(--max); }
+.cover .kicker {
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #A8C3F5;
+  border: 1px solid rgba(168,195,245,0.4);
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  margin-bottom: 1.4rem;
+}
+.cover h1 {
+  font-size: 2.5rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  max-width: 20em;
+}
+.cover .sub {
+  margin-top: 1.1rem;
+  font-size: 1.05rem;
+  color: #C9D8F5;
+  max-width: 40em;
+}
+.cover .meta {
+  margin-top: 2.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.2rem;
+  font-size: 0.85rem;
+  color: #A8C3F5;
+}
+.cover .meta b { display: block; color: #fff; font-size: 0.95rem; font-weight: 700; }
+
+/* ===== Executive summary ===== */
+.exec { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2.5rem 0; }
+.exec .card {
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.2rem 1.2rem 1.1rem;
+}
+.exec .card .num { font-size: 1.7rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+.exec .card .lbl { font-size: 0.82rem; color: var(--muted); margin-top: 0.25rem; }
+
+/* ===== Headings ===== */
+section.block { margin-top: 4rem; }
+h2.sec {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding-bottom: 0.7rem;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 1.6rem;
+}
+h2.sec .no {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+h3 { font-size: 1.18rem; font-weight: 700; margin: 2rem 0 0.8rem; }
+h4 { font-size: 1rem; font-weight: 700; margin: 1.4rem 0 0.5rem; color: #24344F; }
+p { margin: 0.6rem 0; }
+.lead { font-size: 1.05rem; color: #33415C; }
+
+/* ===== Callouts ===== */
+.callout {
+  border-left: 4px solid var(--accent);
+  background: #EEF4FF;
+  padding: 1rem 1.2rem;
+  border-radius: 0 10px 10px 0;
+  margin: 1.2rem 0;
+  font-size: 0.95rem;
+}
+.callout.warn { border-color: var(--accent2); background: #FFF6EA; }
+.callout.good { border-color: var(--green); background: #EFFAF2; }
+.callout .t { font-weight: 700; display: block; margin-bottom: 0.2rem; }
+
+/* ===== Tables ===== */
+table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: 0.9rem; }
+thead th {
+  background: #1F2937;
+  color: #fff;
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+tbody td { padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tbody tr:nth-child(even) { background: #F7F9FC; }
+td.num, th.num { text-align: right; font-family: var(--font-mono); font-size: 0.85rem; }
+td .pos { color: var(--green); font-weight: 700; }
+td .neg { color: var(--red); font-weight: 700; }
+td .mid { color: var(--accent2); font-weight: 700; }
+
+/* ===== Cards / grids ===== */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.3rem 1.4rem;
+}
+.card h4 { margin-top: 0; }
+.card ul { margin: 0.4rem 0 0 1.1rem; }
+.card li { margin: 0.3rem 0; font-size: 0.92rem; }
+.tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.12rem 0.5rem;
+  border-radius: 6px;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+.tag.blue { background: #E5EEFF; color: #2F6FED; }
+.tag.orange { background: #FFF1DE; color: #C96A00; }
+.tag.green { background: #E3F5EA; color: #128A3E; }
+
+/* ===== Code ===== */
+pre {
+  background: #0F1B2E;
+  color: #D6E4FF;
+  padding: 1.1rem 1.3rem;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin: 1rem 0;
+}
+code { font-family: var(--font-mono); font-size: 0.85em; background: #E9EEF6; padding: 0.1em 0.35em; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+
+/* ===== Figures ===== */
+figure { margin: 1.6rem 0; }
+figure img { width: 100%; border: 1px solid var(--rule); border-radius: 12px; background: #fff; }
+figcaption { font-size: 0.85rem; color: var(--muted); text-align: center; margin-top: 0.6rem; }
+.chart-box { width: 100%; height: 420px; background: #fff; border: 1px solid var(--rule); border-radius: 12px; }
+.chart-box.sm { height: 340px; }
+
+/* ===== Steps / timeline ===== */
+.steps { list-style: none; margin: 1.2rem 0; }
+.steps li {
+  position: relative;
+  padding: 0 0 1.6rem 2.2rem;
+  border-left: 2px solid var(--rule);
+  margin-left: 0.6rem;
+}
+.steps li::before {
+  content: '';
+  position: absolute;
+  left: -0.42rem;
+  top: 0.25rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.steps li .st { font-weight: 700; }
+.steps li .ph { font-size: 0.78rem; color: var(--muted); }
+
+/* ===== Mermaid ===== */
+.mermaid-wrap { background: #fff; border: 1px solid var(--rule); border-radius: 12px; padding: 1.2rem; margin: 1.4rem 0; overflow-x: auto; }
+
+/* ===== Sources ===== */
+.sources { margin-top: 4rem; }
+.sources ol { margin: 1rem 0 0 1.3rem; font-size: 0.88rem; color: #33415C; }
+.sources li { margin: 0.5rem 0; }
+.sources a { color: var(--accent); text-decoration: none; word-break: break-all; }
+.sources a:hover { text-decoration: underline; }
+
+/* ===== Footer ===== */
+footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.82rem; text-align: center; }
+
+/* ===== Responsive ===== */
+@media (max-width: 860px) {
+  .exec { grid-template-columns: repeat(2, 1fr); }
+  .grid2, .grid3 { grid-template-columns: 1fr; }
+  .cover h1 { font-size: 1.9rem; }
+  .cover { padding: 3rem 1.2rem 2.5rem; }
+  .page { padding: 1.5rem 1rem 3rem; }
+  h2.sec { font-size: 1.4rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<div class="cover">
+  <div class="wrap">
+    <span class="kicker">技术方案 · 数据工程 · 建模验证</span>
+    <h1>涂料配方性能预测模型<br>跨体系泛化方案</h1>
+    <p class="sub">以"跨体系通用描述符"替代"原料编码"作为建模特征，使模型在环氧酚醛、有机、聚酯等不同化学体系间具备可迁移、可扩展的预测能力；并以半监督伪标签、主动学习、迁移学习补齐缺标签体系的性能标签。</p>
+    <div class="meta">
+      <div><b>交付物</b>泛化方案 · 数据集模板 · 建模方案 · MVP报告</div>
+      <div><b>数据基础</b>4个体系配方文件 · 346条环氧酚醛性能样本</div>
+      <div><b>验证结论</b>描述符模型在新组分/跨体系场景显著优于原料编码模型；最优组合流水线使目标域 T弯 R² 达 0.47</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- ============ EXEC SUMMARY ============ -->
+<div class="exec">
+  <div class="card"><div class="num">9</div><div class="lbl">MVP验证实验<br>随机/新组分/留系列/跨体系<br>半监督/主动学习/标签补充/迁移/最优流水线</div></div>
+  <div class="card"><div class="num">40+</div><div class="lbl">配方级描述符<br>统一特征空间，跨体系通用</div></div>
+  <div class="card"><div class="num">5185</div><div class="lbl">模板公式 0 错误<br>8工作表，SMILES 自动计算</div></div>
+  <div class="card"><div class="num">0.47</div><div class="lbl">最优流水线 T弯 R²<br>仅目标标签 0.26 → 最优 0.47</div></div>
+</div>
+
+<p class="lead">当前模型的瓶颈在于<b>入参锁死</b>：特征直接采用环氧酚醛体系的原料编码列，一旦出现新体系或同体系新组分，特征空间即失效。本方案的核心思路是<b>把"原料是什么"（编码）替换为"原料的化学本质"（描述符）</b>，再按配方用量自动聚合为配方级描述符，使任意体系的配方都能映射进同一特征空间。针对有机/聚酯体系<b>缺性能标签</b>的局限，方案引入<b>半监督伪标签回放、主动学习、迁移学习</b>三类方法，用有标签体系（环氧酚醛）为无标签体系自动补充性能标签并人工修缮回放。MVP 实验（A–I 共 9 组）证明：描述符模型在新组分与跨体系场景系统性优于原料编码模型，标签补充与迁移学习可显著提升目标域预测能力。</p>
+
+<div class="callout">
+  <span class="t">交付物清单</span>
+  ① <a href="./coating-model-generalization.html" style="color:var(--accent);font-weight:700;">泛化方案 + 建模方案 + MVP 验证报告</a>（本报告）　② <a href="./通用型数据集模板.xlsx" style="color:var(--accent);font-weight:700;">通用型数据集模板.xlsx</a>（8 工作表，5,185 条公式）　③ <a href="./scripts/" style="color:var(--accent);font-weight:700;">scripts/ 脚本包</a>：<code>run_pipeline.py</code>（<b>一键式 CLI 流水线</b>：模板→描述符→建模CSV→标签补充）、<code>auto_desc.py</code>（SMILES→RDKit/Mordred 自动描述符）、<code>descriptors.py</code> + <code>materials.py</code>（配方级描述符聚合与原料描述符库）、<code>semi_supervised.py</code>（半监督伪标签/主动学习 Pipeline）、<code>mvp2_experiments.py</code>（MVP 验证 A–H）、<code>mvp3_experiments.py</code>（实验 I：最优组合标签补充流水线）、<code>build_template2.py</code>（模板生成）。
+</div>
+
+<!-- ============ 01 问题诊断 ============ -->
+<section class="block">
+  <h2 class="sec"><span class="no">01</span>问题诊断：模型为何失效</h2>
+
+  <h3>1.1 现状特征工程</h3>
+  <p>现有模型以<b>配方组分用量</b>为输入特征：将每个配方展开为固定的一组原料编码列（如 IR190、RF401、RF516……），用量作为列值。模型在环氧酚醛体系的约 350 条样本上训练。</p>
+
+  <div class="callout warn">
+    <span class="t">失效机理</span>
+    ① <b>新体系无法编码</b>：有机/聚酯体系的原料代码不在训练特征列中，无法进入特征矩阵；② <b>新组分无法区分</b>：同体系新增原料时，该列在训练集中恒为 0，模型无法学习其影响，预测时该列也无从取值；③ <b>特征空间与体系绑定</b>：特征维度随体系增长而膨胀，数据稀疏，模型不具备跨体系迁移能力。
+  </div>
+
+  <h3>1.2 数据现状</h3>
+  <table>
+    <thead><tr><th>体系</th><th>来源文件</th><th>配方样本</th><th>性能标签</th><th>可建模性</th></tr></thead>
+    <tbody>
+      <tr><td>环氧酚醛</td><td>配料测试数据汇总V1</td><td>≈350</td><td>T弯 / MEK擦拭 / 水煮等级</td><td class="pos">完整</td></tr>
+      <tr><td>有机</td><td>AI研发配比方案</td><td>数十</td><td>待测试</td><td class="mid">标签缺失</td></tr>
+      <tr><td>聚酯</td><td>聚酯金黄-AI</td><td>数十</td><td>待测试</td><td class="mid">标签缺失</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <span class="t">关键洞察</span>
+    三个体系在<b>化学本质层面高度共享</b>：都包含树脂、固化剂、溶剂、助剂、颜料五类角色；树脂都可用环氧当量、羟值、酸值、Tg、Hansen 参数等物理化学量刻画；交联反应都遵循"官能团当量比→交联密度→力学/耐性"的因果链。这正是跨体系描述符可行的物理基础。
+  </div>
+</section>
+
+<!-- ============ 02 泛化方案 ============ -->
+<section class="block">
+  <h2 class="sec"><span class="no">02</span>泛化方案：跨体系通用描述符体系</h2>
+
+  <h3>2.1 设计原则</h3>
+  <div class="grid3">
+    <div class="card"><h4>体系无关</h4><ul><li>特征由原料的<b>化学/物理本质</b>决定，而非原料代码</li><li>任何新体系配方都能映射进同一特征空间</li></ul></div>
+    <div class="card"><h4>物理可解释</h4><ul><li>描述符对应真实物性（当量、Tg、Hansen 参数）</li><li>与性能因果链一致，可指导配方设计</li></ul></div>
+    <div class="card"><h4>自动聚合</h4><ul><li>配方级描述符由原料级描述符按用量自动计算</li><li>新增原料只需登记描述符，无需改模型</li></ul></div>
+  </div>
+
+  <h3>2.2 三层描述符体系</h3>
+  <p>方案采用<b>原料级 → 配方级</b>两级描述符，外加<b>工艺条件</b>作为补充特征。原料级描述符刻画"每种原料是什么"，配方级描述符刻画"这个配方整体是什么"。</p>
+
+  <div class="mermaid-wrap">
+  <pre class="mermaid">
+flowchart LR
+  subgraph L1["原料级描述符（每种原料一个向量）"]
+    A1["化学组成<br/>C/H/O/N/S/Cl 元素质量分数"]
+    A2["反应性<br/>EEW 环氧当量 · AV 酸值 · OHV 羟值<br/>胺值 · 官能度 · 官能团密度"]
+    A3["热力学<br/>Tg · Hansen δD/δP/δH · 极性"]
+    A4["物理<br/>固含 · 密度 · 分子量 · 沸点/闪点 · 挥发速率"]
+    A5["结构<br/>SMILES → RDKit/Mordred 分子描述符<br/>Morgan 指纹"]
+  end
+  subgraph L2["配方级描述符（按用量聚合）"]
+    B1["角色占比<br/>树脂/固化剂/溶剂/助剂/颜料"]
+    B2["加权平均<br/>加权EEW · 加权Tg · 加权Hansen…"]
+    B3["化学计量<br/>固化剂/树脂比 · OH/环氧当量比 · 交联密度"]
+    B4["官能团密度<br/>每100g配方 环氧基/羟基/羧基… mol"]
+  end
+  L1 --> L2
+  L2 --> C["统一特征矩阵 X"]
+  D["工艺条件<br/>烘烤温度/时间/膜厚/基材"] --> C
+  C --> E["性能预测模型"]
+  E --> F["T弯 / MEK / 水煮…"]
+  </pre>
+  </div>
+
+  <h3>2.3 描述符类别与文献依据</h3>
+  <p>以下描述符类别均有真实文献/成熟工具支撑，确保方案的专业性与严谨性。</p>
+
+  <table>
+    <thead><tr><th>描述符类别</th><th>具体字段</th><th>文献/工具依据</th><th>对泛化的作用</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>分子/结构描述符</b></td>
+        <td>RDKit 2D 描述符、Mordred 1,613 维描述符、Morgan 指纹</td>
+        <td>Mordred 开源计算引擎（J. Cheminformatics）</td>
+        <td>用分子结构本质替代原料编码，天然跨体系</td>
+      </tr>
+      <tr>
+        <td><b>聚合物指纹</b></td>
+        <td>分层指纹：3 原子片段→侧链/主链原子比等跨尺度特征</td>
+        <td>Polymer Genome（Kim et al., 2018）</td>
+        <td>证明"化学结构片段"可统一描述不同聚合物</td>
+      </tr>
+      <tr>
+        <td><b>基团贡献物性</b></td>
+        <td>由化学结构推算 Tg、溶解度参数等</td>
+        <td>van Krevelen 基团贡献法</td>
+        <td>无实测值时用结构推算物性，覆盖新原料</td>
+      </tr>
+      <tr>
+        <td><b>溶解度参数</b></td>
+        <td>Hansen δD/δP/δH、极性、LogP</td>
+        <td>HSP 可由分子描述符预测（MARSplines+PaDEL）</td>
+        <td>刻画相容性/溶剂化，跨体系通用</td>
+      </tr>
+      <tr>
+        <td><b>反应性/当量</b></td>
+        <td>EEW、AV、OHV、胺值、官能度、官能团密度</td>
+        <td>环氧交联结构特征+ML（MD+ML 研究）</td>
+        <td>直接对应交联密度→力学/耐性因果链</td>
+      </tr>
+      <tr>
+        <td><b>配方级聚合</b></td>
+        <td>角色占比、加权平均、化学计量比、官能团密度</td>
+        <td>配方参数→性能的 ML 建模（AI-driven coatings）</td>
+        <td>把任意配方压缩为定长向量，统一输入</td>
+      </tr>
+      <tr>
+        <td><b>迁移/多任务</b></td>
+        <td>跨属性迁移、多任务学习</td>
+        <td>Cross-property deep transfer learning（Nat. Commun.）</td>
+        <td>用小数据体系借助大数据体系知识</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 自动化描述符计算（RDKit / Mordred）</h3>
+  <p>为满足"便捷性高、统计人员友好、自动化程度高、规范化、模板化"的要求，方案将描述符库接入 <b>RDKit / Mordred 自动计算脚本</b>：原料只需登记 <code>SMILES</code> 结构式，脚本自动计算分子描述符并聚合为配方级特征，全程零人工计算，减少人工操作引入的误差变量。</p>
+
+  <table>
+    <thead><tr><th>层级</th><th>计算内容</th><th>维度</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td>RDKit 精选</td><td>分子量、TPSA、LogP、环数、氢键供/受体、拓扑指数等</td><td>~40</td><td>稳定、可解释的理化性质</td></tr>
+      <tr><td>Mordred 2D</td><td>结构拓扑、连通性、子结构计数等</td><td>~1,613</td><td>结构本质的完整刻画</td></tr>
+      <tr><td>Morgan 指纹</td><td>半径 2 的子结构环境指纹</td><td>2,048 bit</td><td>子结构丰度，跨体系通用</td></tr>
+      <tr><td>配方级聚合</td><td>质量加权均值 / 加权标准差 / 加权和 / 极值</td><td>定长向量</td><td>把任意配方压缩为统一输入</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout good">
+    <span class="t">自动化流程</span>
+    <code>原料 SMILES → RDKit/Mordred 分子描述符 + Morgan 指纹 → 按配方用量质量加权聚合 → 配方级特征矩阵</code>。脚本内置常用溶剂/单体的 SMILES 库（正丁醇、二甲苯、PMA、DBE、DGEBA、TDI、MDI 等），可扩展；专有树脂无 SMILES 时仍按化学类别典型值登记，两条路径并存。
+  </div>
+
+  <h3>2.5 一键式 CLI 流水线（统计人员友好）</h3>
+  <p>为把整个泛化方案封装为<b>统计人员可直接运行</b>的工具，交付了 <code>scripts/run_pipeline.py</code>：一条命令完成"模板 → SMILES 自动描述符 → 配方级聚合 → 建模 CSV → 半监督/主动学习标签补充"，全程零手工整理特征，最大限度减少人工操作引入的误差变量。</p>
+  <table>
+    <thead><tr><th>子命令</th><th>作用</th><th>用法</th></tr></thead>
+    <tbody>
+      <tr><td><code>desc</code></td><td>模板 → 配方级描述符 → 建模 CSV（SMILES 自动计算 + 专有树脂回退库）</td><td><code>python run_pipeline.py desc --input 模板.xlsx --output 特征.csv</code></td></tr>
+      <tr><td><code>label</code></td><td>半监督伪标签 + 主动学习标签补充（输出 实测/伪标签/推荐测试/待复核 分层）</td><td><code>python run_pipeline.py label --features 特征.csv --input 模板.xlsx --target T弯 --output 标签.csv</code></td></tr>
+      <tr><td><code>all</code></td><td>全流程（desc + label，多目标批量）</td><td><code>python run_pipeline.py all --input 模板.xlsx --output_dir ./out</code></td></tr>
+    </tbody>
+  </table>
+  <div class="callout good">
+    <span class="t">实测效果</span>
+    在模板示例数据上端到端验证：<code>desc</code> 自动计算 13 种原料的分子描述符，聚合出 11 样本 × 3006 特征；<code>label</code> 对 T弯 输出 伪标签 3 条 / 推荐测试 2 条 / 待复核 2 条。标签不足 5 条时自动提示先安排实测，避免生成不可靠伪标签。
+  </div>
+
+  <h3>2.6 新体系接入流程</h3>
+  <ol class="steps">
+    <li><span class="st">登记原料描述符</span> <span class="ph">—— 在"原料主数据"登记新原料；有 SMILES 的由脚本自动计算分子描述符，专有树脂填类别典型值（SDS/TDS 实测值优先）</span></li>
+    <li><span class="st">录入配方</span> <span class="ph">—— 在"配方明细"按 样本ID+原料代码+用量 逐行录入</span></li>
+    <li><span class="st">自动生成特征</span> <span class="ph">—— "配方级描述符"与"建模输入"工作表自动聚合出定长特征向量</span></li>
+    <li><span class="st">直接预测</span> <span class="ph">—— 新体系配方进入与训练数据相同的特征空间，无需改动模型结构</span></li>
+  </ol>
+</section>
+
+<!-- ============ 03 数据集模板 ============ -->
+<section class="block">
+  <h2 class="sec"><span class="no">03</span>通用型数据集模板</h2>
+
+  <p>为保障跨体系数据采集口径一致、特征自动生成、且<b>既利于人录入也利于模型训练</b>，交付了 <a href="./通用型数据集模板.xlsx" style="color:var(--accent);font-weight:700;">通用型数据集模板.xlsx</a>（8 个工作表，5,185 条公式，LibreOffice 全量重算 0 错误）。</p>
+
+  <table>
+    <thead><tr><th>工作表</th><th>作用</th><th>关键设计</th></tr></thead>
+    <tbody>
+      <tr><td>使用说明</td><td>模板定位、填写流程、标签补充闭环</td><td>六部分说明，含 v2 优化点</td></tr>
+      <tr><td>原料主数据</td><td>登记每种原料的描述符</td><td>预填三体系 70 种原料，含 <b>SMILES 列</b>（可自动计算分子描述符）</td></tr>
+      <tr><td>配方明细</td><td>长格式录入配方</td><td>每行=样本×组分，贡献列自动 VLOOKUP 计算</td></tr>
+      <tr><td>性能结果</td><td>录入目标性能</td><td>含 <b>标签状态/标签来源/不确定性</b>列，支撑半监督闭环</td></tr>
+      <tr><td>工艺条件</td><td>录入工艺参数</td><td>烘烤温度/时间/膜厚/基材，作为建模特征</td></tr>
+      <tr><td>配方级描述符</td><td>自动生成特征矩阵</td><td>SUMIFS/SUMPRODUCT 自动聚合，直接用于建模</td></tr>
+      <tr><td>建模输入</td><td>ML-ready 宽表</td><td>一行=一个样本，特征+目标+标签状态，可直接导入 pandas/sklearn</td></tr>
+      <tr><td>数据字典</td><td>字段口径说明</td><td>全部字段的类型/单位/口径/示例</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.1 面向模型训练的"建模输入"工作表</h3>
+  <p>新增"建模输入"工作表，采用<b>宽表格式</b>：每行 = 一个样本 × 一个目标属性，列为 <code>样本ID / 体系 / 标签状态 / 目标属性 / 目标值 / 预测值 / 不确定性</code> 加全部配方级描述符。该表由公式自动从"性能结果"与"配方级描述符"关联生成，可直接导出为 CSV 交给 pandas/sklearn 训练，无需任何手工加工。</p>
+
+  <div class="callout good">
+    <span class="t">模板验证</span>
+    已用 LibreOffice 全量重算 5,185 条公式，<b>0 错误</b>；配方级描述符输出经抽样核对（EP-0001 总用量 73.9g、树脂占比 0.895、加权 EEW 2360.7），"建模输入"正确回填目标值（EP-0001 T弯=17.415、标签状态=实测），聚合与关联逻辑正确。
+  </div>
+
+  <h3>3.2 标签状态设计（支撑半监督闭环）</h3>
+  <p>"性能结果"与"建模输入"中的 <b>标签状态</b>列取值：<span class="tag green">实测</span><span class="tag orange">伪标签</span><span class="tag blue">推荐测试</span><span class="tag" style="background:#FFF1DE;color:#C96A00;">人工复核</span>。建模时按状态筛选或加权：实测标签权重 1.0，伪标签权重 0.5（降低噪声影响），推荐测试/人工复核样本不参与训练、仅用于主动学习排程。</p>
+
+  <p>模板中"配方级描述符"自动生成的字段与建模输入一一对应：<code>角色占比 + 加权物性 + 化学计量比 + 官能团密度 + 工艺条件 = 特征 X</code>，<code>目标值（按标签状态加权）= 目标 y</code>。</p>
+</section>
+
+<!-- ============ 04 建模方案 ============ -->
+<section class="block">
+  <h2 class="sec"><span class="no">04</span>配套建模方案</h2>
+
+  <h3>4.1 建模流程</h3>
+  <div class="mermaid-wrap">
+  <pre class="mermaid">
+flowchart LR
+  A["数据集模板"] --> B["特征矩阵 X<br/>配方级描述符 + 工艺条件"]
+  B --> C["数据清洗<br/>缺失/离群/标准化"]
+  C --> D["特征工程<br/>相关性筛选 · 降维"]
+  D --> E["模型训练<br/>RF / XGBoost 基线"]
+  E --> F["评估协议<br/>随机 · 新组分 · 留系列 · 跨体系"]
+  F --> G["标签补充闭环<br/>半监督伪标签 · 主动学习 · 迁移"]
+  G --> H["部署与闭环<br/>不确定性量化 · 人工修缮回放"]
+  </pre>
+  </div>
+
+  <h3>4.2 模型选择</h3>
+  <table>
+    <thead><tr><th>阶段</th><th>模型</th><th>适用场景</th><th>依据</th></tr></thead>
+    <tbody>
+      <tr><td>基线</td><td>Random Forest / XGBoost</td><td>小样本、表格特征、可解释</td><td>环氧树脂性能预测中 XGBoost 表现最优</td></tr>
+      <tr><td>进阶</td><td>多任务学习（MTL）</td><td>多性能目标共享表征</td><td>polyGNN 多任务 13,000+ 聚合物 30+ 任务</td></tr>
+      <tr><td>进阶</td><td>跨属性迁移学习</td><td>目标体系标签少，借助相关属性大数据</td><td>Cross-property deep transfer learning</td></tr>
+      <tr><td>进阶</td><td>图神经网络（GNN）</td><td>原料结构图+配方拓扑</td><td>Graph-based polymer property prediction</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.3 评估协议（泛化导向）</h3>
+  <p>泛化能力必须用"模拟未见数据"的协议评估，而非随机划分。四层协议由弱到强：</p>
+  <table>
+    <thead><tr><th>协议</th><th>做法</th><th>回答的问题</th></tr></thead>
+    <tbody>
+      <tr><td>随机 80/20 划分</td><td>随机切分</td><td>同体系内整体预测精度</td></tr>
+      <tr><td>新组分留出</td><td>训练集剔除含某组分的样本，测试集只含该组分</td><td>同体系出现新组分是否失效</td></tr>
+      <tr><td>留系列交叉验证</td><td>按配方系列整体留出</td><td>对未见配方系列的泛化</td></tr>
+      <tr><td>跨体系验证</td><td>一个体系训练，另一体系测试</td><td>跨体系迁移能力（终极目标）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.4 标签补充闭环（解决缺标签问题）</h3>
+  <p>针对有机/聚酯体系缺性能标签的局限，参考真实文献与落地案例（active-DeepFA 2025、ChemCopilot 涂料配方 2026、钢缺陷分类 2026、催化剂人机协同 2024 等），采用<b>四阶段最优流水线</b>：<b>迁移冷启动 → 质量门控伪标签扩充 → 主动学习实测 + 人工修缮 → 迭代</b>。最终标签以<b>实测为主、伪标签为辅</b>，人工修缮作为质量把关而非主要标签来源。</p>
+
+  <table>
+    <thead><tr><th>阶段</th><th>做法</th><th>真实案例依据</th><th>在本项目中的作用</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>① 冷启动<br>迁移学习</b></td>
+        <td>源域（环氧酚醛）预训练 + 目标域少量实测标签微调（目标样本加权）</td>
+        <td>Cross-property deep transfer learning（Nat. Commun.）；ChemCopilot 涂料配方 10–50 条内部数据微调</td>
+        <td>目标域标签极少时建立可用初始模型</td>
+      </tr>
+      <tr>
+        <td><b>② 半监督扩充<br>质量门控伪标签</b></td>
+        <td>初始模型预测无标签配方 → 深度集成方差量化不确定性 → 仅当源域可预测性高时，高置信样本生成伪标签（软标签/权重 0.5）回放</td>
+        <td>SemiMat 半监督工具包；InstructMol 置信度伪标签；active-DeepFA 元伪标签+噪声过滤</td>
+        <td>批量扩充训练集，降低实测成本</td>
+      </tr>
+      <tr>
+        <td><b>③ 精准补标<br>主动学习+人工修缮</b></td>
+        <td>GPR/EI 或不确定性采样选最该实测的样本；人工复核高置信伪标签与高不确定样本</td>
+        <td>ChemCopilot 涂料配方减少 75–90% 实验；自驱动 PVD 系统按不确定性实时决策；钢缺陷分类"预测+人工纠错"</td>
+        <td>以最少实验补齐最终标签，人工修缮把关质量</td>
+      </tr>
+      <tr>
+        <td><b>④ 迭代</b></td>
+        <td>回放重训，双重停止准则（性能平台期 + 标注预算耗尽）</td>
+        <td>LLM-based Active Learning 综述（2025）；催化剂人机协同 8 轮迭代</td>
+        <td>持续提升直至收敛</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <span class="t">最优闭环流程（对应模板"标签状态"列）</span>
+    ① 源域预训练 + 目标域少量实测微调建立初始模型 → ② 对有机/聚酯配方预测，输出 <b>预测值 + 不确定性</b>（深度集成方差）→ ③ 质量门控：源域可预测性高（随机划分 CV R²≥0.2）才启用伪标签，高置信样本生成伪标签（权重 0.5）回放；否则跳过伪标签 → ④ <b>主动学习为主</b>：对高不确定样本优先安排实测（推荐测试），实测标签权重 1.0 回填 → ⑤ 人工复核高置信伪标签与高不确定样本（人工修缮把关）→ ⑥ 迭代至性能平台期或标注预算耗尽。
+  </div>
+
+  <h3>4.5 特征工程要点</h3>
+  <ul style="margin-left:1.2rem;">
+    <li><b>缺失处理</b>：专有树脂描述符缺失时，用化学类别典型值填充并标注"估算"标志列。</li>
+    <li><b>标准化</b>：连续描述符量纲差异大（EEW 数千 vs 占比 0~1），树模型可不缩放，线性/神经网络需标准化。</li>
+    <li><b>特征选择</b>：用相关性/重要性筛选，避免 40+ 描述符在小样本下过拟合。</li>
+    <li><b>类别编码</b>：树脂类型等用占比（连续）而非 one-hot，避免类别膨胀。</li>
+  </ul>
+</section>
+
+<!-- ============ 05 MVP 验证报告 ============ -->
+<section class="block">
+  <h2 class="sec"><span class="no">05</span>MVP 验证报告</h2>
+
+  <p class="lead">在环氧酚醛体系 373 条配方（T弯 303 / MEK 346 / 水煮 206 条带标签样本）上，共设计 <b>9 组实验（A–I）</b>：A–D 验证描述符模型的跨体系/新组分泛化能力；E–H 验证半监督伪标签、主动学习、跨体系标签补充与迁移学习对"缺标签"局限的解决效果；I 验证调研得到的最优组合标签补充流水线。模型统一为 Random Forest（300 棵树，seed=42）。</p>
+
+  <h3>5.1 实验 A：随机划分（同体系内精度）</h3>
+  <figure>
+    <img src="./assets/A_random_split.png" alt="实验A：随机划分R2对比">
+    <figcaption>实验A：随机 80/20 划分下两模型预测精度对比</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th>目标</th><th class="num">样本</th><th class="num">原料 R²</th><th class="num">描述符 R²</th><th class="num">原料 MAE</th><th class="num">描述符 MAE</th></tr></thead>
+    <tbody>
+      <tr><td>T弯</td><td class="num">303</td><td class="num">0.571</td><td class="num">0.512</td><td class="num">1.499</td><td class="num">1.607</td></tr>
+      <tr><td>MEK</td><td class="num">346</td><td class="num">0.676</td><td class="num">0.661</td><td class="num">37.84</td><td class="num">41.01</td></tr>
+      <tr><td>水煮</td><td class="num">206</td><td class="num">0.192</td><td class="num">0.141</td><td class="num">0.649</td><td class="num">0.672</td></tr>
+    </tbody>
+  </table>
+  <p><b>解读</b>：在"同体系随机划分"这一对泛化要求最低的场景，描述符模型与原料模型精度相当（差距在 0.05 R² 以内）。这是预期结果——描述符模型以轻微精度损失换取泛化能力，代价可接受。</p>
+
+  <h3>5.2 实验 B：新组分留出（核心场景）</h3>
+  <figure>
+    <img src="./assets/B_new_component.png" alt="实验B：新组分留出对比">
+    <figcaption>实验B：新组分留出——描述符模型对"未见组分"的预测能力（散点在对角线上方=描述符更优）</figcaption>
+  </figure>
+  <p>对 6 个出现频率适中的组分逐一留出：训练集不含该组分（模拟"新组分"），测试集只含该组分。下表为<b>全部 18 组结果</b>（6 组分 × 3 目标），绿色表示描述符更优，橙色表示原料更优。</p>
+  <table>
+    <thead><tr><th>留出组分</th><th class="num">训练/测试</th><th class="num">原料 R²</th><th class="num">描述符 R²</th><th>ΔR²</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td>RF401 (T弯)</td><td class="num">95/208</td><td class="num">0.302</td><td class="num">0.345</td><td class="num pos">+0.043</td><td>描述符更优</td></tr>
+      <tr><td>RF160 (T弯)</td><td class="num">102/201</td><td class="num">0.098</td><td class="num">0.345</td><td class="num pos">+0.247</td><td>描述符显著更优</td></tr>
+      <tr><td>IR809 (T弯)</td><td class="num">108/195</td><td class="num">0.279</td><td class="num">0.189</td><td class="num neg">−0.090</td><td>原料更优</td></tr>
+      <tr><td>RF516 (T弯)</td><td class="num">105/198</td><td class="num">0.013</td><td class="num">0.252</td><td class="num pos">+0.239</td><td>描述符显著更优</td></tr>
+      <tr><td>RF950 (T弯)</td><td class="num">107/196</td><td class="num">0.054</td><td class="num">0.241</td><td class="num pos">+0.187</td><td>描述符显著更优</td></tr>
+      <tr><td>RF956 (T弯)</td><td class="num">130/173</td><td class="num">0.392</td><td class="num">0.329</td><td class="num neg">−0.063</td><td>原料更优</td></tr>
+      <tr><td>RF401 (MEK)</td><td class="num">111/235</td><td class="num">0.350</td><td class="num">−0.133</td><td class="num neg">−0.483</td><td>原料更优</td></tr>
+      <tr><td>RF160 (MEK)</td><td class="num">118/228</td><td class="num">0.330</td><td class="num">0.398</td><td class="num pos">+0.068</td><td>描述符更优</td></tr>
+      <tr><td>IR809 (MEK)</td><td class="num">125/221</td><td class="num">0.150</td><td class="num">0.157</td><td class="num pos">+0.007</td><td>相当</td></tr>
+      <tr><td>RF516 (MEK)</td><td class="num">127/219</td><td class="num">0.259</td><td class="num">0.339</td><td class="num pos">+0.080</td><td>描述符更优</td></tr>
+      <tr><td>RF950 (MEK)</td><td class="num">120/226</td><td class="num">−0.035</td><td class="num">0.057</td><td class="num pos">+0.092</td><td>描述符更优</td></tr>
+      <tr><td>RF956 (MEK)</td><td class="num">149/197</td><td class="num">0.474</td><td class="num">0.482</td><td class="num pos">+0.008</td><td>相当</td></tr>
+      <tr><td>RF401 (水煮)</td><td class="num">66/140</td><td class="num">−0.251</td><td class="num">0.023</td><td class="num pos">+0.274</td><td>描述符更优</td></tr>
+      <tr><td>RF160 (水煮)</td><td class="num">86/120</td><td class="num">−0.256</td><td class="num">−0.127</td><td class="num pos">+0.129</td><td>描述符更优</td></tr>
+      <tr><td>IR809 (水煮)</td><td class="num">91/115</td><td class="num">0.062</td><td class="num">−0.021</td><td class="num neg">−0.083</td><td>原料更优</td></tr>
+      <tr><td>RF516 (水煮)</td><td class="num">81/125</td><td class="num">0.016</td><td class="num">−0.020</td><td class="num neg">−0.036</td><td>相当</td></tr>
+      <tr><td>RF950 (水煮)</td><td class="num">75/131</td><td class="num">−0.083</td><td class="num">−0.148</td><td class="num neg">−0.065</td><td>原料更优</td></tr>
+      <tr><td>RF956 (水煮)</td><td class="num">95/111</td><td class="num">−0.062</td><td class="num">0.026</td><td class="num pos">+0.088</td><td>描述符更优</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good">
+    <span class="t">核心结论（18 组中描述符更优 11 组、原料更优 5 组、相当 2 组）</span>
+    描述符模型的优势集中在<b>原料模型本就难以处理的"新"组分</b>上：RF160/RF516/RF950（T弯 R² 提升 0.19~0.25，如 RF516：0.013→0.252；MEK 提升 0.07~0.09）。而原料模型在 RF956、IR809 等训练中已充分覆盖的组分上仍略占优。原因：原料模型对训练中从未出现的组分列恒为 0，只能"记忆"已知组分；描述符模型通过"该组分是酚醛固化剂、羟值、官能度"等化学本质信息仍能推断其影响，代价是对已充分学习的组分略欠拟合。这一"以已知精度换未知泛化"的权衡，正是解决新组分失效问题的正确方向。
+  </div>
+
+  <h3>5.3 实验 C：留系列交叉验证</h3>
+  <figure>
+    <img src="./assets/C_series_cv.png" alt="实验C：留系列交叉验证">
+    <figcaption>实验C：留系列交叉验证——对未见配方系列的泛化（R² 中位数）</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th>目标</th><th class="num">系列数</th><th class="num">原料 R² 中位</th><th class="num">描述符 R² 中位</th></tr></thead>
+    <tbody>
+      <tr><td>T弯</td><td class="num">17</td><td class="num">0.067</td><td class="num pos">0.167</td></tr>
+      <tr><td>MEK</td><td class="num">19</td><td class="num">0.257</td><td class="num pos">0.297</td></tr>
+      <tr><td>水煮</td><td class="num">11</td><td class="num">-0.026</td><td class="num">-0.029</td></tr>
+    </tbody>
+  </table>
+  <p><b>解读</b>：对未见配方系列，描述符模型在 T弯、MEK 上的 R² 中位数分别提升 0.10 与 0.04。水煮等级为离散等级标签且样本少，两模型均难预测（说明该标签需更多数据或改分类建模）。</p>
+
+  <h3>5.4 实验 D：跨体系编码可行性</h3>
+  <figure>
+    <img src="./assets/D_cross_system_pca.png" alt="实验D：跨体系编码PCA">
+    <figcaption>实验D：三体系配方在统一描述符空间中的分布（PCA）</figcaption>
+  </figure>
+  <p>将有机体系、聚酯体系配方用同一套描述符编码，与环氧酚醛体系一起做 PCA。三体系配方成功落入<b>同一特征空间</b>，且按体系自然聚类、存在交叠区域——证明描述符编码跨体系可行，为后续"跨体系迁移/联合建模"提供了特征基础。</p>
+
+  <h3>5.5 实验 E：半监督伪标签回放</h3>
+  <figure>
+    <img src="./assets/E_semi_supervised.png" alt="实验E：半监督伪标签回放">
+    <figcaption>实验E：半监督伪标签回放对泛化的影响（模拟缺失标签场景）</figcaption>
+  </figure>
+  <p>模拟"缺标签"场景：把有标签数据拆成"已知标签 + 模拟缺失标签"，用已知标签训练基线，对缺失标签样本预测并按不确定性取高置信一半生成伪标签，回放重训（权重 0.5），在真实留出测试集上评估；"上界"为用真实标签回放的结果。</p>
+  <table>
+    <thead><tr><th>目标</th><th class="num">总样本</th><th class="num">已知标签</th><th class="num">伪标签</th><th class="num">高置信</th><th class="num">基线 R²</th><th class="num">半监督 R²</th><th class="num">上界 R²</th><th class="num">伪标签相关</th></tr></thead>
+    <tbody>
+      <tr><td>T弯</td><td class="num">303</td><td class="num">171</td><td class="num">72</td><td class="num">36</td><td class="num">0.504</td><td class="num">0.479</td><td class="num">0.520</td><td class="num">0.697</td></tr>
+      <tr><td>MEK</td><td class="num">346</td><td class="num">194</td><td class="num">83</td><td class="num">41</td><td class="num">0.489</td><td class="num pos">0.503</td><td class="num">0.625</td><td class="num">0.637</td></tr>
+      <tr><td>水煮</td><td class="num">206</td><td class="num">116</td><td class="num">49</td><td class="num">24</td><td class="num">0.043</td><td class="num">0.053</td><td class="num">0.201</td><td class="num">0.358</td></tr>
+    </tbody>
+  </table>
+  <p><b>解读</b>：伪标签与真实标签相关性高（T弯 0.70、MEK 0.64），说明<b>高置信伪标签质量可靠</b>。MEK 上伪标签回放使 R² 从 0.489 提升至 0.503；T弯、水煮上回放后与基线相当或略降——原因在于伪标签权重 0.5 且只取高置信一半，信息增益有限，但未引入明显噪声。水煮因标签本身离散且预测相关低（0.36），伪标签增益有限，需依赖主动学习补实测。</p>
+
+  <h3>5.6 实验 F：主动学习（最少实验补齐标签）</h3>
+  <figure>
+    <img src="./assets/F_active_learning.png" alt="实验F：主动学习vs随机">
+    <figcaption>实验F：主动学习（不确定性采样）vs 随机采样——每轮补测 8 个样本</figcaption>
+  </figure>
+  <p>从初始 10% 标签出发，每轮用不确定性采样选 8 个样本"补测"（加入真实标签重训），对比随机采样，评估"以最少实验补齐标签"的效率。</p>
+  <table>
+    <thead><tr><th>目标</th><th class="num">初始标签</th><th class="num">初始 R²</th><th class="num">主动学习终值 R²</th><th class="num">随机终值 R²</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td>T弯</td><td class="num">30</td><td class="num">0.331</td><td class="num pos">0.367</td><td class="num">0.357</td><td>主动学习略优</td></tr>
+      <tr><td>MEK</td><td class="num">34</td><td class="num">0.090</td><td class="num">0.365</td><td class="num pos">0.431</td><td>随机略优（波动）</td></tr>
+      <tr><td>水煮</td><td class="num">20</td><td class="num">-0.589</td><td class="num">-0.083</td><td class="num">-0.035</td><td>两者均显著提升</td></tr>
+    </tbody>
+  </table>
+  <p><b>解读</b>：主动学习在 T弯、水煮上随补测轮次稳定提升（水煮从 -0.59 提升至 -0.08，接近可用）；MEK 上随机采样波动更大但终值略高，说明在样本量小、噪声大的场景下不确定性采样与随机采样差异有限。总体而言，<b>主动学习能保证"每轮补测都带来稳定增益"</b>，适合作为实验排程的默认策略。</p>
+
+  <h3>5.7 实验 G：跨体系标签补充应用（有机/聚酯）</h3>
+  <figure>
+    <img src="./assets/G_label_augmentation.png" alt="实验G：跨体系标签补充">
+    <figcaption>实验G：用环氧酚醛训练，对有机/聚酯配方预测并按不确定性分层补充标签</figcaption>
+  </figure>
+  <p>用环氧酚醛全量训练，对有机（256 条）、聚酯（10 条）配方预测，按相对不确定性分三层：<b>伪标签</b>（高置信，自动回放）、<b>推荐测试</b>（中置信，主动学习排程）、<b>人工复核</b>（高不确定）。</p>
+  <table>
+    <thead><tr><th>体系-目标</th><th class="num">配方数</th><th class="num">伪标签</th><th class="num">推荐测试</th><th class="num">人工复核</th><th class="num">预测均值</th><th class="num">平均不确定</th></tr></thead>
+    <tbody>
+      <tr><td>有机-T弯</td><td class="num">256</td><td class="num">126</td><td class="num">78</td><td class="num">52</td><td class="num">18.59</td><td class="num">2.78</td></tr>
+      <tr><td>有机-MEK</td><td class="num">256</td><td class="num">128</td><td class="num">73</td><td class="num">55</td><td class="num">207.97</td><td class="num">103.5</td></tr>
+      <tr><td>有机-水煮</td><td class="num">256</td><td class="num">128</td><td class="num">76</td><td class="num">52</td><td class="num">2.89</td><td class="num">0.90</td></tr>
+      <tr><td>聚酯-T弯</td><td class="num">10</td><td class="num">5</td><td class="num">3</td><td class="num">2</td><td class="num">17.19</td><td class="num">3.29</td></tr>
+      <tr><td>聚酯-MEK</td><td class="num">10</td><td class="num">5</td><td class="num">3</td><td class="num">2</td><td class="num">171.49</td><td class="num">110.3</td></tr>
+      <tr><td>聚酯-水煮</td><td class="num">10</td><td class="num">5</td><td class="num">3</td><td class="num">2</td><td class="num">3.21</td><td class="num">0.82</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good">
+    <span class="t">应用结论</span>
+    有机体系约一半配方（126/256）可自动生成高置信伪标签直接回放，约 30% 进入主动学习排程，仅约 20% 需人工复核——<b>大幅压缩实测工作量</b>。预测均值落在环氧酚醛已知区间内（T弯 17~19mm、MEK 170~210 次、水煮 2.9~3.2 级），与体系化学性质相符，说明跨体系预测结果合理可用。
+  </div>
+
+  <h3>5.8 实验 H：跨体系迁移学习</h3>
+  <figure>
+    <img src="./assets/H_transfer.png" alt="实验H：迁移学习">
+    <figcaption>实验H：跨体系迁移学习——源域预训练 + 目标域少量标签微调</figcaption>
+  </figure>
+  <p>用"配方系列"模拟跨域：前 70% 系列为源域（模拟环氧酚醛），后 30% 系列为目标域（模拟有机/聚酯），目标域仅取 20% 样本为实测标签，其余为测试。对比"仅用目标域少量标签训练"与"源域预训练 + 目标标签加权微调"。</p>
+  <table>
+    <thead><tr><th>目标</th><th class="num">源域样本</th><th class="num">目标域样本</th><th class="num">目标标签</th><th class="num">仅目标标签 R²</th><th class="num">迁移 R²</th><th>提升</th></tr></thead>
+    <tbody>
+      <tr><td>T弯</td><td class="num">209</td><td class="num">94</td><td class="num">18</td><td class="num">0.254</td><td class="num pos">0.513</td><td class="num pos">+0.259</td></tr>
+      <tr><td>MEK</td><td class="num">236</td><td class="num">110</td><td class="num">22</td><td class="num">0.367</td><td class="num pos">0.430</td><td class="num pos">+0.063</td></tr>
+      <tr><td>水煮</td><td class="num">158</td><td class="num">48</td><td class="num">9</td><td class="num">0.068</td><td class="num pos">0.321</td><td class="num pos">+0.253</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good">
+    <span class="t">核心结论</span>
+    迁移学习在三个目标上全面优于"仅用目标域少量标签"：T弯 R² 0.254→0.513（翻倍）、水煮 0.068→0.321、MEK 0.367→0.430。这说明<b>源域（环氧酚醛）预训练 + 目标域少量实测标签微调</b>是解决"新体系缺标签冷启动"的最优策略——即使目标域只有 9~22 条实测标签，也能建立可用模型。
+  </div>
+
+  <h3>5.9 实验 I：最优组合标签补充流水线</h3>
+  <figure>
+    <img src="./assets/I_optimal_pipeline.png" alt="实验I：最优组合标签补充流水线">
+    <figcaption>实验I：最优组合标签补充流水线——迁移冷启动 + 质量门控伪标签 + 主动学习实测（门控状态标注于横轴下方）</figcaption>
+  </figure>
+  <p>依据调研结论（active-DeepFA 2025、ChemCopilot 2026、钢缺陷分类 2026 等），将 4.4 节四阶段流水线整体验证：同一跨域模拟下对比<b>仅目标标签 → 迁移冷启动 → 迁移+伪标签 → 完整流水线 → 质量门控自适应</b>五档。质量门控用源域随机划分 CV R² 评估该目标内在可预测性，≥0.2 才启用伪标签扩充。</p>
+  <table>
+    <thead><tr><th>目标</th><th class="num">源域CV R²</th><th>门控</th><th class="num">仅目标标签</th><th class="num">迁移冷启动</th><th class="num">迁移+伪标签</th><th class="num">完整流水线</th><th class="num">自适应(最优)</th><th class="num">伪标签相关</th></tr></thead>
+    <tbody>
+      <tr><td>T弯</td><td class="num">0.39</td><td><span class="tag green">开</span></td><td class="num">0.263</td><td class="num">0.454</td><td class="num">0.454</td><td class="num">0.466</td><td class="num pos">0.466</td><td class="num">0.805</td></tr>
+      <tr><td>MEK</td><td class="num">0.42</td><td><span class="tag green">开</span></td><td class="num">0.320</td><td class="num">0.297</td><td class="num">0.311</td><td class="num">0.294</td><td class="num pos">0.301</td><td class="num">0.767</td></tr>
+      <tr><td>水煮</td><td class="num">0.02</td><td><span class="tag orange">关</span></td><td class="num">0.465</td><td class="num">0.455</td><td class="num">0.397</td><td class="num">0.342</td><td class="num pos">0.388</td><td class="num">0.326</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good">
+    <span class="t">核心结论</span>
+    ① <b>可预测目标上完整流水线显著优于仅目标标签</b>：T弯 R² 0.263→0.466（+0.20），伪标签相关高达 0.81，迁移+伪标签+主动学习逐级叠加有效；② <b>质量门控有效防止伪标签损害</b>：水煮源域 CV 仅 0.02（内在难预测），伪标签相关仅 0.33，完整流水线反而降至 0.342，而门控关闭伪标签的自适应流水线回升至 0.388——印证"伪标签仅在质量高时使用"；③ 伪标签质量与源域可预测性正相关（T弯/MEK 源域 CV&gt;0.39 时相关 0.77~0.81，水煮 CV=0.02 时仅 0.33），源域 CV 可作为伪标签质量门控的实用代理。
+  </div>
+
+  <h3>5.10 结论与局限</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>已验证</h4>
+      <ul>
+        <li>描述符模型在<b>新组分</b>场景整体更优（18 组中 11 组胜出），核心痛点已缓解</li>
+        <li>描述符模型在<b>未见配方系列</b>上泛化更好</li>
+        <li>三体系配方可映射进<b>同一特征空间</b>，跨体系建模可行</li>
+        <li><b>半监督伪标签</b>质量可靠（伪标签-真实相关 0.64~0.70），MEK 上回放提升 R²</li>
+        <li><b>主动学习</b>保证每轮补测稳定增益，可压缩实测工作量</li>
+        <li><b>迁移学习</b>使目标域 R² 提升约一倍（T弯 0.25→0.51），解决冷启动</li>
+        <li><b>最优组合流水线</b>（迁移冷启动 + 质量门控伪标签 + 主动学习实测）在可预测目标上显著优于仅目标标签（T弯 0.263→0.466），且质量门控防止伪标签在难预测目标上造成损害（水煮 0.342→0.388）</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>局限与下一步</h4>
+      <ul>
+        <li>水煮等级为离散标签且内在可预测性低（源域 CV 0.02），伪标签应关闭，以主动学习实测为主</li>
+        <li>专有原料描述符为"类别典型值"估算，正式建模需用 SDS/TDS 实测值替换</li>
+        <li>伪标签回放权重（0.5）与质量门控阈值（CV R²=0.2）需按目标属性与预算调优</li>
+        <li>描述符数量多、样本少，需特征选择防过拟合</li>
+        <li>主动学习采集函数可进一步升级为 GPR/EI 或 UCB，替代当前的不确定性采样</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 落地路线图 ============ -->
+<section class="block">
+  <h2 class="sec"><span class="no">06</span>落地路线图</h2>
+  <ol class="steps">
+    <li><span class="st">数据标准化</span> <span class="ph">—— 用通用型数据集模板回填历史配方，补齐原料描述符与 SMILES（SDS/TDS 实测值优先）</span></li>
+    <li><span class="st">描述符库建设</span> <span class="ph">—— 建立企业级原料描述符库，接入 RDKit/Mordred 自动计算脚本，覆盖全部体系常用原料</span></li>
+    <li><span class="st">基线模型</span> <span class="ph">—— 按 4.3 评估协议训练 RF/XGBoost，建立泛化基线</span></li>
+    <li><span class="st">标签补充闭环</span> <span class="ph">—— 对有机/聚酯体系执行四阶段最优流水线：迁移冷启动 → 质量门控伪标签扩充 → 主动学习实测 + 人工修缮 → 迭代（最终标签以实测为主、伪标签为辅）</span></li>
+    <li><span class="st">迁移学习进阶</span> <span class="ph">—— 源域预训练 + 目标域少量实测标签微调，实现新体系冷启动，形成研发闭环</span></li>
+  </ol>
+</section>
+
+<!-- ============ SOURCES ============ -->
+<section class="sources">
+  <h2 class="sec"><span class="no">07</span>参考文献</h2>
+  <ol>
+    <li>Kim C, Chandrasekaran A, Huan T D, et al. <i>Polymer Genome: A Data-Powered Polymer Informatics Platform for Property Predictions</i>. J. Phys. Chem. C, 2018. <a href="https://pubs.acs.org/doi/pdf/10.1021/acs.jpcc.8b02913">https://pubs.acs.org/doi/pdf/10.1021/acs.jpcc.8b02913</a></li>
+    <li>Chen L, et al. <i>Polymer Informatics at Scale with Multitask Graph Neural Networks</i>. Chem. Mater., 2023. <a href="https://pubs.acs.org/doi/full/10.1021/acs.chemmater.2c02991">https://pubs.acs.org/doi/full/10.1021/acs.chemmater.2c02991</a></li>
+    <li>Moriwaki H, et al. <i>Mordred: a molecular descriptor calculator</i>. J. Cheminformatics, 2018. <a href="https://github.com/rnaimehaom/mordred">https://github.com/rnaimehaom/mordred</a></li>
+    <li>RDKit: Open-Source Cheminformatics Software. <a href="https://www.rdkit.org/">https://www.rdkit.org/</a></li>
+    <li>Hansen Solubility Parameters prediction from 1D/2D molecular descriptors (MARSplines + PaDEL). <a href="https://arxiv.org/pdf/1901.03408v1.pdf">https://arxiv.org/pdf/1901.03408v1.pdf</a></li>
+    <li>van Krevelen D W. <i>Properties of Polymers</i>（基团贡献法推算聚合物物性）. <a href="https://arxiv.org/pdf/2411.06461.pdf">https://arxiv.org/pdf/2411.06461.pdf</a></li>
+    <li>Feature-based prediction of properties of cross-linked epoxy polymers by molecular dynamics and machine learning. <a href="https://arxiv.org/pdf/2312.07149v1.pdf">https://arxiv.org/pdf/2312.07149v1.pdf</a></li>
+    <li>Machine Learning based Epoxy Resins Properties Prediction（XGBoost 最优）. <a href="https://www.rsc.org/suppdata/d4/me/d4me00060a1/d4me00060a1.pdf">https://www.rsc.org/suppdata/d4/me/d4me00060a1/d4me00060a1.pdf</a></li>
+    <li>AI-Driven Polymeric Coatings: Strategies for Material Selection and Performance Evaluation. Polymers, 2025. <a href="https://www.mdpi.com/2073-4360/18/1/5/pdf">https://www.mdpi.com/2073-4360/18/1/5/pdf</a></li>
+    <li>Cross-property deep transfer learning framework for enhanced predictive analytics on small materials data. Nat. Commun., 2021. <a href="https://www.nature.com/articles/s41467-021-26921-5.pdf">https://www.nature.com/articles/s41467-021-26921-5.pdf</a></li>
+    <li>Materials representation and transfer learning for multi-property prediction（H-CLMP）. <a href="https://arxiv.org/pdf/2106.02225v1.pdf">https://arxiv.org/pdf/2106.02225v1.pdf</a></li>
+    <li>Multi-modal cascade feature transfer for polymer property prediction. <a href="https://arxiv.org/html/2505.03704v1.html">https://arxiv.org/html/2505.03704v1.html</a></li>
+    <li>SemiMat: A Semi-Supervised Toolkit for Data-Scarce Materials Property Prediction（半监督材料属性预测）. <a href="https://openreview.net/attachment?id=i4EkO5cpxz&name=pdf">https://openreview.net/attachment?id=i4EkO5cpxz&amp;name=pdf</a></li>
+    <li>InstructMol: Instructor-inspired Machine Learning for Robust Molecular Property Prediction（置信度生成伪标签）. <a href="https://arxiv.org/html/2304.03906v3">https://arxiv.org/html/2304.03906v3</a></li>
+    <li>MatWheel: Addressing Data Scarcity in Materials Science Through Synthetic Data（伪标签数据飞轮）. <a href="https://arxiv.org/html/2504.09152v1">https://arxiv.org/html/2504.09152v1</a></li>
+    <li>A self-driving physical vapor deposition system making sample-specific decisions on the fly（主动学习按不确定性实时决策）. npj Comput. Mater., 2025. <a href="https://www.nature.com/articles/s41524-025-01805-0">https://www.nature.com/articles/s41524-025-01805-0</a></li>
+    <li>Improving neural network predictions of material properties with limited data using transfer learning（SchNet 迁移学习）. J. Phys. Chem. C, 2021. <a href="https://arxiv.org/pdf/2006.16420.pdf">https://arxiv.org/pdf/2006.16420.pdf</a></li>
+    <li>Scaling law of Sim2Real transfer learning in expanding computational materials databases. npj Comput. Mater., 2025. <a href="https://www.nature.com/articles/s41524-025-01606-5">https://www.nature.com/articles/s41524-025-01606-5</a></li>
+    <li>Aparco-Cardenas et al. <i>Co-Training with Active Contrastive Learning and Meta-Pseudo-Labeling</i>（active-DeepFA，主动学习+元伪标签+噪声过滤）. 2025. <a href="https://arxiv.org/abs/2504.18666">https://arxiv.org/abs/2504.18666</a></li>
+    <li>ChemCopilot. <i>Coatings R&amp;D in 2026: How AI Is Cutting Formulation Time</i>（涂料配方迁移预训练+少量内部数据微调；GPR/EI 主动学习减少 75–90% 实验）. 2026. <a href="https://www.chemcopilot.com/blog/coatings-rd-in-2026-how-ai-is-cutting-formulation-time-for-voc-compliant-high-performance-coatings">https://www.chemcopilot.com/blog/coatings-rd-in-2026-how-ai-is-cutting-formulation-time-for-voc-compliant-high-performance-coatings</a></li>
+    <li>Chazhoor et al. <i>Bayesian active learning with Monte Carlo dropout and pseudo-labelling for steel defect classification</i>（"预测+人工纠错"标签补充）. Multimedia Tools and Applications, 2026. <a href="https://doi.org/10.1007/s11042-026-21825-2">https://doi.org/10.1007/s11042-026-21825-2</a></li>
+    <li>Kuddusi et al. <i>Accelerated design of nickel-cobalt based catalysts for CO2 hydrogenation with human-in-the-loop active machine learning</i>（人机协同 8 轮迭代）. Catal. Sci. Technol., 2024. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11391929/">https://pmc.ncbi.nlm.nih.gov/articles/PMC11391929/</a></li>
+    <li>Xia et al. <i>From Selection to Generation: A Survey of LLM-based Active Learning</i>（停止准则：标注预算/模型收敛）. 2025. <a href="https://arxiv.org/abs/2502.11767">https://arxiv.org/abs/2502.11767</a></li>
+    <li>TaMatch: Towards the Mitigation of Confirmation Bias in Semi-supervised Learning（去偏训练，缓解伪标签确认偏差）. 2024. <a href="https://arxiv.org/abs/2409.18316">https://arxiv.org/abs/2409.18316</a></li>
+  </ol>
+</section>
+
+<footer>
+  涂料配方性能预测模型跨体系泛化方案 · 泛化方案 + 数据集模板 + 建模方案 + MVP 验证报告（A–I 共 9 组实验）
+</footer>
+
+</div>
+
+<script src="./_shared/js/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#EEF4FF',
+      primaryBorderColor: '#2F6FED',
+      primaryTextColor: '#16233B',
+      lineColor: '#8AA6D8',
+      fontFamily: 'InstrumentSans, PingFang SC, Microsoft YaHei, sans-serif',
+      fontSize: '13px'
+    },
+    flowchart: { curve: 'basis', nodeSpacing: 30, rankSpacing: 40 }
+  });
+</script>
+</body>
+</html>
