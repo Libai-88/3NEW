@@ -35,6 +35,9 @@
         ├── mvp75_experiments.py       # 实验 J：噪声地板 + 多任务/机理特征/加权回归验证
         ├── mvp76_experiments.py       # 实验 K：MEK 截尾诚实评估拆分（代理目标 vs 未截尾回归 vs Tobit）
         ├── mvp76b_experiments.py      # 实验 K-5：MEK 两阶段优化（p_hi 特征 / 软混合 / 双输出）
+        ├── mvp77_experiments.py       # 实验 L：AFT 边界判别（survival:aft，右截尾 [300,inf)）
+        ├── mvp77b_experiments.py      # 实验 L-2：AFT 预测分布与校准分析
+        ├── mvp77c_experiments.py      # 实验 L-3：解耦两阶段（AFT 边界 + 未截尾回归）稳定性验证
         ├── run_pipeline.py            # 通用型流水线 CLI（模板→描述符→建模CSV→标签补充）
         ├── materials.py / descriptors.py / smi_desc.py   # 描述符计算依赖
 ```
@@ -56,7 +59,7 @@
 | 迁移学习冷启动 | 目标域 T弯 R² 约提升一倍（0.25→0.51） |
 | 最优组合流水线 | 可预测目标上 T弯 R² 0.263→0.466（+0.20），质量门控防伪标签损害 |
 | 噪声地板（实验 J） | T弯 理论最大 R²=0.789（模型 0.791 已达上限）；MEK 噪声地板 0.966 含截尾口径；水煮按分类评估 |
-| MEK 截尾诚实评估（实验 K） | 未截尾真实 R²=0.495（p_hi 特征注入，0.474→0.495）；边界判别 acc=0.915 / AUC=0.943；代理目标 R²=0.70 为虚高口径 |
+| MEK 截尾诚实评估（实验 K/L） | 未截尾真实 R²=0.495（p_hi 特征注入，0.474→0.495）；AFT 边界判别 acc=0.9465 / 截尾召回=0.804（对比分类器 acc=0.915/召回=0.522）；代理目标 R²=0.70 为虚高口径 |
 | 最终验证（合并版数据集，20 种子） | 见下方「最终验证」 |
 
 ### 最终验证（`scripts/mvp74_final_verify.py`）
@@ -66,7 +69,7 @@
 | 目标 | 配置 | 结果 | 达标 |
 | --- | --- | --- | --- |
 | T弯（回归） | sqrt 变换 + 噪声过滤 + keep=60 k=8 w=0.85 | R²=0.791（n=251） | ✅ >0.7 |
-| MEK 擦拭（回归） | 两阶段：边界分类器（≥300，AUC=0.943）+ 未截尾回归（含分类器概率特征） | 未截尾 R²=0.495 / 边界 acc=0.915（n=318） | 诚实口径 |
+| MEK 擦拭（回归） | 两阶段：AFT 边界判别（≥300，acc=0.9465 / 截尾召回=0.804）+ 未截尾回归（含分类器概率特征） | 未截尾 R²=0.495 / 边界 acc=0.9465（n=318） | 诚实口径 |
 | 水煮等级（分类） | 每系列阈值 + keep=80 | acc=0.804（n=189） | ✅ >0.8 |
 
 > MEK 说明：46/318 个样本实测值恰为 300（真实值 ≥300 未知，右截尾）。早期「R²=0.701」为含截尾代理值的虚高口径；实验 K（`scripts/mvp76_experiments.py`、`scripts/mvp76b_experiments.py`）将评估拆分为「未截尾真实 R² + 边界分类准确率」两个诚实指标，工作台 MEK 模型相应升级为两阶段结构（边界分类器 + 未截尾回归），端到端验证与实验 K 一致。
@@ -83,19 +86,20 @@
 
 实验 J-3~J-5 验证：加权回归（0.720）、多任务学习（0.689）、机理特征增强（0.691）相对基线（0.691）均无真实提升，**不应作为提分手段**；突破空间在数据质量（降噪、解决 MEK 截尾）与数据多样性（扩体系）两端。
 
-### MEK 截尾处理（`scripts/mvp76_experiments.py`、`scripts/mvp76b_experiments.py`，实验 K）
+### MEK 截尾处理（`scripts/mvp76_experiments.py`、`scripts/mvp76b_experiments.py`、`scripts/mvp77_experiments.py`，实验 K/L）
 
-MEK 擦拭存在右截尾（46/318 样本实测值恰为 300，真实值 ≥300 未知）。实验 K 将评估拆分为「未截尾真实 R² + 边界分类准确率」两个诚实指标，并验证多种截尾处理：
+MEK 擦拭存在右截尾（46/318 样本实测值恰为 300，真实值 ≥300 未知）。实验 K 将评估拆分为「未截尾真实 R² + 边界分类准确率」两个诚实指标，并验证多种截尾处理；实验 L 引入 XGBoost `survival:aft`（右截尾 [300,inf)）提升边界判别：
 
 | 方法 | 未截尾 R²（n=272） | 边界 acc | 结论 |
 | --- | --- | --- | --- |
 | 代理目标（旧口径） | 0.427 | 0.899 | 全样本 R²=0.708 为含截尾代理值的虚高口径 |
 | 未截尾回归（丢弃截尾） | 0.474 | — | 仅在未截尾样本上训练与评估 |
-| **未截尾回归 + 分类器概率特征** | **0.495** | **0.915** | 采用：边界分类器 AUC=0.943，p_hi 注入回归提升 R² |
+| **未截尾回归 + 分类器概率特征** | **0.495** | **0.915** | K-5a：分类器 p_hi 注入回归，未截尾 R² 0.474→0.495 |
+| **AFT 边界（survival:aft）** | **0.495** | **0.9465** | L-3：AFT 边界 acc 0.915→0.9465、截尾召回 0.522→0.804，解耦后未截尾 R² 不受污染 |
 | 硬阈值两阶段 / 软混合 | 0.338 / 0.173 | 0.915 / 0.921 | 伤害未截尾 R²，不采用 |
 | Tobit 式自定义目标 | 数值爆炸 | 0.145 | XGBoost 自定义目标梯度不稳，不可用 |
 
-工作台 `workbench/CoatingModelWorkbench.py` 的 MEK 模型已升级为两阶段结构（边界分类器 + 未截尾回归含 p_hi 特征），端到端验证输出与实验 K 一致。
+工作台 `workbench/CoatingModelWorkbench.py` 的 MEK 模型已升级为两阶段结构（AFT 边界判别 + 未截尾回归含 p_hi 特征），端到端验证输出与实验 L 一致。
 
 > 注：报告 §5.9 的 0.466 为「跨域模拟」场景（目标域仅少量标签）下的流水线对比值；本目录 `合并版数据集.xlsx` 为同域全量数据，最终验证在更充分的标签上达到 R²>0.7 / acc>0.8。
 
@@ -114,6 +118,8 @@ pip install numpy pandas openpyxl xgboost lightgbm scikit-learn
 python scripts/mvp74_final_verify.py     # 最终验证（读取 ../合并版数据集.xlsx，相对路径）
 python scripts/mvp76_experiments.py      # 实验 K：MEK 截尾诚实评估拆分
 python scripts/mvp76b_experiments.py     # 实验 K-5：MEK 两阶段优化
+python scripts/mvp77_experiments.py      # 实验 L：AFT 边界判别（survival:aft）
+python scripts/mvp77c_experiments.py     # 实验 L-3：解耦两阶段稳定性验证
 python scripts/build_template3.py        # 重新生成终极版模板（输出 ../终极版数据集模板.xlsx）
 python scripts/build_merged_excel.py     # 重新生成合并版数据集（读取 ../data/merged_data.pkl 中间产物）
 python scripts/parse_unlabeled.py 配方文件.xlsx -o unlabeled_formulas.pkl   # 解析无标签配方（命令行传文件）

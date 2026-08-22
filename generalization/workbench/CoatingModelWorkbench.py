@@ -476,22 +476,101 @@ def _fit_final_reg(Xs, y_orig, series, cfg, trans=None, inv=None):
 
 
 class MEKTwoStage:
-    """MEK 两阶段模型：边界分类器(≥300) + 未截尾回归(<300)。
+    """MEK 两阶段模型：AFT 边界判别(≥300) + 未截尾回归(<300)。
 
-    实验 K（scripts/mvp76_experiments.py）验证：代理目标法在未截尾样本上的
-    真实 R² 仅 0.427（0.70 为含截尾代理值的虚高口径）；未截尾回归 + 分类器
-    概率特征提升至 0.495，边界分类 acc=0.915。本类实现该诚实两阶段结构。
+    实验 K/L（scripts/mvp76、mvp77）验证：
+    - 代理目标法未截尾真实 R² 仅 0.427（0.70 为含截尾代理值的虚高口径）
+    - 未截尾回归 + 分类器概率特征 → 未截尾 R²=0.495
+    - AFT 边界（survival:aft，右截尾 [300,inf)）→ 边界 acc=0.9465、截尾召回=0.804
+      （对比分类器边界 acc=0.915、召回=0.522），解耦后未截尾 R² 不受污染
     """
-    def __init__(self, clf, reg, keep_c, keep_r, enc_c, enc_r, cap, extra, thr=0.5):
-        self.clf = clf
-        self.reg = reg
+    def __init__(self, clf, aft, reg, keep_c, keep_a, keep_r, enc_c, enc_a, enc_r, cap, extra, thr=0.5):
+        self.clf = clf       # 边界分类器（提供 p_hi 特征给回归）
+        self.aft = aft       # AFT 边界模型集合（判别 ≥300）
+        self.reg = reg       # 未截尾回归
         self.keep_c = keep_c
+        self.keep_a = keep_a
         self.keep_r = keep_r
         self.enc_c = enc_c   # (enc, gm, cnt, std, all_ser)
+        self.enc_a = enc_a
         self.enc_r = enc_r
         self.cap = cap
         self.extra = extra
         self.thr = thr
+
+
+def _cv_aft(X, y_orig, series, n_keep, nseed=5):
+    """AFT 5折CV（右截尾 [cap,inf)），返回 (边界acc@cap, AUC, 截尾召回, OOF预测, keep_idx)"""
+    import xgboost as xgb
+    from sklearn.model_selection import KFold
+    from sklearn.metrics import accuracy_score, roc_auc_score
+    cap = 300
+    cen_mask = y_orig >= cap
+    yl = y_orig.copy(); yu = y_orig.copy()
+    yu[cen_mask] = np.inf
+    keep_idx = select_features(X, np.sqrt(np.minimum(y_orig, cap)), n_keep)
+    Xs = X[:, keep_idx]
+    oof = np.zeros(len(y_orig))
+    kf = KFold(5, shuffle=True, random_state=42)
+    for tr, te in kf.split(Xs):
+        Xtr, Xte = add_series_features(Xs[tr], Xs[te], yl[tr], np.array(series)[tr], np.array(series)[te], 3)
+        ps = []
+        for sd in range(nseed):
+            dtr = xgb.DMatrix(Xtr)
+            dtr.set_float_info('label_lower_bound', yl[tr])
+            dtr.set_float_info('label_upper_bound', yu[tr])
+            params = dict(objective='survival:aft', eval_metric='aft-nloglik',
+                          aft_loss_distribution='normal', aft_loss_distribution_scale=1.0,
+                          tree_method='hist', learning_rate=0.008, max_depth=4,
+                          subsample=0.8, colsample_bytree=0.7, min_child_weight=2,
+                          random_state=42 + sd, nthread=-1)
+            bst = xgb.train(params, dtr, num_boost_round=1500)
+            ps.append(bst.predict(xgb.DMatrix(Xte)))
+        oof[te] = np.mean(ps, axis=0)
+    ybin = (y_orig >= cap).astype(int)
+    yp = (oof >= cap).astype(int)
+    acc = accuracy_score(ybin, yp)
+    auc = roc_auc_score(ybin, oof)
+    rec = accuracy_score(ybin[cen_mask], yp[cen_mask]) if cen_mask.sum() else 0.0
+    return float(acc), float(auc), float(rec), oof, keep_idx
+
+
+def _fit_final_aft(X, y_orig, series, n_keep, nseed=5):
+    """全量训练最终 AFT 边界模型（多种子集成），返回 (模型列表, 系列编码表, keep_idx)"""
+    import xgboost as xgb
+    cap = 300
+    cen_mask = y_orig >= cap
+    yl = y_orig.copy(); yu = y_orig.copy()
+    yu[cen_mask] = np.inf
+    keep_idx = select_features(X, np.sqrt(np.minimum(y_orig, cap)), n_keep)
+    Xs = X[:, keep_idx]
+    enc, gm, cnt, std = fit_series_enc(yl, np.array(series), 3)
+    Xf = np.hstack([Xs, np.array([enc.get(s, gm) for s in series]).reshape(-1, 1)])
+    Xf = np.hstack([Xf, np.array([cnt.get(s, 0) for s in series]).reshape(-1, 1)])
+    Xf = np.hstack([Xf, np.array([std.get(s, 0.0) for s in series]).reshape(-1, 1)])
+    all_ser = sorted(set(series))
+    for s in all_ser:
+        Xf = np.hstack([Xf, (np.array(series) == s).astype(float).reshape(-1, 1)])
+    models = []
+    for sd in range(nseed):
+        dtr = xgb.DMatrix(Xf)
+        dtr.set_float_info('label_lower_bound', yl)
+        dtr.set_float_info('label_upper_bound', yu)
+        params = dict(objective='survival:aft', eval_metric='aft-nloglik',
+                      aft_loss_distribution='normal', aft_loss_distribution_scale=1.0,
+                      tree_method='hist', learning_rate=0.008, max_depth=4,
+                      subsample=0.8, colsample_bytree=0.7, min_child_weight=2,
+                      random_state=42 + sd, nthread=-1)
+        bst = xgb.train(params, dtr, num_boost_round=1500)
+        models.append(bst)
+    return models, (enc, gm, cnt, std, all_ser), keep_idx
+
+
+def _aft_predict(models, Xf):
+    """AFT 多种子集成预测"""
+    import xgboost as xgb
+    preds = [m.predict(xgb.DMatrix(Xf)) for m in models]
+    return np.mean(preds, axis=0)
 
 
 def _series_encode_single(x, series_name, enc_tuple):
@@ -583,15 +662,15 @@ def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
         # 目标构造
         y_eval = y_orig
         if tgt in ('MEK', 'MEK擦拭'):
-            # 实验 K：诚实两阶段模型
-            # 阶段1：边界分类器（≥300 vs <300）
+            # 实验 K/L：诚实两阶段模型（AFT 边界 + 未截尾回归）
+            # 阶段1a：分类器（提供 p_hi 特征给回归）
             cap = cfg.get('cap', 300)
             ybin = (y_orig >= cap).astype(int)
             cen_mask = y_orig >= cap
             unc_idx = np.where(~cen_mask)[0]
             p_hi, keep_c = _clf_oof(X, ybin, series, cfg['keep_c'])
-            clf_acc = accuracy_score(ybin, (p_hi >= 0.5).astype(int))
-            clf_auc = roc_auc_score(ybin, p_hi)
+            # 阶段1b：AFT 边界（survival:aft，右截尾 [cap,inf)）
+            aft_acc, aft_auc, aft_rec, oof_aft, keep_a = _cv_aft(X, y_orig, series, cfg['n_keep'])
             # 阶段2：未截尾回归（+ 分类器概率特征）
             X_unc = X[unc_idx]
             y_unc = y_orig[unc_idx]
@@ -602,16 +681,18 @@ def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
             Xs_unc = X_unc[:, keep_idx]
             r2_unc, oof_unc = _cv_reg_extra(Xs_unc, y_unc, ser_unc, cfg, p_unc,
                                             trans=np.sqrt, inv=(lambda p: p ** 2))
-            # 最终模型：边界分类器（全量）+ 未截尾回归（含 p_hi 特征）
+            # 最终模型：分类器(p_hi) + AFT(边界) + 未截尾回归
             clf_final, enc_c = _fit_final_clf(X, ybin, series, cfg['keep_c'])
+            aft_final, enc_a, keep_a_final = _fit_final_aft(X, y_orig, series, cfg['n_keep'])
             reg_final, enc_r = _fit_final_reg_extra(Xs_unc, y_unc, ser_unc, cfg, p_unc,
                                                     trans=np.sqrt, inv=(lambda p: p ** 2))
-            model = MEKTwoStage(clf_final, reg_final, keep_c, keep_idx, enc_c, enc_r,
-                                cap, cfg.get('extra', 85), thr=0.5)
-            metrics = {'未截尾R²': float(r2_unc), '边界准确率': float(clf_acc),
-                       '边界AUC': float(clf_auc), '样本数': len(y_orig),
-                       '未截尾': int(len(unc_idx)), '截尾': int(int(cen_mask.sum()))}
-            return model, metrics, (enc_c[0], enc_c[1], enc_c[2], enc_c[3], keep_c, None, keep_idx, enc_r)
+            model = MEKTwoStage(clf_final, aft_final, reg_final, keep_c, keep_a_final, keep_idx,
+                                enc_c, enc_a, enc_r, cap, cfg.get('extra', 85), thr=0.5)
+            metrics = {'未截尾R²': float(r2_unc), '边界准确率': float(aft_acc),
+                       '边界AUC': float(aft_auc), '截尾召回': float(aft_rec),
+                       '样本数': len(y_orig), '未截尾': int(len(unc_idx)),
+                       '截尾': int(int(cen_mask.sum()))}
+            return model, metrics, (enc_c[0], enc_c[1], enc_c[2], enc_c[3], keep_c, None, keep_idx, enc_r, enc_a, keep_a_final)
         # 特征选择（与实验一致：在变换后目标上计算重要性，实验验证提升 R²）
         sel_y = np.sqrt(y) if cfg.get('transform') == 'sqrt' else y
         keep_idx = select_features(X, sel_y, cfg['n_keep'])
@@ -696,16 +777,22 @@ def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
 def predict_with_series(model, x, series_name, enc, gm, cnt, std, keep_idx, all_ser, tgt='T弯', classes=None, th_map=None, best_th=0.5, enc_r=None, keep_r=None):
     """预测：已知系列用系列编码，新系列用全局均值（含特征选择 + 系列尺寸/标准差）"""
     if isinstance(model, MEKTwoStage):
-        # MEK 两阶段：边界分类器判定 ≥300，否则未截尾回归
+        # MEK 两阶段：AFT 边界判别 ≥300 + 未截尾回归值（解耦输出）
+        # p_hi 特征（分类器）供回归使用
         xc = x[model.keep_c]
         xc = _series_encode_single(xc, series_name, model.enc_c)
         p_hi = float(model.clf.predict_proba(xc)[0][1])
-        if p_hi >= model.thr:
-            return model.cap + model.extra * (p_hi - model.thr) / (1 - model.thr)
+        # AFT 边界判别（≥300 标志）
+        xa = x[model.keep_a]
+        xa = _series_encode_single(xa, series_name, model.enc_a)
+        p_aft = float(_aft_predict(model.aft, xa)[0])
+        flag = 1 if p_aft >= model.cap else 0
+        # 未截尾回归值
         xr = x[model.keep_r]
         xr = _series_encode_single(xr, series_name, model.enc_r)
         xr = np.hstack([xr, np.array([[p_hi]])])
-        return float(model.reg.predict(xr)[0] ** 2)
+        val = float(model.reg.predict(xr)[0] ** 2)
+        return (val, flag)
     if keep_idx is not None:
         x = x[keep_idx]
     xf = np.array([x])
@@ -935,6 +1022,12 @@ class WorkbenchApp:
             tag = '系列编码' if ser_name in enc else '全局均值(新系列)'
             if tgt == '水煮等级':
                 out.append(f'  {tgt}: {"通过(>=4级)" if p >= 0.5 else "不通过(<4级)"}  [{tag}]\n')
+            elif tgt in ('MEK', 'MEK擦拭') and isinstance(p, tuple):
+                val, flag = p
+                if flag:
+                    out.append(f'  {tgt}: ≥300 次（AFT 边界判别）  [{tag}]\n')
+                else:
+                    out.append(f'  {tgt}: {val:.2f} 次  [{tag}]\n')
             else:
                 unit = {'T弯': 'mm', 'MEK擦拭': '次'}.get(tgt, '')
                 out.append(f'  {tgt}: {p:.2f} {unit}  [{tag}]\n')
@@ -975,7 +1068,11 @@ class WorkbenchApp:
                     th_map = enc_tuple[6] if len(enc_tuple) > 6 else None
                     best_th = enc_tuple[7] if len(enc_tuple) > 7 else 0.5
                     p = predict_with_series(model, row, ser_name, enc, gm, cnt, std, keep_idx, all_ser, tgt, classes, th_map, best_th)
-                    rec[tgt] = int(p) if tgt == '水煮等级' else round(float(p), 2)
+                    if tgt in ('MEK', 'MEK擦拭') and isinstance(p, tuple):
+                        val, flag = p
+                        rec[tgt] = '≥300' if flag else round(float(val), 2)
+                    else:
+                        rec[tgt] = int(p) if tgt == '水煮等级' else round(float(p), 2)
                 rows_out.append(rec)
                 out.append(f'  {sid}: ' + '  '.join(f'{t}={rec[t]}' for t in self.models) + '\n')
             self.predict_result.delete('1.0', 'end')
