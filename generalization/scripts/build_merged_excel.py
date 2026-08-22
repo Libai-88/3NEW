@@ -9,17 +9,17 @@
 - 配方级描述符：数值填充（不依赖公式）
 - 建模输入：ML-ready 宽表
 """
-import pickle, warnings
+import pickle, warnings, os
 import numpy as np
 import pandas as pd
 warnings.filterwarnings('ignore')
-import sys; sys.path.insert(0, '/data/user/work')
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 from materials import CONT_DESC, ALIAS
 
-D = pickle.load(open('/data/user/work/merged_data.pkl','rb'))
+D = pickle.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'merged_data.pkl'),'rb'))
 full_mat = D['full_mat']; new_mats = D['new_mats']
 all_samples = D['all_samples']; desc_df = D['desc_df']
 
@@ -291,7 +291,7 @@ for i, w in enumerate([34,34,8,12,46,14], 1):
     ws.column_dimensions[get_column_letter(i)].width = w
 ws.freeze_panes = 'A2'
 
-out = '/workspace/coating-model-generalization/合并版数据集.xlsx'
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '合并版数据集.xlsx')
 wb.save(out)
 print('saved:', out)
 print(f"原料 {n_mat} 种, 配方明细 {det_rows} 行, 性能 {perf_rows} 行, 描述符 {n_fd} 样本×{len(desc_df.columns)-2} 特征")

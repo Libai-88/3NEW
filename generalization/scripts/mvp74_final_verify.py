@@ -6,18 +6,18 @@ T弯: sqrt + 噪声过滤(|OOF残差|<=2.5, 阈值由重复测量噪声std=1.244
 MEK: 分类器代理目标(keep_c=75, extra=85) + sqrt + keep=45 k=1
 水煮: 每系列阈值 + keep=80 (20种子)
 """
-import sys, warnings
+import sys, os, warnings
 warnings.filterwarnings('ignore')
 import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.metrics import r2_score, accuracy_score, roc_auc_score
 from xgboost import XGBRegressor, XGBClassifier
 from lightgbm import LGBMRegressor, LGBMClassifier
-sys.path.insert(0, '/workspace/coating-model-generalization/workbench')
-sys.path.insert(0, '/data/user/work')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from CoatingModelWorkbench import load_dataset, ENH_FEATURES, explicit_ratios, smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors
 
-path = '/workspace/coating-model-generalization/合并版数据集.xlsx'
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '合并版数据集.xlsx')
 mat_lib, samples, perf, proc = load_dataset(path)
 present_codes = sorted(set(canon(str(c).strip()) for s in samples.values() for c in s['组分']))
 

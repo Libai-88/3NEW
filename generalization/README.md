@@ -14,6 +14,8 @@
     ├── 通用型数据集模板.xlsx          # 通用型模板（8 工作表，5,185 条公式）
     ├── 终极版数据集模板.xlsx          # 终极版模板 v3（多体系配置驱动 + 数据验证）
     ├── 合并版数据集.xlsx              # 现有全部数据整理并填入终极版模板
+    ├── data/                          # 合并版数据集生成的中间产物
+    │   └── merged_data.pkl            # 486 样本配方+描述符（build_merged_excel.py 输入）
     ├── workbench/                     # 配套 Windows 工作台源码
     │   ├── DataPrepWorkbench.py       # 数据整理与特征转换工作台（前置自动化）
     │   ├── CoatingModelWorkbench.py   # 建模与预测工作台（含最优配置）
@@ -69,11 +71,14 @@
 
 ```bash
 pip install numpy pandas openpyxl xgboost lightgbm scikit-learn
-python scripts/mvp74_final_verify.py     # 最终验证（读取 ../合并版数据集.xlsx）
-python scripts/build_template3.py        # 重新生成终极版模板
-python scripts/build_merged_excel.py     # 重新生成合并版数据集（需 merged_data.pkl 中间产物）
+python scripts/mvp74_final_verify.py     # 最终验证（读取 ../合并版数据集.xlsx，相对路径）
+python scripts/build_template3.py        # 重新生成终极版模板（输出 ../终极版数据集模板.xlsx）
+python scripts/build_merged_excel.py     # 重新生成合并版数据集（读取 ../data/merged_data.pkl 中间产物）
+python scripts/parse_unlabeled.py 配方文件.xlsx -o unlabeled_formulas.pkl   # 解析无标签配方（命令行传文件）
 python scripts/run_pipeline.py desc --input 通用型数据集模板.xlsx --output 特征.csv
 ```
+
+> 所有脚本均使用相对路径（基于脚本所在目录），克隆仓库后即可直接运行，无绝对路径依赖。`data/merged_data.pkl` 为合并版数据集生成的中间产物（486 样本配方+描述符），已随仓库提供。
 
 ## 与仓库根目录已有成果的关系
 

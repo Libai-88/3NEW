@@ -14,8 +14,8 @@ v3 相对 v2 的核心改进（均有实验/实践依据）：
   5) 目标属性配置：每个体系可配置目标属性+单位+方向+数据类型，
      建模输入按配置自动生成目标列。
 """
-import sys
-sys.path.insert(0, '/data/user/work')
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
@@ -486,6 +486,6 @@ for i, w in enumerate([34,34,8,12,46,14], 1):
     ws.column_dimensions[get_column_letter(i)].width = w
 ws.freeze_panes = 'A2'
 
-out = '/workspace/coating-model-generalization/终极版数据集模板.xlsx'
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '终极版数据集模板.xlsx')
 wb.save(out)
 print('saved:', out)

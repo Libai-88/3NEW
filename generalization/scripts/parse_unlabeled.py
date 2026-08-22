@@ -70,18 +70,24 @@ def parse_formulation_sheets(path, system):
             all_formulas.append({'配方ID': f'{system}-{s}-{len(all_formulas)+1}', '体系': system, '组分': comp})
     return all_formulas
 
-# 配比方案（环氧体系）
-f1 = '/workspace/.uploads/e657c941-a24b-44f8-839c-89668666da39_fbfc94091fa4955969e5d0fff7df0fd6_789507228604997242_m_3NX240913-6C--AI研发26.7.22配比方案.xlsx'
-epoxy = parse_formulation_sheets(f1, '环氧-配比方案')
-print("配比方案配方数:", len(epoxy))
-
-# 聚酯金黄（聚酯体系）
-f2 = '/workspace/.uploads/f43046fb-7411-4ef6-9e84-4af758d8419e_聚酯金黄-AI(1).xlsx'
-poly = parse_formulation_sheets(f2, '聚酯金黄')
-print("聚酯金黄配方数:", len(poly))
-
-all_formulas = epoxy + poly
-print("无标签配方总数:", len(all_formulas))
+import sys, os
+if __name__ == '__main__':
+    # 用法: python parse_unlabeled.py <配比方案.xlsx> [聚酯金黄.xlsx ...] [-o 输出.pkl]
+    # 每个输入文件按体系名解析；体系名取文件名前缀（去掉扩展名）
+    args = [a for a in sys.argv[1:] if not a.startswith('-')]
+    out = 'unlabeled_formulas.pkl'
+    if '-o' in sys.argv:
+        out = sys.argv[sys.argv.index('-o') + 1]
+    if not args:
+        print('用法: python parse_unlabeled.py <配方文件1.xlsx> [配方文件2.xlsx ...] [-o 输出.pkl]')
+        sys.exit(1)
+    all_formulas = []
+    for f in args:
+        system = os.path.splitext(os.path.basename(f))[0]
+        fs = parse_formulation_sheets(f, system)
+        print(f"{system}: 配方数 {len(fs)}")
+        all_formulas += fs
+    print("无标签配方总数:", len(all_formulas))
 
 # 统计原料代码
 all_codes = set()
@@ -93,6 +99,6 @@ print(f"原料代码 {len(all_codes)} 种:", sorted(all_codes))
 print("\n示例1:", all_formulas[0]['配方ID'], dict(list(all_formulas[0]['组分'].items())[:8]))
 print("示例2:", all_formulas[-1]['配方ID'], dict(list(all_formulas[-1]['组分'].items())[:8]))
 
-with open('/data/user/work/unlabeled_formulas.pkl', 'wb') as fh:
+with open(out, 'wb') as fh:
     pickle.dump({'formulas': all_formulas}, fh)
-print("\n已保存 unlabeled_formulas.pkl")
+print(f"\n已保存 {out}")
