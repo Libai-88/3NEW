@@ -475,6 +475,99 @@ def _fit_final_reg(Xs, y_orig, series, cfg, trans=None, inv=None):
     return model, (enc, gm, cnt, std, None, None)
 
 
+class MEKTwoStage:
+    """MEK 两阶段模型：边界分类器(≥300) + 未截尾回归(<300)。
+
+    实验 K（scripts/mvp76_experiments.py）验证：代理目标法在未截尾样本上的
+    真实 R² 仅 0.427（0.70 为含截尾代理值的虚高口径）；未截尾回归 + 分类器
+    概率特征提升至 0.495，边界分类 acc=0.915。本类实现该诚实两阶段结构。
+    """
+    def __init__(self, clf, reg, keep_c, keep_r, enc_c, enc_r, cap, extra, thr=0.5):
+        self.clf = clf
+        self.reg = reg
+        self.keep_c = keep_c
+        self.keep_r = keep_r
+        self.enc_c = enc_c   # (enc, gm, cnt, std, all_ser)
+        self.enc_r = enc_r
+        self.cap = cap
+        self.extra = extra
+        self.thr = thr
+
+
+def _series_encode_single(x, series_name, enc_tuple):
+    """单样本系列编码（onehot + 目标编码 + 尺寸/标准差），与训练口径一致"""
+    enc, gm, cnt, std, all_ser = enc_tuple
+    xf = np.array([x])
+    xf = np.hstack([xf, np.array([enc.get(series_name, gm)]).reshape(-1, 1)])
+    xf = np.hstack([xf, np.array([cnt.get(series_name, 0)]).reshape(-1, 1)])
+    xf = np.hstack([xf, np.array([std.get(series_name, 0.0)]).reshape(-1, 1)])
+    for s in all_ser:
+        xf = np.hstack([xf, np.array([1.0 if series_name == s else 0.0]).reshape(-1, 1)])
+    return xf
+
+
+def _cv_reg_extra(Xs, y_orig, series, cfg, extra, trans=None, inv=None):
+    """回归5折CV，支持额外特征（如分类器概率），返回 (R², OOF)"""
+    from sklearn.model_selection import KFold
+    from sklearn.metrics import r2_score
+    from xgboost import XGBRegressor
+    from lightgbm import LGBMRegressor
+    yt = trans(y_orig) if trans is not None else y_orig
+    k = cfg['k']
+    w = cfg['w']
+    r2s = []
+    oof = np.zeros(len(y_orig))
+    kf = KFold(5, shuffle=True, random_state=42)
+    for tr, te in kf.split(Xs):
+        Xtr, Xte = add_series_features(Xs[tr], Xs[te], yt[tr], np.array(series)[tr], np.array(series)[te], k)
+        Xtr = np.hstack([Xtr, extra[tr].reshape(-1, 1)])
+        Xte = np.hstack([Xte, extra[te].reshape(-1, 1)])
+        px, pl = [], []
+        for sd in range(N_SEEDS):
+            mx = XGBRegressor(random_state=42 + sd, n_jobs=-1, **cfg['xgb']); mx.fit(Xtr, yt[tr]); px.append(mx.predict(Xte))
+            ml = LGBMRegressor(random_state=42 + sd, n_jobs=-1, verbose=-1, **cfg['lgb']); ml.fit(Xtr, yt[tr]); pl.append(ml.predict(Xte))
+        pred = w * np.mean(px, axis=0) + (1 - w) * np.mean(pl, axis=0)
+        if inv is not None:
+            pred = inv(pred)
+        oof[te] = pred
+        r2s.append(r2_score(y_orig[te], pred))
+    return float(np.mean(r2s)), oof
+
+
+def _fit_final_reg_extra(Xs, y_orig, series, cfg, extra, trans=None, inv=None):
+    """全量训练最终回归模型（含 p_hi 额外特征），返回 (模型, 系列编码表)"""
+    from xgboost import XGBRegressor
+    yt = trans(y_orig) if trans is not None else y_orig
+    enc, gm, cnt, std = fit_series_enc(yt, np.array(series), cfg['k'])
+    Xf = np.hstack([Xs, np.array([enc.get(s, gm) for s in series]).reshape(-1, 1)])
+    Xf = np.hstack([Xf, np.array([cnt.get(s, 0) for s in series]).reshape(-1, 1)])
+    Xf = np.hstack([Xf, np.array([std.get(s, 0.0) for s in series]).reshape(-1, 1)])
+    all_ser = sorted(set(series))
+    for s in all_ser:
+        Xf = np.hstack([Xf, (np.array(series) == s).astype(float).reshape(-1, 1)])
+    Xf = np.hstack([Xf, extra.reshape(-1, 1)])
+    model = XGBRegressor(random_state=42, n_jobs=-1, **cfg['xgb'])
+    model.fit(Xf, yt)
+    return model, (enc, gm, cnt, std, all_ser)
+
+
+def _fit_final_clf(X, ybin, series, n_keep):
+    """全量训练最终边界分类器（含系列编码），返回 (模型, 系列编码表)"""
+    from xgboost import XGBClassifier
+    keep_idx = select_features(X, ybin, n_keep, clf=True)
+    Xs = X[:, keep_idx]
+    enc, gm, cnt, std = fit_series_enc(ybin, np.array(series), 3)
+    Xf = np.hstack([Xs, np.array([enc.get(s, gm) for s in series]).reshape(-1, 1)])
+    Xf = np.hstack([Xf, np.array([cnt.get(s, 0) for s in series]).reshape(-1, 1)])
+    Xf = np.hstack([Xf, np.array([std.get(s, 0.0) for s in series]).reshape(-1, 1)])
+    all_ser = sorted(set(series))
+    for s in all_ser:
+        Xf = np.hstack([Xf, (np.array(series) == s).astype(float).reshape(-1, 1)])
+    model = XGBClassifier(random_state=42, n_jobs=-1, **CLF_MODEL_PARAMS)
+    model.fit(Xf, ybin)
+    return model, (enc, gm, cnt, std, all_ser)
+
+
 def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
     """训练并5折CV评估（折叠内OOF系列编码，多种子集成），返回 (模型, 指标, 系列编码表)"""
     from sklearn.model_selection import KFold
@@ -490,13 +583,35 @@ def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
         # 目标构造
         y_eval = y_orig
         if tgt in ('MEK', 'MEK擦拭'):
+            # 实验 K：诚实两阶段模型
+            # 阶段1：边界分类器（≥300 vs <300）
             cap = cfg.get('cap', 300)
             ybin = (y_orig >= cap).astype(int)
-            p_hi, _ = _clf_oof(X, ybin, series, cfg['keep_c'])
-            y = y_orig.copy()
-            cap_mask = y_orig >= cap
-            y[cap_mask] = cap + cfg['extra'] * p_hi[cap_mask]
-            y_eval = y  # 评估目标=代理目标（截尾样本用校准值）
+            cen_mask = y_orig >= cap
+            unc_idx = np.where(~cen_mask)[0]
+            p_hi, keep_c = _clf_oof(X, ybin, series, cfg['keep_c'])
+            clf_acc = accuracy_score(ybin, (p_hi >= 0.5).astype(int))
+            clf_auc = roc_auc_score(ybin, p_hi)
+            # 阶段2：未截尾回归（+ 分类器概率特征）
+            X_unc = X[unc_idx]
+            y_unc = y_orig[unc_idx]
+            ser_unc = [series[i] for i in unc_idx]
+            p_unc = p_hi[unc_idx]
+            sel_y_unc = np.sqrt(y_unc)
+            keep_idx = select_features(X_unc, sel_y_unc, cfg['n_keep'])
+            Xs_unc = X_unc[:, keep_idx]
+            r2_unc, oof_unc = _cv_reg_extra(Xs_unc, y_unc, ser_unc, cfg, p_unc,
+                                            trans=np.sqrt, inv=(lambda p: p ** 2))
+            # 最终模型：边界分类器（全量）+ 未截尾回归（含 p_hi 特征）
+            clf_final, enc_c = _fit_final_clf(X, ybin, series, cfg['keep_c'])
+            reg_final, enc_r = _fit_final_reg_extra(Xs_unc, y_unc, ser_unc, cfg, p_unc,
+                                                    trans=np.sqrt, inv=(lambda p: p ** 2))
+            model = MEKTwoStage(clf_final, reg_final, keep_c, keep_idx, enc_c, enc_r,
+                                cap, cfg.get('extra', 85), thr=0.5)
+            metrics = {'未截尾R²': float(r2_unc), '边界准确率': float(clf_acc),
+                       '边界AUC': float(clf_auc), '样本数': len(y_orig),
+                       '未截尾': int(len(unc_idx)), '截尾': int(int(cen_mask.sum()))}
+            return model, metrics, (enc_c[0], enc_c[1], enc_c[2], enc_c[3], keep_c, None, keep_idx, enc_r)
         # 特征选择（与实验一致：在变换后目标上计算重要性，实验验证提升 R²）
         sel_y = np.sqrt(y) if cfg.get('transform') == 'sqrt' else y
         keep_idx = select_features(X, sel_y, cfg['n_keep'])
@@ -578,8 +693,19 @@ def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
         return model, {'准确率': float(acc_ps), 'AUC': float(auc), '样本数': len(y), '系列数': len(set(series))}, (enc, gm, cnt, std, keep_idx, None, th_map, best_g[1])
 
 
-def predict_with_series(model, x, series_name, enc, gm, cnt, std, keep_idx, all_ser, tgt='T弯', classes=None, th_map=None, best_th=0.5):
+def predict_with_series(model, x, series_name, enc, gm, cnt, std, keep_idx, all_ser, tgt='T弯', classes=None, th_map=None, best_th=0.5, enc_r=None, keep_r=None):
     """预测：已知系列用系列编码，新系列用全局均值（含特征选择 + 系列尺寸/标准差）"""
+    if isinstance(model, MEKTwoStage):
+        # MEK 两阶段：边界分类器判定 ≥300，否则未截尾回归
+        xc = x[model.keep_c]
+        xc = _series_encode_single(xc, series_name, model.enc_c)
+        p_hi = float(model.clf.predict_proba(xc)[0][1])
+        if p_hi >= model.thr:
+            return model.cap + model.extra * (p_hi - model.thr) / (1 - model.thr)
+        xr = x[model.keep_r]
+        xr = _series_encode_single(xr, series_name, model.enc_r)
+        xr = np.hstack([xr, np.array([[p_hi]])])
+        return float(model.reg.predict(xr)[0] ** 2)
     if keep_idx is not None:
         x = x[keep_idx]
     xf = np.array([x])
