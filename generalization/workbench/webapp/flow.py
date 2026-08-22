@@ -353,18 +353,31 @@ def build_readiness_report(mat_lib, samples, perf, proc):
                        'detail': f'{len(ser_cnt)} 个系列，每系列均 ≥{READY_SERIES_GOOD} 样本',
                        'evidence': '系列目标编码稳定'})
 
-    # 3. 体系多样性
+    # 3. 体系多样性（含标签体系数：跨体系泛化需 ≥2 体系有标签才可验证）
     sys_cnt = Counter(s['体系'] for s in samples.values())
     n_sys = len(sys_cnt)
+    # 有实测标签的体系（遍历 perf 的样本ID → 体系）
+    lab_sys = set()
+    for sid in perf:
+        if sid in samples:
+            lab_sys.add(samples[sid]['体系'])
+    n_lab_sys = len(lab_sys)
     if n_sys < READY_SYSTEMS_MIN:
         checks.append({'id': 'systems', 'name': '体系多样性', 'status': 'warn',
                        'detail': f'仅 {n_sys} 个体系（{dict(sys_cnt)}），跨体系泛化证据不足',
                        'evidence': f'跨体系泛化主张需 ≥{READY_SYSTEMS_MIN} 体系'})
         recs.append('补充其他体系（有机/聚酯/聚氨酯/丙烯酸等）配方以支撑跨体系泛化')
+    elif n_lab_sys < 2:
+        checks.append({'id': 'systems', 'name': '体系多样性', 'status': 'warn',
+                       'detail': f'{n_sys} 个体系但仅 {n_lab_sys} 个有实测标签（{sorted(lab_sys)}），'
+                                 f'无法直接验证跨体系泛化（留一体系外测试需 ≥2 体系有标签）',
+                       'evidence': '跨体系泛化主张需 ≥2 体系有标签才可做留一体系外验证'})
+        recs.append(f'为 {sorted(set(sys_cnt) - lab_sys)} 补测标签（可用「补标签排程」），'
+                    f'使 ≥2 体系有标签，才能直接验证跨体系泛化')
     else:
         checks.append({'id': 'systems', 'name': '体系多样性', 'status': 'ok',
-                       'detail': f'{n_sys} 个体系：{dict(sys_cnt)}',
-                       'evidence': '≥3 体系可支撑跨体系泛化主张'})
+                       'detail': f'{n_sys} 个体系（{dict(sys_cnt)}），其中 {n_lab_sys} 个有实测标签',
+                       'evidence': '≥2 体系有标签，可做留一体系外验证'})
 
     # 4. 原料登记完整性
     all_codes = set(c for s in samples.values() for c in s['组分'])
