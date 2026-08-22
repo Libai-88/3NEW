@@ -38,6 +38,8 @@
         ├── mvp77_experiments.py       # 实验 L：AFT 边界判别（survival:aft，右截尾 [300,inf)）
         ├── mvp77b_experiments.py      # 实验 L-2：AFT 预测分布与校准分析
         ├── mvp77c_experiments.py      # 实验 L-3：解耦两阶段（AFT 边界 + 未截尾回归）稳定性验证
+        ├── mvp78_experiments.py       # 实验 M：主动学习模拟（5 种标签获取策略对比）
+        ├── mvp79_experiments.py       # 实验 N：噪声降低假设分析（R²>0.9 可达路径）
         ├── run_pipeline.py            # 通用型流水线 CLI（模板→描述符→建模CSV→标签补充）
         ├── materials.py / descriptors.py / smi_desc.py   # 描述符计算依赖
 ```
@@ -60,6 +62,8 @@
 | 最优组合流水线 | 可预测目标上 T弯 R² 0.263→0.466（+0.20），质量门控防伪标签损害 |
 | 噪声地板（实验 J） | T弯 理论最大 R²=0.789（模型 0.791 已达上限）；MEK 噪声地板 0.966 含截尾口径；水煮按分类评估 |
 | MEK 截尾诚实评估（实验 K/L） | 未截尾真实 R²=0.495（p_hi 特征注入，0.474→0.495）；AFT 边界判别 acc=0.9465 / 截尾召回=0.804（对比分类器 acc=0.915/召回=0.522）；代理目标 R²=0.70 为虚高口径 |
+| 主动学习模拟（实验 M） | T弯 n=277/18 系列：系列分层随机/随机最终测试 R²=0.688、达 R²≥0.6 仅需 70~90 标签；纯不确定性采样 R²=0.647、需 130 标签（最差）。系列结构化数据上随机/分层采样优于不确定性采样 |
+| 噪声降低假设（实验 N） | T弯 R²>0.9 需将测量噪声从 1.244 降至 ≤0.62（减半）或重复测量 4 次取均值；MEK 系列内 CV 超出 ASTM D5402-19 上限，降噪空间大 |
 | 最终验证（合并版数据集，20 种子） | 见下方「最终验证」 |
 
 ### 最终验证（`scripts/mvp74_final_verify.py`）
@@ -107,7 +111,7 @@ MEK 擦拭存在右截尾（46/318 样本实测值恰为 300，真实值 ≥300 
 
 1. **看报告**：浏览器直接打开 `coating-model-generalization.html`（字体/图表已本地化，离线可用）。
 2. **用模板**：新配方按 `终极版数据集模板.xlsx` 录入（下拉选体系/角色/树脂类型，未登记原料自动标红）。
-3. **整理数据（Web 版工作台，推荐）**：双击 `workbench/start_webapp.bat`（Windows）或运行 `workbench/start_webapp.sh`（Linux/macOS），浏览器自动打开 `http://127.0.0.1:8765`。固定流程五步：选择数据源 → 预校验（类型声明+规则检查）→ 一键整理 → 确认报告 → 导出（模板结构/特征矩阵/流水线清单）。支持一键导入多源 Excel（模板/配料汇总/配比方案/聚酯金黄/原料数据）→ 自动识别格式、清洗代码、去重；另含表单式辅助录入（未登记原料自动估算登记）。「写死 vs 可配置」边界见 `webapp/flow.py`。首次运行自动安装 `numpy/pandas/openpyxl`。
+3. **整理数据（Web 版工作台，推荐）**：双击 `workbench/start_webapp.bat`（Windows）或运行 `workbench/start_webapp.sh`（Linux/macOS），浏览器自动打开 `http://127.0.0.1:8765`。固定流程五步：选择数据源 → 预校验（类型声明+规则检查）→ 一键整理 → 确认报告 → 导出（模板结构/特征矩阵/流水线清单）。支持一键导入多源 Excel（模板/配料汇总/配比方案/聚酯金黄/原料数据）→ 自动识别格式、清洗代码、去重；另含表单式辅助录入（未登记原料自动估算登记）与<b>补标签排程</b>（从未实测样本按系列分层随机推荐下一批应补测标签，实验 M 结论落地，固定种子可复现）。「写死 vs 可配置」边界见 `webapp/flow.py`。首次运行自动安装 `numpy/pandas/openpyxl`。
 4. **整理数据（桌面版）**：Windows 上运行 `workbench/DataPrepWorkbench.py`（Tkinter 界面，功能与 Web 版一致）。
 5. **复现验证**：`python scripts/mvp74_final_verify.py`（需 `numpy/pandas/openpyxl/xgboost/lightgbm/scikit-learn`）。
 
@@ -120,6 +124,8 @@ python scripts/mvp76_experiments.py      # 实验 K：MEK 截尾诚实评估拆�
 python scripts/mvp76b_experiments.py     # 实验 K-5：MEK 两阶段优化
 python scripts/mvp77_experiments.py      # 实验 L：AFT 边界判别（survival:aft）
 python scripts/mvp77c_experiments.py     # 实验 L-3：解耦两阶段稳定性验证
+python scripts/mvp78_experiments.py      # 实验 M：主动学习模拟（5 种标签获取策略对比）
+python scripts/mvp79_experiments.py      # 实验 N：噪声降低假设分析（R²>0.9 可达路径）
 python scripts/build_template3.py        # 重新生成终极版模板（输出 ../终极版数据集模板.xlsx）
 python scripts/build_merged_excel.py     # 重新生成合并版数据集（读取 ../data/merged_data.pkl 中间产物）
 python scripts/parse_unlabeled.py 配方文件.xlsx -o unlabeled_formulas.pkl   # 解析无标签配方（命令行传文件）

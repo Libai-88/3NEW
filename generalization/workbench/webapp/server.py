@@ -40,7 +40,7 @@ from CoatingModelWorkbench import (
     canon, ENH_FEATURES, SMI_AGG_KEYS, CONT_DESC, ROLES, RTYPES,
 )
 from materials import MAT, ALIAS
-from flow import suggest_type, validate_file, build_manifest, FILE_TYPES
+from flow import suggest_type, validate_file, build_manifest, build_acquisition_plan, FILE_TYPES
 
 # ---------- 数据整理：格式识别与解析（复用 DataPrepWorkbench 逻辑） ----------
 NOISE = {'合计', '固含', '硬度', '刮伤', '度系数最终值', '佳仪滑度'}
@@ -102,7 +102,7 @@ def detect_format(path):
     try:
         xl = pd.ExcelFile(path)
         names = [str(s) for s in xl.sheet_names]
-        if any('原料主数据' in s and '配方明细' in s for s in names):
+        if any('原料主数据' in s for s in names) and any('配方明细' in s for s in names):
             return 'template'
         if any('配方与结果' in s or '配料' in s for s in names):
             return 'labeled'
@@ -352,6 +352,7 @@ def organize_files(file_paths):
     dedup = []
     for sid, s in agg.items():
         s = dict(s)
+        s['样本ID'] = sid
         s['T弯'] = _mean(s.pop('_T弯')); s['MEK'] = _mean(s.pop('_MEK')); s['水煮'] = _mean(s.pop('_水煮'))
         dedup.append(s)
     n_dup = len(samples) - len(dedup)
@@ -716,6 +717,21 @@ class Handler(BaseHTTPRequestHandler):
                                            'labeled_count': sum(1 for s in (STATE['samples'] or {}).values() if s.get('标签状态') == '实测'),
                                            'perf_count': sum(len(v) for v in (STATE['perf'] or {}).values())})
                 body, ctype = _json_ok({'ok': True, 'manifest': manifest})
+                self._send(body, ctype)
+            except Exception as e:
+                body, ctype = _json_err(e)
+                self._send(body, ctype)
+        elif p == '/api/acquire':
+            # 补标签排程：推荐下一批应补测标签的样本（实验 M 结论：系列分层随机采样）
+            try:
+                if not STATE['samples']:
+                    raise ValueError('当前无数据，请先整理或录入')
+                q = parse_qs(parsed.query)
+                budget = int(q.get('budget', ['10'])[0])
+                strategy = q.get('strategy', ['strat_random'])[0]
+                seed = int(q.get('seed', ['42'])[0])
+                plan = build_acquisition_plan(STATE['samples'], budget=budget, strategy=strategy, seed=seed)
+                body, ctype = _json_ok({'ok': True, **plan})
                 self._send(body, ctype)
             except Exception as e:
                 body, ctype = _json_err(e)

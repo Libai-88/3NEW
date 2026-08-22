@@ -200,3 +200,66 @@ def build_manifest(files, ftypes, params=None):
         'note': '本清单记录数据整理流水线的输入与参数，用于复现与审计。',
     }
     return manifest
+
+
+# ---------- 补标签排程（实验 M 结论落地） ----------
+def build_acquisition_plan(samples, budget=10, strategy='strat_random', seed=42):
+    """推荐下一批应补测标签的样本（实验 M：系列分层随机采样优于不确定性采样）。
+
+    实验 M（scripts/mvp78_experiments.py，T弯 n=277/18 系列，系列感知留出 20%）结论：
+      - 系列分层随机 / 随机：最终测试 R²=0.688，达 R²≥0.6 仅需 70~90 标签
+      - 纯不确定性采样：最终 R²=0.647，达 R²≥0.6 需 130 标签（最差）
+    原因：数据有强系列结构，系列目标编码是关键特征；不确定性采样把标签集中在
+    少数难系列，饿死其他系列，损害系列编码与泛化。
+
+    因此补标签排程默认采用「系列分层随机」：按系列均匀分配预算，系列内随机，
+    保证每个系列都有标签覆盖，最大化系列编码信号。
+
+    参数：
+      samples: dict {样本ID: {系列, 标签状态, ...}}
+      budget: 本批补测样本数
+      strategy: 'strat_random'（默认，系列分层随机）/ 'random'（纯随机）
+      seed: 随机种子（固定种子保证可复现）
+    返回：
+      {ok, budget, strategy, total_unlabeled, series_summary, plan[]}
+      plan 每项: {样本ID, 系列, 体系, 标签状态, 来源}
+    """
+    import random as _rnd
+    rng = _rnd.Random(seed)
+    # 未实测样本池（标签状态 != 实测）
+    pool = []
+    for sid, s in samples.items():
+        if s.get('标签状态') != '实测':
+            pool.append({'样本ID': sid, '系列': s.get('系列', ''), '体系': s.get('体系', ''),
+                         '标签状态': s.get('标签状态', '无标签'), '来源': s.get('来源', '')})
+    if not pool:
+        return {'ok': True, 'budget': budget, 'strategy': strategy, 'total_unlabeled': 0,
+                'series_summary': [], 'plan': [], 'note': '当前无未实测样本，无需补标签'}
+    # 按系列分组
+    by_ser = {}
+    for p in pool:
+        by_ser.setdefault(p['系列'], []).append(p)
+    chosen = []
+    if strategy == 'strat_random':
+        # 系列分层随机：轮转分配，每轮每个系列最多取 1 个，系列内随机
+        ser_keys = list(by_ser.keys())
+        rng.shuffle(ser_keys)
+        while len(chosen) < budget and any(by_ser.values()):
+            for s in ser_keys:
+                if len(chosen) >= budget:
+                    break
+                if by_ser[s]:
+                    chosen.append(by_ser[s].pop(rng.randrange(len(by_ser[s]))))
+    else:
+        # 纯随机
+        all_pool = [p for lst in by_ser.values() for p in lst]
+        rng.shuffle(all_pool)
+        chosen = all_pool[:budget]
+    # 系列汇总
+    series_summary = []
+    for s in sorted(by_ser.keys()):
+        total = len(by_ser[s]) + sum(1 for p in pool if p['系列'] == s and p in chosen)
+        series_summary.append({'系列': s, '未实测': total, '本批推荐': sum(1 for p in chosen if p['系列'] == s)})
+    return {'ok': True, 'budget': budget, 'strategy': strategy, 'total_unlabeled': len(pool),
+            'series_summary': series_summary, 'plan': chosen,
+            'note': '策略依据实验 M：系列分层随机采样在系列结构化数据上优于不确定性采样（R² 0.688 vs 0.647）。'}

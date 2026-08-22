@@ -234,10 +234,12 @@ def load_dataset(path):
                 '体系': str(row.get('体系', '')).strip(),
                 '系列': str(row.get('系列', '')).strip(),
                 '组分': {},
+                '标签状态': '无标签',
+                '来源': os.path.basename(path),
             }
         samples[sid]['组分'][code] = float(amt)
 
-    # 性能结果
+    # 性能结果（有实测值 → 标签状态=实测，供补标签排程识别）
     perf = {}
     if perf_sheet:
         perf_df = xl.parse(perf_sheet)
@@ -247,6 +249,8 @@ def load_dataset(path):
             val = row.get('测试值', None)
             if sid and tgt and pd.notna(val):
                 perf.setdefault(sid, {})[tgt] = float(val)
+                if sid in samples:
+                    samples[sid]['标签状态'] = '实测'
 
     # 工艺条件
     proc = {}

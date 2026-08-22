@@ -93,6 +93,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); border-color: tran
     <button class="active" data-panel="p1">① 数据整理</button>
     <button data-panel="p2">② 特征一键转换</button>
     <button data-panel="p3">③ 辅助数据录入</button>
+    <button data-panel="p4">④ 补标签排程</button>
   </nav>
 
   <div class="stats">
@@ -198,6 +199,39 @@ input:focus, select:focus { outline: 2px solid var(--accent); border-color: tran
     <div class="card">
       <h2>已登记原料（前 50 种）</h2>
       <div class="log" id="log3">加载中…</div>
+    </div>
+  </div>
+
+  <!-- ===== 面板4：补标签排程 ===== -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <h2>补标签排程 <span class="tag">系列分层随机采样（实验 M 结论）</span></h2>
+      <p class="hint" style="margin-bottom:0.8rem">从当前未实测样本中推荐下一批应补测标签的样本。实验 M（<code>scripts/mvp78_experiments.py</code>）在真实 T弯数据（n=277/18 系列）上验证：<b>系列分层随机采样优于纯不确定性采样</b>（最终测试 R² 0.688 vs 0.647，达 R²≥0.6 仅需 70 标签 vs 130 标签）。原因：数据有强系列结构，系列目标编码是关键特征；不确定性采样把标签集中在少数难系列，饿死其他系列，损害泛化。</p>
+      <div class="grid2">
+        <div>
+          <label>本批补测样本数</label>
+          <input id="aq_budget" type="number" value="10" min="1" max="100">
+        </div>
+        <div>
+          <label>采样策略</label>
+          <select id="aq_strategy">
+            <option value="strat_random" selected>系列分层随机（推荐）</option>
+            <option value="random">纯随机</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn_acquire">生成补标签排程</button>
+      </div>
+      <p class="tip">排程依据实验 M 结论：优先保证每个系列都有标签覆盖，最大化系列编码信号。固定种子（42）保证结果可复现。</p>
+    </div>
+    <div class="card">
+      <h2>系列覆盖情况</h2>
+      <div class="log" id="log_aq_ser">等待生成…</div>
+    </div>
+    <div class="card">
+      <h2>推荐补测样本</h2>
+      <div class="log" id="log_aq">等待生成…</div>
     </div>
   </div>
 </div>
@@ -431,6 +465,35 @@ $('btn_entry').addEventListener('click', async () => {
   $('e_tw').value = ''; $('e_mek').value = ''; $('e_zb').value = '';
   $('entry_rows').innerHTML = '';
   addEntryRow();
+});
+
+// ---------- 面板4：补标签排程 ----------
+$('btn_acquire').addEventListener('click', async () => {
+  const budget = parseInt($('aq_budget').value) || 10;
+  const strategy = $('aq_strategy').value;
+  $('btn_acquire').disabled = true;
+  $('btn_acquire').textContent = '生成中…';
+  try {
+    const r = await fetch(`/api/acquire?budget=${budget}&strategy=${strategy}&seed=42`);
+    const d = await r.json();
+    if (!d.ok) { toast('生成失败: ' + d.error, true); return; }
+    // 系列覆盖
+    let serHtml = `未实测样本总数: ${d.total_unlabeled}　|　策略: ${d.strategy === 'strat_random' ? '系列分层随机' : '纯随机'}　|　本批推荐: ${d.plan.length}\n\n`;
+    serHtml += '系列 | 未实测 | 本批推荐\n';
+    for (const s of d.series_summary) {
+      serHtml += `${s['系列']} | ${s['未实测']} | ${s['本批推荐']}\n`;
+    }
+    $('log_aq_ser').textContent = serHtml;
+    // 推荐样本
+    let planHtml = `本批推荐补测 ${d.plan.length} 个样本（按系列分层随机）:\n\n`;
+    d.plan.forEach((p, i) => {
+      planHtml += `${String(i + 1).padStart(2, '0')}. [${p['系列']}] ${p['样本ID']}（${p['体系']}，${p['来源']}）\n`;
+    });
+    planHtml += `\n${d.note}`;
+    $('log_aq').textContent = planHtml;
+    toast(`已生成补标签排程：${d.plan.length} 个样本`);
+  } catch (e) { toast('请求失败: ' + e, true); }
+  finally { $('btn_acquire').disabled = false; $('btn_acquire').textContent = '生成补标签排程'; }
 });
 
 // 初始化
