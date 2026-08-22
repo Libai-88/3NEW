@@ -201,7 +201,7 @@ aft_acc, aft_auc, aft_rec = cv_aft(Xm, ym, serm, 45, nseed=5)
 X_unc = Xm[unc_idx]; y_unc = ym[unc_idx]; ser_unc = [serm[i] for i in unc_idx]
 imp2 = get_imp(X_unc, np.sqrt(y_unc))
 Xs_unc = X_unc[:, np.argsort(imp2)[-45:]]
-r2_mek = cv_reg(Xs_unc, y_unc, ser_unc, 1, trans=np.sqrt, inv=lambda p: p**2,
+r2_mek = cv_reg(Xs_unc, y_unc, ser_unc, 1, est=1500, trans=np.sqrt, inv=lambda p: p**2,
                 nseed=NSEED, extra_feat=p_hi[unc_idx])
 print(f'  未截尾回归+p_hi: R²={r2_mek:.4f} (n={len(y_unc)})', flush=True)
 print(f'  边界: 分类器 acc={accuracy_score(ybin, (p_hi>=0.5).astype(int)):.4f}/AUC={auc_clf:.4f}, '
