@@ -40,6 +40,7 @@
         ├── mvp77c_experiments.py      # 实验 L-3：解耦两阶段（AFT 边界 + 未截尾回归）稳定性验证
         ├── mvp78_experiments.py       # 实验 M：主动学习模拟（5 种标签获取策略对比）
         ├── mvp79_experiments.py       # 实验 N：噪声降低假设分析（R²>0.9 可达路径）
+        ├── mvp80_experiments.py       # 实验 O：留一体系外验证（LOSO，跨体系泛化诚实缺口）
         ├── run_pipeline.py            # 通用型流水线 CLI（模板→描述符→建模CSV→标签补充）
         ├── materials.py / descriptors.py / smi_desc.py   # 描述符计算依赖
 ```
@@ -64,6 +65,7 @@
 | MEK 截尾诚实评估（实验 K/L） | 未截尾真实 R²=0.495（p_hi 特征注入，0.474→0.495）；AFT 边界判别 acc=0.9465 / 截尾召回=0.804（对比分类器 acc=0.915/召回=0.522）；代理目标 R²=0.70 为虚高口径 |
 | 主动学习模拟（实验 M） | T弯 n=277/18 系列：系列分层随机/随机最终测试 R²=0.688、达 R²≥0.6 仅需 70~90 标签；纯不确定性采样 R²=0.647、需 130 标签（最差）。系列结构化数据上随机/分层采样优于不确定性采样 |
 | 噪声降低假设（实验 N） | T弯 R²>0.9 需将测量噪声从 1.244 降至 ≤0.62（减半）或重复测量 4 次取均值；MEK 系列内 CV 超出 ASTM D5402-19 上限，降噪空间大 |
+| 留一体系外验证（实验 O） | 合并版数据集 3 体系仅 1 个有标签，LOSO 无法直接运行——诚实报告跨体系泛化缺口，输出补测清单（环氧-配比方案/聚酯金黄）；补测后脚本自动执行完整 LOSO |
 | 最终验证（合并版数据集，20 种子） | 见下方「最终验证」 |
 
 ### 最终验证（`scripts/mvp74_final_verify.py`）
@@ -126,6 +128,7 @@ python scripts/mvp77_experiments.py      # 实验 L：AFT 边界判别（surviva
 python scripts/mvp77c_experiments.py     # 实验 L-3：解耦两阶段稳定性验证
 python scripts/mvp78_experiments.py      # 实验 M：主动学习模拟（5 种标签获取策略对比）
 python scripts/mvp79_experiments.py      # 实验 N：噪声降低假设分析（R²>0.9 可达路径）
+python scripts/mvp80_experiments.py      # 实验 O：留一体系外验证（LOSO，跨体系泛化诚实缺口）
 python scripts/build_template3.py        # 重新生成终极版模板（输出 ../终极版数据集模板.xlsx）
 python scripts/build_merged_excel.py     # 重新生成合并版数据集（读取 ../data/merged_data.pkl 中间产物）
 python scripts/parse_unlabeled.py 配方文件.xlsx -o unlabeled_formulas.pkl   # 解析无标签配方（命令行传文件）
