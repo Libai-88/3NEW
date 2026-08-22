@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据整理与特征转换工作台 · Web 版</title>
+<style>
+:root {
+  --bg: #F6F8FB; --card: #FFFFFF; --ink: #16233B; --muted: #5C6B84;
+  --rule: #E2E8F0; --accent: #2F6FED; --green: #16A34A; --red: #DC2626;
+  --font: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--ink); line-height: 1.6; }
+header {
+  background: linear-gradient(135deg, #16233B 0%, #1E3A6E 55%, #2F6FED 100%);
+  color: #fff; padding: 1.4rem 2rem; display: flex; align-items: center; justify-content: space-between;
+}
+header h1 { font-size: 1.25rem; font-weight: 700; }
+header .sub { font-size: 0.8rem; color: #A8C3F5; margin-top: 0.2rem; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+nav { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+nav button {
+  border: 1px solid var(--rule); background: var(--card); color: var(--ink);
+  padding: 0.55rem 1.1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+}
+nav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.panel { display: none; }
+.panel.active { display: block; }
+.card { background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 1.3rem 1.5rem; margin-bottom: 1.2rem; }
+.card h2 { font-size: 1.05rem; margin-bottom: 0.8rem; }
+.card h2 .tag { font-size: 0.72rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0.1rem 0.5rem; margin-left: 0.4rem; vertical-align: middle; }
+.btn {
+  display: inline-block; border: none; border-radius: 8px; padding: 0.55rem 1.2rem;
+  font-size: 0.9rem; font-weight: 600; cursor: pointer; background: var(--accent); color: #fff;
+}
+.btn.green { background: var(--green); }
+.btn.ghost { background: var(--card); color: var(--ink); border: 1px solid var(--rule); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.8rem; }
+.file-drop {
+  border: 2px dashed var(--rule); border-radius: 10px; padding: 1.6rem; text-align: center;
+  color: var(--muted); cursor: pointer; transition: border-color 0.2s;
+}
+.file-drop:hover { border-color: var(--accent); }
+.file-drop input { display: none; }
+.file-list { margin-top: 0.8rem; }
+.file-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg); border-radius: 6px; padding: 0.4rem 0.8rem; margin-bottom: 0.3rem; font-size: 0.85rem; }
+.file-item .del { color: var(--red); cursor: pointer; border: none; background: none; font-size: 0.9rem; }
+.log {
+  background: #0F1B2D; color: #B7C9E8; border-radius: 8px; padding: 0.9rem 1rem;
+  font-family: Consolas, monospace; font-size: 0.8rem; max-height: 240px; overflow: auto; white-space: pre-wrap;
+}
+.log .ok { color: #4ADE80; }
+.log .warn { color: #FBBF24; }
+.log .err { color: #F87171; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-bottom: 1rem; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 0.9rem 1rem; }
+.stat .num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+.stat .lbl { font-size: 0.78rem; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+label { display: block; font-size: 0.82rem; color: var(--muted); margin: 0.5rem 0 0.25rem; }
+input, select {
+  width: 100%; border: 1px solid var(--rule); border-radius: 6px; padding: 0.45rem 0.6rem;
+  font-size: 0.88rem; font-family: var(--font);
+}
+input:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.entry-rows { margin-top: 0.6rem; }
+.entry-row { display: grid; grid-template-columns: 1fr 1fr 36px; gap: 0.5rem; margin-bottom: 0.4rem; align-items: center; }
+.entry-row .del { color: var(--red); cursor: pointer; border: none; background: none; font-size: 1rem; }
+.add-row { color: var(--accent); cursor: pointer; font-size: 0.85rem; border: none; background: none; margin-top: 0.4rem; }
+.tip { font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+#toast {
+  position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+  background: #16233B; color: #fff; padding: 0.7rem 1.4rem; border-radius: 8px;
+  font-size: 0.88rem; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 99;
+}
+#toast.show { opacity: 1; }
+#toast.err { background: var(--red); }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>数据整理与特征转换工作台 · Web 版</h1>
+    <div class="sub">配套「终极版数据集模板 v3」的前置自动化工具 · 数据整理 / 特征一键转换 / 辅助录入</div>
+  </div>
+</header>
+<div class="wrap">
+  <nav>
+    <button class="active" data-panel="p1">① 数据整理</button>
+    <button data-panel="p2">② 特征一键转换</button>
+    <button data-panel="p3">③ 辅助数据录入</button>
+  </nav>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="st_mat">0</div><div class="lbl">原料数</div></div>
+    <div class="stat"><div class="num" id="st_smp">0</div><div class="lbl">样本数</div></div>
+    <div class="stat"><div class="num" id="st_lab">0</div><div class="lbl">实测样本</div></div>
+    <div class="stat"><div class="num" id="st_perf">0</div><div class="lbl">性能记录</div></div>
+  </div>
+
+  <!-- ===== 面板1：数据整理 ===== -->
+  <div class="panel active" id="p1">
+    <div class="card">
+      <h2>导入数据源 <span class="tag">自动识别格式</span></h2>
+      <p class="hint" style="margin-bottom:0.8rem">支持：终极版模板Excel / 配料测试汇总（有标签）/ 配比方案 / 聚酯金黄 / 原料数据。可多选，自动清洗原料代码、重复测量取均值。</p>
+      <div class="file-drop" id="drop1">
+        <div>点击选择或拖拽 Excel 文件到此处</div>
+        <input type="file" id="file1" multiple accept=".xlsx,.xls">
+      </div>
+      <div class="file-list" id="flist1"></div>
+      <div class="btn-row">
+        <button class="btn" id="btn_organize">一键整理</button>
+        <button class="btn ghost" id="btn_reset">清空数据</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>整理日志</h2>
+      <div class="log" id="log1">等待操作…</div>
+    </div>
+    <div class="card">
+      <h2>导出</h2>
+      <p class="hint" style="margin-bottom:0.8rem">整理完成后，可导出为终极版模板结构 Excel，或直接进入「特征一键转换」。</p>
+      <div class="btn-row">
+        <button class="btn green" id="btn_export_tpl">导出终极版模板 Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 面板2：特征一键转换 ===== -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <h2>特征计算 <span class="tag">组分用量 + 增强描述符 + 显式比例 + SMILES 聚合</span></h2>
+      <p class="hint" style="margin-bottom:0.8rem">从当前数据（整理或录入所得）自动计算配方级特征矩阵，导出「配方级描述符」与「建模输入」两个工作表。</p>
+      <div class="btn-row">
+        <button class="btn" id="btn_features">一键计算特征并导出 Excel</button>
+        <button class="btn ghost" id="btn_load_tpl">加载模板 Excel（替代当前数据）</button>
+        <input type="file" id="file_tpl" accept=".xlsx" style="display:none">
+      </div>
+    </div>
+    <div class="card">
+      <h2>特征说明</h2>
+      <div class="log" id="log2">特征列构成：<br>· 组分用量（每种原料一列，未出现为 0）<br>· 烘烤温度 / 烘烤时间<br>· 增强描述符（配方级加权：固含/密度/分子量/官能团密度等）<br>· 显式比例（22 维：固化剂/树脂比、酸/蜡/溶剂比例等）<br>· SMILES 分子描述符加权聚合（RDKit 预计算内嵌）</div>
+    </div>
+  </div>
+
+  <!-- ===== 面板3：辅助数据录入 ===== -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <h2>录入配方样本 <span class="tag">自动校验与登记</span></h2>
+      <p class="hint" style="margin-bottom:0.8rem">表单式录入，未登记原料自动估算描述符并登记到原料库。</p>
+      <div class="grid2">
+        <div>
+          <label>样本ID *</label>
+          <input id="e_id" placeholder="如 M-001">
+          <label>体系</label>
+          <select id="e_sys"></select>
+          <label>系列</label>
+          <input id="e_ser" placeholder="留空则同体系">
+        </div>
+        <div>
+          <label>烘烤温度 (℃)</label>
+          <input id="e_bt" type="number" placeholder="如 180">
+          <label>烘烤时间 (min)</label>
+          <input id="e_bm" type="number" placeholder="如 30">
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:0.4rem">
+        <div>
+          <label>T弯实测 (mm)</label>
+          <input id="e_tw" type="number" step="0.1" placeholder="可选">
+          <label>MEK擦拭实测 (次)</label>
+          <input id="e_mek" type="number" step="0.1" placeholder="可选">
+        </div>
+        <div>
+          <label>水煮等级实测 (级)</label>
+          <input id="e_zb" type="number" step="0.1" placeholder="可选，1级最佳">
+        </div>
+      </div>
+      <label style="margin-top:0.8rem">组分（原料代码 + 用量 g）</label>
+      <div class="entry-rows" id="entry_rows"></div>
+      <button class="add-row" id="btn_add_row">+ 添加组分行</button>
+      <div class="btn-row">
+        <button class="btn" id="btn_entry">保存样本</button>
+      </div>
+      <p class="tip">提示：原料代码可在下方选择（已登记原料库），也可直接输入新代码（自动估算登记）。</p>
+    </div>
+    <div class="card">
+      <h2>已登记原料（前 50 种）</h2>
+      <div class="log" id="log3">加载中…</div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let files = [];
+
+// ---------- 工具 ----------
+function toast(msg, isErr) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isErr ? ' err' : '');
+  setTimeout(() => t.className = '', 2600);
+}
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function appendLog(boxId, lines) {
+  const box = $(boxId);
+  box.innerHTML = '';
+  for (const line of lines) {
+    const cls = line.startsWith('[') ? (line.includes('失败') || line.includes('未识别') ? 'err' : (line.includes('自动估算') ? 'warn' : 'ok')) : '';
+    box.innerHTML += `<div class="${cls}">${esc(line)}</div>`;
+  }
+}
+async function refreshState() {
+  try {
+    const r = await fetch('/api/state');
+    const d = await r.json();
+    $('st_mat').textContent = d.mat_count;
+    $('st_smp').textContent = d.sample_count;
+    $('st_lab').textContent = d.labeled_count;
+    $('st_perf').textContent = d.perf_count;
+    if (d.report && d.report.length) appendLog('log1', d.report);
+  } catch (e) { /* 服务未就绪 */ }
+}
+
+// ---------- 导航 ----------
+document.querySelectorAll('nav button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    $(b.dataset.panel).classList.add('active');
+  });
+});
+
+// ---------- 面板1：数据整理 ----------
+const drop1 = $('drop1'), file1 = $('file1');
+drop1.addEventListener('click', () => file1.click());
+drop1.addEventListener('dragover', e => { e.preventDefault(); drop1.style.borderColor = 'var(--accent)'; });
+drop1.addEventListener('dragleave', () => drop1.style.borderColor = '');
+drop1.addEventListener('drop', e => {
+  e.preventDefault(); drop1.style.borderColor = '';
+  for (const f of e.dataTransfer.files) addFile(f);
+});
+file1.addEventListener('change', () => { for (const f of file1.files) addFile(f); file1.value = ''; });
+function addFile(f) {
+  if (files.some(x => x.name === f.name)) return;
+  files.push(f);
+  renderFileList();
+}
+function renderFileList() {
+  $('flist1').innerHTML = files.map((f, i) =>
+    `<div class="file-item"><span>${esc(f.name)}</span><button class="del" data-i="${i}">✕</button></div>`
+  ).join('');
+  document.querySelectorAll('.file-item .del').forEach(b => {
+    b.addEventListener('click', () => { files.splice(+b.dataset.i, 1); renderFileList(); });
+  });
+}
+$('btn_organize').addEventListener('click', async () => {
+  if (!files.length) { toast('请先选择数据源文件', true); return; }
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f);
+  $('btn_organize').disabled = true;
+  $('btn_organize').textContent = '整理中…';
+  try {
+    const r = await fetch('/api/organize', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!d.ok) { toast('整理失败: ' + d.error, true); return; }
+    appendLog('log1', d.report);
+    refreshState();
+    toast(`整理完成：原料 ${d.mat_count} / 样本 ${d.sample_count}`);
+  } catch (e) { toast('请求失败: ' + e, true); }
+  finally { $('btn_organize').disabled = false; $('btn_organize').textContent = '一键整理'; }
+});
+$('btn_reset').addEventListener('click', async () => {
+  await fetch('/api/reset', { method: 'POST' });
+  files = []; renderFileList();
+  $('log1').textContent = '已清空数据。';
+  refreshState();
+  toast('已清空');
+});
+$('btn_export_tpl').addEventListener('click', async () => {
+  const r = await fetch('/api/export/template');
+  if (!r.ok) { const d = await r.json().catch(() => ({})); toast('导出失败: ' + (d.error || r.status), true); return; }
+  const blob = await r.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '整理后数据集_终极版模板.xlsx';
+  a.click();
+  toast('已导出终极版模板 Excel');
+});
+
+// ---------- 面板2：特征转换 ----------
+$('btn_features').addEventListener('click', async () => {
+  $('btn_features').disabled = true;
+  $('btn_features').textContent = '计算中…';
+  try {
+    const r = await fetch('/api/export/features');
+    if (!r.ok) { const d = await r.json().catch(() => ({})); toast('计算失败: ' + (d.error || r.status), true); return; }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '特征矩阵_配方级描述符与建模输入.xlsx';
+    a.click();
+    toast('特征计算完成并导出');
+  } catch (e) { toast('请求失败: ' + e, true); }
+  finally { $('btn_features').disabled = false; $('btn_features').textContent = '一键计算特征并导出 Excel'; }
+});
+$('btn_load_tpl').addEventListener('click', () => $('file_tpl').click());
+$('file_tpl').addEventListener('change', async () => {
+  const f = $('file_tpl').files[0];
+  if (!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  const r = await fetch('/api/load/template', { method: 'POST', body: fd });
+  const d = await r.json();
+  if (!d.ok) { toast('加载失败: ' + d.error, true); return; }
+  appendLog('log1', d.report);
+  refreshState();
+  toast(`已加载模板：原料 ${d.mat_count} / 样本 ${d.sample_count}`);
+  $('file_tpl').value = '';
+});
+
+// ---------- 面板3：辅助录入 ----------
+let meta = null;
+async function loadMeta() {
+  const r = await fetch('/api/meta');
+  meta = await r.json();
+  $('e_sys').innerHTML = meta.systems.map(s => `<option>${esc(s)}</option>`).join('');
+  $('log3').textContent = meta.codes.slice(0, 50).join('\n');
+}
+function addEntryRow(code = '', amt = '') {
+  const rows = $('entry_rows');
+  const div = document.createElement('div');
+  div.className = 'entry-row';
+  const opts = meta ? meta.codes.map(c => `<option value="${esc(c)}" ${c === code ? 'selected' : ''}>${esc(c)}</option>`).join('') : '';
+  div.innerHTML = `
+    <input class="ec" list="matlist" placeholder="原料代码" value="${esc(code)}">
+    <input class="ea" type="number" step="0.01" placeholder="用量 g" value="${esc(amt)}">
+    <button class="del" title="删除">✕</button>`;
+  div.querySelector('.del').addEventListener('click', () => div.remove());
+  rows.appendChild(div);
+}
+$('btn_add_row').addEventListener('click', () => addEntryRow());
+$('btn_entry').addEventListener('click', async () => {
+  const comp = {};
+  document.querySelectorAll('#entry_rows .entry-row').forEach(r => {
+    const c = r.querySelector('.ec').value.trim();
+    const a = parseFloat(r.querySelector('.ea').value);
+    if (c && !isNaN(a) && a > 0) comp[c] = a;
+  });
+  const entry = {
+    '样本ID': $('e_id').value.trim(),
+    '体系': $('e_sys').value,
+    '系列': $('e_ser').value.trim(),
+    '烘烤温度': $('e_bt').value ? parseFloat($('e_bt').value) : null,
+    '烘烤时间': $('e_bm').value ? parseFloat($('e_bm').value) : null,
+    'T弯': $('e_tw').value ? parseFloat($('e_tw').value) : null,
+    'MEK': $('e_mek').value ? parseFloat($('e_mek').value) : null,
+    '水煮': $('e_zb').value ? parseFloat($('e_zb').value) : null,
+    '组分': comp,
+  };
+  const r = await fetch('/api/entry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry),
+  });
+  const d = await r.json();
+  if (!d.ok) { toast('保存失败: ' + d.error, true); return; }
+  toast(`已保存样本 ${d['样本ID']}`);
+  refreshState();
+  // 清空表单
+  $('e_id').value = ''; $('e_ser').value = ''; $('e_bt').value = ''; $('e_bm').value = '';
+  $('e_tw').value = ''; $('e_mek').value = ''; $('e_zb').value = '';
+  $('entry_rows').innerHTML = '';
+  addEntryRow();
+});
+
+// 初始化
+addEntryRow();
+loadMeta();
+refreshState();
+setInterval(refreshState, 5000);
+</script>
+</body>
+</html>

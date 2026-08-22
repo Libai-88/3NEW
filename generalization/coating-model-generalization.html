@@ -774,9 +774,35 @@ flowchart LR
   </div>
 </section>
 
-<!-- ============ 06 落地路线图 ============ -->
+<!-- ============ 06 自动化工作台 ============ -->
 <section class="block">
-  <h2 class="sec"><span class="no">06</span>落地路线图</h2>
+  <h2 class="sec"><span class="no">06</span>自动化工作台</h2>
+
+  <p>为把「固定且机械」的前置流程（数据整理、代码清洗、特征构建）自动化、减少人工误差，交付了配套工作台，覆盖<b>正式训练前的全部前置工作</b>（不含模型训练）。提供两种形态：<b>Web 版</b>（推荐，跨平台零安装，双击启动脚本后浏览器打开）与 <b>Tkinter 桌面版</b>（Windows 直接运行 <code>workbench/DataPrepWorkbench.py</code>），二者功能一致。</p>
+
+  <div class="callout good">
+    <span class="t">一键启动</span>
+    Windows 双击 <code>workbench/start_webapp.bat</code>，或 Linux/macOS 运行 <code>workbench/start_webapp.sh</code>，浏览器自动打开 <code>http://127.0.0.1:8765</code>。首次运行自动安装 <code>numpy/pandas/openpyxl</code>，无其他第三方依赖。
+  </div>
+
+  <h3>6.1 数据整理（多源导入 → 模板结构）</h3>
+  <p>一键导入多种数据源：终极版模板 Excel / 配料测试汇总（有标签）/ 配比方案 / 聚酯金黄 / 原料数据。自动完成：格式识别（模板/有标签/配方/原料四类）、原料代码清洗（别名映射 + 大小写统一）、按样本 ID 去重（重复测量取均值，诚实评估协议）、未登记原料按代码模式自动估算描述符并登记。整理结果导出为终极版模板结构 Excel（原料主数据 / 配方明细 / 性能结果 / 工艺条件）。</p>
+
+  <h3>6.2 特征一键转换</h3>
+  <p>从当前数据自动计算配方级特征矩阵（组分用量 + 增强描述符 + 显式比例 + SMILES 分子描述符加权聚合），导出「配方级描述符」与「建模输入」两个工作表，与模板 v3 的建模输入口径完全一致，可直接交给建模工作台训练。</p>
+
+  <h3>6.3 辅助数据录入</h3>
+  <p>表单式录入配方样本：原料代码（已登记库下拉选择或直接输入新代码自动估算登记）、用量、烘烤工艺、实测性能（T弯/MEK/水煮），自动校验并写入当前数据，录入即参与后续特征计算。</p>
+
+  <div class="callout good">
+    <span class="t">实测验证</span>
+    用现有 4 个数据源（配料测试汇总 / 配比方案 / 聚酯金黄 / 原料送检）端到端验证：自动识别并整理出 <b>258 种原料、486 个样本、769 条性能记录</b>（其中实测 345 个），导出模板结构与特征矩阵均正确可读（配方明细 5,914 行、建模输入 486×279）。
+  </div>
+</section>
+
+<!-- ============ 07 落地路线图 ============ -->
+<section class="block">
+  <h2 class="sec"><span class="no">07</span>落地路线图</h2>
   <ol class="steps">
     <li><span class="st">数据标准化</span> <span class="ph">—— 用通用型数据集模板回填历史配方，补齐原料描述符与 SMILES（SDS/TDS 实测值优先）</span></li>
     <li><span class="st">描述符库建设</span> <span class="ph">—— 建立企业级原料描述符库，接入 RDKit/Mordred 自动计算脚本，覆盖全部体系常用原料</span></li>
@@ -788,7 +814,7 @@ flowchart LR
 
 <!-- ============ SOURCES ============ -->
 <section class="sources">
-  <h2 class="sec"><span class="no">07</span>参考文献</h2>
+  <h2 class="sec"><span class="no">08</span>参考文献</h2>
   <ol>
     <li>Kim C, Chandrasekaran A, Huan T D, et al. <i>Polymer Genome: A Data-Powered Polymer Informatics Platform for Property Predictions</i>. J. Phys. Chem. C, 2018. <a href="https://pubs.acs.org/doi/pdf/10.1021/acs.jpcc.8b02913">https://pubs.acs.org/doi/pdf/10.1021/acs.jpcc.8b02913</a></li>
     <li>Chen L, et al. <i>Polymer Informatics at Scale with Multitask Graph Neural Networks</i>. Chem. Mater., 2023. <a href="https://pubs.acs.org/doi/full/10.1021/acs.chemmater.2c02991">https://pubs.acs.org/doi/full/10.1021/acs.chemmater.2c02991</a></li>

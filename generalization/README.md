@@ -16,11 +16,16 @@
     ├── 合并版数据集.xlsx              # 现有全部数据整理并填入终极版模板
     ├── data/                          # 合并版数据集生成的中间产物
     │   └── merged_data.pkl            # 486 样本配方+描述符（build_merged_excel.py 输入）
-    ├── workbench/                     # 配套 Windows 工作台源码
-    │   ├── DataPrepWorkbench.py       # 数据整理与特征转换工作台（前置自动化）
+    ├── workbench/                     # 配套自动化工作台源码
+    │   ├── DataPrepWorkbench.py       # 数据整理与特征转换工作台（Tkinter 桌面版）
     │   ├── CoatingModelWorkbench.py   # 建模与预测工作台（含最优配置）
     │   ├── materials.py               # 跨体系原料描述符库（85 种）
-    │   └── smi_desc.py                # SMILES 分子描述符（内嵌，无需 RDKit）
+    │   ├── smi_desc.py                # SMILES 分子描述符（内嵌，无需 RDKit）
+    │   ├── webapp/                    # Web 版工作台（推荐，跨平台零安装）
+    │   │   ├── server.py              # 后端服务（Python 标准库 HTTP，自动开浏览器）
+    │   │   └── index.html             # 前端界面（数据整理/特征转换/辅助录入）
+    │   ├── start_webapp.bat           # Windows 一键启动脚本（双击运行）
+    │   └── start_webapp.sh            # Linux/macOS 一键启动脚本
     └── scripts/                       # 可复现脚本
         ├── build_template3.py         # 终极版模板 v3 生成
         ├── build_merged_excel.py      # 合并版数据集生成
@@ -64,8 +69,9 @@
 
 1. **看报告**：浏览器直接打开 `coating-model-generalization.html`（字体/图表已本地化，离线可用）。
 2. **用模板**：新配方按 `终极版数据集模板.xlsx` 录入（下拉选体系/角色/树脂类型，未登记原料自动标红）。
-3. **整理数据**：Windows 上运行 `workbench/DataPrepWorkbench.py`，一键导入多源 Excel → 自动识别格式、清洗代码、去重 → 导出模板结构与特征矩阵。
-4. **复现验证**：`python scripts/mvp74_final_verify.py`（需 `numpy/pandas/openpyxl/xgboost/lightgbm/scikit-learn`）。
+3. **整理数据（Web 版工作台，推荐）**：双击 `workbench/start_webapp.bat`（Windows）或运行 `workbench/start_webapp.sh`（Linux/macOS），浏览器自动打开 `http://127.0.0.1:8765`。支持一键导入多源 Excel（模板/配料汇总/配比方案/聚酯金黄/原料数据）→ 自动识别格式、清洗代码、去重 → 导出模板结构与特征矩阵；另含表单式辅助录入（未登记原料自动估算登记）。首次运行自动安装 `numpy/pandas/openpyxl`。
+4. **整理数据（桌面版）**：Windows 上运行 `workbench/DataPrepWorkbench.py`（Tkinter 界面，功能与 Web 版一致）。
+5. **复现验证**：`python scripts/mvp74_final_verify.py`（需 `numpy/pandas/openpyxl/xgboost/lightgbm/scikit-learn`）。
 
 ## 复现环境
 
