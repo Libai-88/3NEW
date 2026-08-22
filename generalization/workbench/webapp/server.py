@@ -40,7 +40,7 @@ from CoatingModelWorkbench import (
     canon, ENH_FEATURES, SMI_AGG_KEYS, CONT_DESC, ROLES, RTYPES,
 )
 from materials import MAT, ALIAS
-from flow import suggest_type, validate_file, build_manifest, build_acquisition_plan, FILE_TYPES
+from flow import suggest_type, validate_file, build_manifest, build_acquisition_plan, build_readiness_report, FILE_TYPES
 
 # ---------- 数据整理：格式识别与解析（复用 DataPrepWorkbench 逻辑） ----------
 NOISE = {'合计', '固含', '硬度', '刮伤', '度系数最终值', '佳仪滑度'}
@@ -732,6 +732,17 @@ class Handler(BaseHTTPRequestHandler):
                 seed = int(q.get('seed', ['42'])[0])
                 plan = build_acquisition_plan(STATE['samples'], budget=budget, strategy=strategy, seed=seed)
                 body, ctype = _json_ok({'ok': True, **plan})
+                self._send(body, ctype)
+            except Exception as e:
+                body, ctype = _json_err(e)
+                self._send(body, ctype)
+        elif p == '/api/readiness':
+            # 建模就绪检查：自动评估数据是否达到可训练/逼近 R²>0.9 标准（实验 J/M/N 阈值）
+            try:
+                if not STATE['samples']:
+                    raise ValueError('当前无数据，请先整理或录入')
+                rep = build_readiness_report(STATE['mat_lib'], STATE['samples'], STATE['perf'], STATE['proc'])
+                body, ctype = _json_ok(rep)
                 self._send(body, ctype)
             except Exception as e:
                 body, ctype = _json_err(e)

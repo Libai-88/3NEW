@@ -263,3 +263,162 @@ def build_acquisition_plan(samples, budget=10, strategy='strat_random', seed=42)
     return {'ok': True, 'budget': budget, 'strategy': strategy, 'total_unlabeled': len(pool),
             'series_summary': series_summary, 'plan': chosen,
             'note': '策略依据实验 M：系列分层随机采样在系列结构化数据上优于不确定性采样（R² 0.688 vs 0.647）。'}
+
+
+# ---------- 建模就绪检查（写死阈值，来自实验 J/M/N 结论） ----------
+# 阈值依据（均有实验支撑）：
+#   标签覆盖：实验 M（scripts/mvp78_experiments.py）T弯 n=277/18 系列实测，
+#             达 R²≥0.6 需 70~90 标签，130+ 标签后增益趋缓；
+#             实验 N（scripts/mvp79_experiments.py）表明 R²>0.9 需降噪而非单纯加标签。
+#   系列覆盖：系列目标编码需每系列 ≥2 样本（折叠内 OOF 才可计算），推荐 ≥5 才稳定。
+#   体系多样性：跨体系泛化主张需 ≥3 体系（当前合并版数据集 3 体系）。
+#   原料登记：未登记原料会走自动估算描述符（不确定性），应尽量为 0。
+#   标签平衡：分类目标每类 ≥10 样本才可训练稳定分类器。
+#   噪声水平：实验 J/N 实测 T弯 系列内噪声 std=1.244、总 std=2.72 → R² 上限 0.789；
+#             R²>0.9 需噪声 ≤0.62（减半）或重复测量 4 次取均值。
+READY_LABEL_MIN = 50          # 每目标最少标签数（可用）
+READY_LABEL_GOOD = 100        # 每目标标签数（良好）
+READY_SERIES_MIN = 2          # 每系列最少样本（OOF 编码可计算）
+READY_SERIES_GOOD = 5         # 每系列推荐样本数（编码稳定）
+READY_SYSTEMS_MIN = 3         # 跨体系泛化最少体系数
+READY_CLASS_MIN = 10          # 分类目标每类最少样本
+READY_NOISE_TW_STD = 1.244    # T弯 实测系列内噪声 std（实验 J）
+READY_NOISE_TW_TOTAL = 2.708   # T弯 实测总 std（实验 J：噪声地板 R²=0.789）
+READY_NOISE_TARGET = 0.62     # R²>0.9 所需噪声 std（实验 N：噪声减半）
+
+
+def build_readiness_report(mat_lib, samples, perf, proc):
+    """建模就绪检查：自动评估数据是否达到可训练/逼近 R²>0.9 的标准。
+
+    将实验 J/M/N 的结论固化为硬编码阈值（写死），数据由用户提供（可配置），
+    替代人工经验判断，减少人工熟练度差异引入的误差。
+
+    返回：
+      {ok, summary{...}, checks[{id,name,status,detail,evidence}],
+       per_target[{target,labeled,status,note}], recommendations[]}
+    """
+    from collections import Counter
+    checks = []
+    recs = []
+
+    # 1. 标签覆盖（每目标）
+    tgt_cnt = Counter()
+    for d in perf.values():
+        for t in d:
+            tgt_cnt[t] += 1
+    per_target = []
+    for t in sorted(tgt_cnt):
+        n = tgt_cnt[t]
+        if n >= READY_LABEL_GOOD:
+            st = 'ok'
+        elif n >= READY_LABEL_MIN:
+            st = 'warn'
+        else:
+            st = 'fail'
+        note = ''
+        if t == 'T弯':
+            note = f'实验 M：{n} 标签' + ('（≥100，接近 R² 上限区）' if n >= READY_LABEL_GOOD else '（需 ≥70 才达 R²≥0.6）')
+        elif t == 'MEK擦拭':
+            note = f'含截尾样本，按两阶段评估（边界 acc + 未截尾 R²）'
+        elif t == '水煮等级':
+            note = f'分类目标，按准确率评估'
+        per_target.append({'target': t, 'labeled': n, 'status': st, 'note': note})
+    n_lab_total = sum(1 for s in samples.values() if s.get('标签状态') == '实测')
+    if n_lab_total == 0:
+        checks.append({'id': 'labels', 'name': '标签覆盖', 'status': 'fail',
+                       'detail': '当前无任何实测标签，无法训练',
+                       'evidence': '需至少 50 标签/目标（实验 M）'})
+        recs.append('先补测标签：使用「补标签排程」按系列分层随机推荐下一批应测样本')
+    elif any(p['status'] == 'fail' for p in per_target):
+        weak = [p['target'] for p in per_target if p['status'] == 'fail']
+        checks.append({'id': 'labels', 'name': '标签覆盖', 'status': 'warn',
+                       'detail': f'目标 {weak} 标签不足（<{READY_LABEL_MIN}）',
+                       'evidence': f'实验 M：达 R²≥0.6 需 70~90 标签/目标'})
+        recs.append(f'目标 {weak} 标签不足，用「补标签排程」优先补测')
+    else:
+        checks.append({'id': 'labels', 'name': '标签覆盖', 'status': 'ok',
+                       'detail': f'实测标签 {n_lab_total} 个，各目标均 ≥{READY_LABEL_MIN}',
+                       'evidence': '实验 M：70~90 标签达 R²≥0.6，130+ 后增益趋缓'})
+
+    # 2. 系列覆盖
+    ser_cnt = Counter(s['系列'] for s in samples.values())
+    small_ser = {k: v for k, v in ser_cnt.items() if v < READY_SERIES_GOOD}
+    if small_ser:
+        checks.append({'id': 'series', 'name': '系列覆盖', 'status': 'warn',
+                       'detail': f'{len(small_ser)} 个系列样本 <{READY_SERIES_GOOD}：{dict(list(small_ser.items())[:5])}',
+                       'evidence': f'系列目标编码需每系列 ≥{READY_SERIES_MIN} 样本（OOF 可计算），推荐 ≥{READY_SERIES_GOOD}'})
+        recs.append('样本过少的系列其系列编码不可靠，预测时按全局均值回退')
+    else:
+        checks.append({'id': 'series', 'name': '系列覆盖', 'status': 'ok',
+                       'detail': f'{len(ser_cnt)} 个系列，每系列均 ≥{READY_SERIES_GOOD} 样本',
+                       'evidence': '系列目标编码稳定'})
+
+    # 3. 体系多样性
+    sys_cnt = Counter(s['体系'] for s in samples.values())
+    n_sys = len(sys_cnt)
+    if n_sys < READY_SYSTEMS_MIN:
+        checks.append({'id': 'systems', 'name': '体系多样性', 'status': 'warn',
+                       'detail': f'仅 {n_sys} 个体系（{dict(sys_cnt)}），跨体系泛化证据不足',
+                       'evidence': f'跨体系泛化主张需 ≥{READY_SYSTEMS_MIN} 体系'})
+        recs.append('补充其他体系（有机/聚酯/聚氨酯/丙烯酸等）配方以支撑跨体系泛化')
+    else:
+        checks.append({'id': 'systems', 'name': '体系多样性', 'status': 'ok',
+                       'detail': f'{n_sys} 个体系：{dict(sys_cnt)}',
+                       'evidence': '≥3 体系可支撑跨体系泛化主张'})
+
+    # 4. 原料登记完整性
+    all_codes = set(c for s in samples.values() for c in s['组分'])
+    unreg = sorted(c for c in all_codes if c not in mat_lib)
+    if unreg:
+        checks.append({'id': 'materials', 'name': '原料登记', 'status': 'warn',
+                       'detail': f'{len(unreg)} 种原料未登记（将自动估算描述符）：{unreg[:10]}',
+                       'evidence': '未登记原料走自动估算，描述符不确定性高，建议补测真实值'})
+        recs.append(f'为 {unreg[:10]} 补测原料描述符（SDS/TDS 实测值优先）以降低特征不确定性')
+    else:
+        checks.append({'id': 'materials', 'name': '原料登记', 'status': 'ok',
+                       'detail': f'全部 {len(all_codes)} 种原料均已登记描述符',
+                       'evidence': '无自动估算原料'})
+
+    # 5. 标签平衡（分类目标）
+    wb = [v for d in perf.values() for t, v in d.items() if t == '水煮等级']
+    if wb:
+        cls_cnt = Counter(wb)
+        sparse = {k: v for k, v in cls_cnt.items() if v < READY_CLASS_MIN}
+        if sparse:
+            checks.append({'id': 'balance', 'name': '标签平衡', 'status': 'warn',
+                           'detail': f'水煮等级少数类样本 <{READY_CLASS_MIN}：{dict(sparse)}',
+                           'evidence': f'分类目标每类需 ≥{READY_CLASS_MIN} 样本才可训练稳定分类器'})
+            recs.append('水煮等级少数类样本不足，分类器对少数类召回有限，可考虑合并相邻等级')
+        else:
+            checks.append({'id': 'balance', 'name': '标签平衡', 'status': 'ok',
+                           'detail': f'水煮等级各类均 ≥{READY_CLASS_MIN} 样本',
+                           'evidence': '分类目标各类样本充足'})
+
+    # 6. 噪声水平（R²>0.9 可达性）
+    noise_floor = 1 - READY_NOISE_TW_STD ** 2 / READY_NOISE_TW_TOTAL ** 2
+    noise_target_floor = 1 - READY_NOISE_TARGET ** 2 / READY_NOISE_TW_TOTAL ** 2
+    checks.append({'id': 'noise', 'name': '噪声水平（R² 上限）', 'status': 'warn',
+                   'detail': f'T弯 当前噪声 std={READY_NOISE_TW_STD} → R² 上限 {noise_floor:.3f}；'
+                             f'R²>0.9 需噪声 ≤{READY_NOISE_TARGET}（上限 {noise_target_floor:.3f}）',
+                   'evidence': '实验 J/N：T弯 噪声地板 R²=0.789，模型 0.791 已达上限；'
+                               '降噪减半或重复测量 4 次取均值可达 R²>0.9'})
+    recs.append('R²>0.9 路径：按 ISO 17132/ASTM D5402 规范降噪（减半）或重复测量 4 次取均值，'
+                '而非更换模型/加特征（实验 J-3~J-5 验证无真实提升）')
+
+    # 汇总
+    n_fail = sum(1 for c in checks if c['status'] == 'fail')
+    n_warn = sum(1 for c in checks if c['status'] == 'warn')
+    if n_fail > 0:
+        overall = 'insufficient'
+    elif n_warn > 0:
+        overall = 'attention'
+    else:
+        overall = 'ready'
+    summary = {
+        'samples': len(samples), 'series': len(ser_cnt), 'systems': n_sys,
+        'labeled': n_lab_total, 'unlabeled': len(samples) - n_lab_total,
+        'unregistered': len(unreg), 'overall': overall,
+        'n_fail': n_fail, 'n_warn': n_warn,
+    }
+    return {'ok': True, 'summary': summary, 'checks': checks,
+            'per_target': per_target, 'recommendations': recs}

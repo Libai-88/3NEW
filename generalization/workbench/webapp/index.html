@@ -94,6 +94,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); border-color: tran
     <button data-panel="p2">② 特征一键转换</button>
     <button data-panel="p3">③ 辅助数据录入</button>
     <button data-panel="p4">④ 补标签排程</button>
+    <button data-panel="p5">⑤ 建模就绪检查</button>
   </nav>
 
   <div class="stats">
@@ -232,6 +233,30 @@ input:focus, select:focus { outline: 2px solid var(--accent); border-color: tran
     <div class="card">
       <h2>推荐补测样本</h2>
       <div class="log" id="log_aq">等待生成…</div>
+    </div>
+  </div>
+
+  <!-- ===== 面板5：建模就绪检查 ===== -->
+  <div class="panel" id="p5">
+    <div class="card">
+      <h2>建模就绪检查 <span class="tag">阈值写死（实验 J/M/N 结论）· 数据可配置</span></h2>
+      <p class="hint" style="margin-bottom:0.8rem">自动评估当前数据是否达到可训练/逼近 R²>0.9 的标准，替代人工经验判断。阈值来自实验证据：<b>标签覆盖</b>（实验 M：达 R²≥0.6 需 70~90 标签/目标）、<b>系列覆盖</b>（系列目标编码需每系列 ≥2 样本，推荐 ≥5）、<b>体系多样性</b>（跨体系泛化需 ≥3 体系）、<b>原料登记</b>（未登记原料走自动估算，不确定性高）、<b>标签平衡</b>（分类每类 ≥10 样本）、<b>噪声水平</b>（实验 J/N：T弯 噪声地板 R²=0.789，R²>0.9 需降噪减半或重复测量 4 次取均值）。</p>
+      <div class="btn-row">
+        <button class="btn green" id="btn_readiness">运行建模就绪检查</button>
+      </div>
+      <p class="tip">「写死 vs 可配置」边界：阈值与评估规则写死（来自实验），数据由用户提供（可配置）。检查结果给出明确的就绪状态与改进建议。</p>
+    </div>
+    <div class="card">
+      <h2>数据概览</h2>
+      <div class="log" id="log_rd_summary">等待运行…</div>
+    </div>
+    <div class="card">
+      <h2>逐项检查</h2>
+      <div class="log" id="log_rd_checks">等待运行…</div>
+    </div>
+    <div class="card">
+      <h2>改进建议</h2>
+      <div class="log" id="log_rd_recs">等待运行…</div>
     </div>
   </div>
 </div>
@@ -494,6 +519,45 @@ $('btn_acquire').addEventListener('click', async () => {
     toast(`已生成补标签排程：${d.plan.length} 个样本`);
   } catch (e) { toast('请求失败: ' + e, true); }
   finally { $('btn_acquire').disabled = false; $('btn_acquire').textContent = '生成补标签排程'; }
+});
+
+// ---------- 面板5：建模就绪检查 ----------
+const RD_STATUS = { ok: '✅', warn: '⚠️', fail: '❌' };
+const RD_STATUS_CN = { ok: '通过', warn: '关注', fail: '不达标' };
+$('btn_readiness').addEventListener('click', async () => {
+  $('btn_readiness').disabled = true;
+  $('btn_readiness').textContent = '检查中…';
+  try {
+    const r = await fetch('/api/readiness');
+    const d = await r.json();
+    if (!d.ok) { toast('检查失败: ' + d.error, true); return; }
+    const s = d.summary;
+    const overallCN = { ready: '✅ 就绪', attention: '⚠️ 需关注', insufficient: '❌ 不达标' }[s.overall];
+    // 数据概览
+    let sumHtml = `整体状态: ${overallCN}（${s.n_fail} 项不达标 / ${s.n_warn} 项需关注）\n\n`;
+    sumHtml += `样本 ${s.samples} ｜ 系列 ${s.series} ｜ 体系 ${s.systems}\n`;
+    sumHtml += `实测 ${s.labeled} ｜ 未实测 ${s.unlabeled} ｜ 未登记原料 ${s.unregistered}\n\n`;
+    sumHtml += '各目标标签数:\n';
+    for (const p of d.per_target) {
+      sumHtml += `  ${RD_STATUS[p.status]} ${p['target']}: ${p['labeled']} 标签 ${p['note'] ? '（' + p['note'] + '）' : ''}\n`;
+    }
+    $('log_rd_summary').textContent = sumHtml;
+    // 逐项检查
+    let chkHtml = '';
+    for (const c of d.checks) {
+      chkHtml += `${RD_STATUS[c.status]} [${c.name}] ${RD_STATUS_CN[c.status]}\n`;
+      chkHtml += `   ${c.detail}\n`;
+      chkHtml += `   依据: ${c.evidence}\n\n`;
+    }
+    $('log_rd_checks').textContent = chkHtml;
+    // 改进建议
+    let recHtml = '';
+    if (d.recommendations.length === 0) recHtml = '无，当前数据已就绪。';
+    d.recommendations.forEach((r, i) => { recHtml += `${i + 1}. ${r}\n`; });
+    $('log_rd_recs').textContent = recHtml;
+    toast(`建模就绪检查完成：${overallCN}`);
+  } catch (e) { toast('请求失败: ' + e, true); }
+  finally { $('btn_readiness').disabled = false; $('btn_readiness').textContent = '运行建模就绪检查'; }
 });
 
 // 初始化

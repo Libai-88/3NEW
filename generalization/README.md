@@ -23,8 +23,8 @@
     │   ├── smi_desc.py                # SMILES 分子描述符（内嵌，无需 RDKit）
     │   ├── webapp/                    # Web 版工作台（推荐，跨平台零安装）
     │   │   ├── server.py              # 后端服务（Python 标准库 HTTP，自动开浏览器）
-    │   │   ├── flow.py                # 前置流程控制（写死 vs 可配置、预校验、流水线清单）
-    │   │   └── index.html             # 前端界面（数据整理/特征转换/辅助录入）
+    │   │   ├── flow.py                # 前置流程控制（写死 vs 可配置、预校验、流水线清单、补标签排程、建模就绪检查）
+    │   │   └── index.html             # 前端界面（数据整理/特征转换/辅助录入/补标签排程/建模就绪检查）
     │   ├── start_webapp.bat           # Windows 一键启动脚本（双击运行）
     │   └── start_webapp.sh            # Linux/macOS 一键启动脚本
     └── scripts/                       # 可复现脚本
@@ -111,7 +111,7 @@ MEK 擦拭存在右截尾（46/318 样本实测值恰为 300，真实值 ≥300 
 
 1. **看报告**：浏览器直接打开 `coating-model-generalization.html`（字体/图表已本地化，离线可用）。
 2. **用模板**：新配方按 `终极版数据集模板.xlsx` 录入（下拉选体系/角色/树脂类型，未登记原料自动标红）。
-3. **整理数据（Web 版工作台，推荐）**：双击 `workbench/start_webapp.bat`（Windows）或运行 `workbench/start_webapp.sh`（Linux/macOS），浏览器自动打开 `http://127.0.0.1:8765`。固定流程五步：选择数据源 → 预校验（类型声明+规则检查）→ 一键整理 → 确认报告 → 导出（模板结构/特征矩阵/流水线清单）。支持一键导入多源 Excel（模板/配料汇总/配比方案/聚酯金黄/原料数据）→ 自动识别格式、清洗代码、去重；另含表单式辅助录入（未登记原料自动估算登记）与<b>补标签排程</b>（从未实测样本按系列分层随机推荐下一批应补测标签，实验 M 结论落地，固定种子可复现）。「写死 vs 可配置」边界见 `webapp/flow.py`。首次运行自动安装 `numpy/pandas/openpyxl`。
+3. **整理数据（Web 版工作台，推荐）**：双击 `workbench/start_webapp.bat`（Windows）或运行 `workbench/start_webapp.sh`（Linux/macOS），浏览器自动打开 `http://127.0.0.1:8765`。固定流程五步：选择数据源 → 预校验（类型声明+规则检查）→ 一键整理 → 确认报告 → 导出（模板结构/特征矩阵/流水线清单）。支持一键导入多源 Excel（模板/配料汇总/配比方案/聚酯金黄/原料数据）→ 自动识别格式、清洗代码、去重；另含表单式辅助录入（未登记原料自动估算登记）、<b>补标签排程</b>（从未实测样本按系列分层随机推荐下一批应补测标签，实验 M 结论落地，固定种子可复现）与<b>建模就绪检查</b>（自动评估数据是否达到可训练/逼近 R²>0.9 标准，六项检查阈值写死自实验 J/M/N，替代人工经验判断）。「写死 vs 可配置」边界见 `webapp/flow.py`。首次运行自动安装 `numpy/pandas/openpyxl`。
 4. **整理数据（桌面版）**：Windows 上运行 `workbench/DataPrepWorkbench.py`（Tkinter 界面，功能与 Web 版一致）。
 5. **复现验证**：`python scripts/mvp74_final_verify.py`（需 `numpy/pandas/openpyxl/xgboost/lightgbm/scikit-learn`）。
 
