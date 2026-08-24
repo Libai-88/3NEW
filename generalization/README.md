@@ -43,6 +43,10 @@
         ├── mvp80_experiments.py       # 实验 O：留一体系外验证（LOSO，跨体系泛化诚实缺口）
         ├── run_pipeline.py            # 通用型流水线 CLI（模板→描述符→建模CSV→标签补充）
         ├── materials.py / descriptors.py / smi_desc.py   # 描述符计算依赖
+    └── data_dilemma/                  # 数据困境专项实验（公开数据检索 + 降噪/伪标签/主动学习路径验证）
+        ├── README.md                  # 实验说明与复现
+        ├── report/                    # 数据困境解决方案验证报告（浏览器直接打开）
+        └── scripts/                   # 实验 E（外部数据整合）/ S（半监督伪标签）/ A（主动学习）
 ```
 
 ## 方案要点（均有实验支持）
@@ -66,6 +70,7 @@
 | 主动学习模拟（实验 M） | T弯 n=277/18 系列：系列分层随机/随机最终测试 R²=0.688、达 R²≥0.6 仅需 70~90 标签；纯不确定性采样 R²=0.647、需 130 标签（最差）。系列结构化数据上随机/分层采样优于不确定性采样 |
 | 噪声降低假设（实验 N） | T弯 R²>0.9 需将测量噪声从 1.244 降至 ≤0.62（减半）或重复测量 4 次取均值；MEK 系列内 CV 超出 ASTM D5402-19 上限，降噪空间大 |
 | 留一体系外验证（实验 O） | 合并版数据集 3 体系仅 1 个有标签，LOSO 无法直接运行——诚实报告跨体系泛化缺口，输出补测清单（环氧-配比方案/聚酯金黄）；补测后脚本自动执行完整 LOSO |
+| 数据困境专项（实验 E/S/A，见 `data_dilemma/`） | 外部公开数据 OOD 1887× 不兼容（合并 ΔR²=-0.009）；半监督伪标签回放 ΔR²=+0.153（w=0.5）；主动学习 30 样本仅 +0.008——瓶颈在测量噪声，重复测量 4 次取均值可将 R² 上限 0.791→0.948 |
 | 最终验证（合并版数据集，20 种子） | 见下方「最终验证」 |
 
 ### 最终验证（`scripts/mvp74_final_verify.py`）
@@ -133,6 +138,10 @@ python scripts/build_template3.py        # 重新生成终极版模板（输出 
 python scripts/build_merged_excel.py     # 重新生成合并版数据集（读取 ../data/merged_data.pkl 中间产物）
 python scripts/parse_unlabeled.py 配方文件.xlsx -o unlabeled_formulas.pkl   # 解析无标签配方（命令行传文件）
 python scripts/run_pipeline.py desc --input 通用型数据集模板.xlsx --output 特征.csv
+# 数据困境专项实验（见 data_dilemma/README.md）
+python data_dilemma/scripts/ext_data_experiment.py    # 实验 E：外部公开数据整合
+python data_dilemma/scripts/semi_sup_experiment.py    # 实验 S：半监督伪标签回放
+python data_dilemma/scripts/active_learning_exp.py    # 实验 A：主动学习模拟
 ```
 
 > 所有脚本均使用相对路径（基于脚本所在目录），克隆仓库后即可直接运行，无绝对路径依赖。`data/merged_data.pkl` 为合并版数据集生成的中间产物（486 样本配方+描述符），已随仓库提供。
