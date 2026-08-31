@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原料组成 → 描述符经验补全报告</title>
+<style>
+  :root { --bg:#f6f7f9; --surface:#ffffff; --ink:#1b2430; --muted:#68738a;
+           --rule:#e3e7ee; --accent:#1f6feb; --accent2:#7048d6; --ok:#1a7f4a; --warn:#b45309; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+          font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+          line-height:1.6; }
+  .wrap { max-width:980px; margin:0 auto; padding:48px 28px 80px; }
+  header.main { padding-bottom:28px; border-bottom:2px solid var(--rule); margin-bottom:8px; }
+  .tag { display:inline-block; font-size:12px; letter-spacing:.08em; color:var(--accent);
+          font-weight:700; margin-bottom:12px; }
+  h1 { font-size:28px; margin:0 0 6px; }
+  .sub { color:var(--muted); font-size:14px; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:26px 0 8px; }
+  .kpi { background:var(--surface); border:1px solid var(--rule); border-radius:12px;
+          padding:18px; text-align:center; }
+  .kpi b { display:block; font-size:30px; color:var(--accent); }
+  .kpi span { font-size:12px; color:var(--muted); }
+  section { margin-top:38px; }
+  h2 { font-size:20px; margin:0 0 4px; padding-bottom:8px; border-bottom:1px solid var(--rule); }
+  h3 { font-size:15px; margin:20px 0 8px; color:var(--accent2); }
+  p { color:#2a3444; }
+  .rules { display:grid; gap:12px; grid-template-columns:repeat(2,1fr); margin-top:16px; }
+  .rule { background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:16px; }
+  .rule b { display:block; color:var(--accent); margin-bottom:4px; }
+  .rule span { font-size:13.5px; color:#3a4557; }
+  .mats { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:16px; }
+  .mat { background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:14px 16px; }
+  .mh { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .code { font-family:ui-monospace,Consolas,monospace; font-weight:700; color:var(--ink);
+           background:#eef1f6; border-radius:6px; padding:2px 8px; font-size:13px; }
+  .mname { font-size:13px; color:var(--muted); }
+  .cnt { margin-left:auto; font-size:11px; color:var(--muted); background:#eef1f6; border-radius:20px;
+          padding:2px 9px; }
+  .ok { color:var(--ok); font-size:12px; }
+  .inf { color:var(--warn); font-size:12px; }
+  .md { display:flex; flex-direction:column; gap:4px; }
+  .dt { font-family:ui-monospace,Consolas,monospace; font-size:11.5px; color:#2a3444;
+         border-left:3px solid var(--accent); padding-left:8px; }
+  .note { background:var(--surface); border:1px solid var(--rule); border-left:4px solid var(--accent2);
+          border-radius:10px; padding:14px 18px; margin-top:18px; color:#3a4557; font-size:13.5px; }
+  .pipeline { background:var(--surface); border:1px solid var(--rule); border-radius:12px;
+               padding:16px 20px; margin-top:16px; font-size:14px; }
+  .pipeline b { color:var(--accent2); }
+  footer { margin-top:44px; color:var(--muted); font-size:12px; border-top:1px solid var(--rule); padding-top:14px; }
+  @media (max-width:720px) { .kpis,.rules,.mats { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="main">
+    <div class="tag">DATA COMPLETION · RAW MATERIAL COMPOSITION</div>
+    <h1>原料组成 → 描述符 经验补全报告</h1>
+    <div class="sub">基于《2-AI 项目原料送检、部分实验数据.xlsx》原料组成字段，将供应商"大概组成"转化为可用描述符，补全数据集特征层。</div>
+  </header>
+
+  
+  <div class="kpis">
+    <div class="kpi"><b>21</b><span>补全 / 修正原料</span></div>
+    <div class="kpi"><b>20</b><span>组成确定</span></div>
+    <div class="kpi"><b>1</b><span>家族推断</span></div>
+    <div class="kpi"><b>3</b><span>落盘层（数据/代码）</span></div>
+  </div>
+
+
+  <section>
+    <h2>一、经验规则（组成 → 描述符）</h2>
+    <div class="rules">
+      <div class="rule"><b>R1 · 固含 NV</b><span>NV = 组成中树脂/聚合物组分的比例之和，即文档固含（已送检原料按组成比值直取）。</span></div>
+      <div class="rule"><b>R2 · 角色与树脂类型</b><span>由存货名称分类：异氰酸酯→聚氨酯；氨基树脂→氨基/固化剂；环氧→环氧；乙烯基→乙烯基；蜡/塑化剂→助剂；铝银浆→颜料。</span></div>
+      <div class="rule"><b>R3 · 载体溶剂</b><span>记录载体溶剂（二甲苯/异丁醇/石脑油/PMA 等），用于解释稀释比例与密度差异。</span></div>
+      <div class="rule"><b>R4 · 强支撑化学量</b><span>仅对组成证据强、量级明确项覆盖：氨基(N 高)、异氰酸酯(N)、PVC(Cl 高)、环氧(EEW 由当量)、蜡/颜料含量；其余保留基线估算并可溯源。</span></div>
+    </div>
+    <div class="note">
+      高分子原料通常给不出精确分子结构，本规则把可确证的组成信息落到描述符上；每条覆盖都有供应商原文依据
+      （见「补全清单」与 compo_rules.py 的 COMPO / SOURCE_TEXT）。<b>确定</b> = 组成直接命中；<b>推断</b> = 由家族/命名规律推断、无送检组成。
+    </div>
+  </section>
+
+  <section>
+    <h2>二、补全 / 修正清单（21 项）</h2>
+    <div class="mats">
+      <div class="mat"><div class="mh"><span class="code">AC040</span><span class="mname">催化剂 GBA</span><b class="ok">确定</b><span class="cnt">8 项</span></div><div class="md"><span class="dt">固含NV: 100 → 70.0</span><span class="dt">官能度: 0 → 3</span><span class="dt">Tg: 20 → 10.0</span><span class="dt">C: 65 → 40</span><span class="dt">H: 9 → 7</span><span class="dt">O: 25 → 35</span><span class="dt">羟基: 0.024 → 0.02</span><span class="dt">酯基: 0.2 → 0.1</span></div></div><div class="mat"><div class="mh"><span class="code">AL525</span><span class="mname">蜡 LHWAX2525A</span><b class="ok">确定</b><span class="cnt">12 项</span></div><div class="md"><span class="dt">角色: 树脂 → 助剂</span><span class="dt">树脂类型: 丙烯酸 → 其他</span><span class="dt">固含NV: 50 → 100.0</span><span class="dt">官能度: 1 → 0</span><span class="dt">Tg: 45 → -5.0</span><span class="dt">Mw: 15000 → 400</span><span class="dt">C: 65 → 72</span><span class="dt">H: 9 → 11</span><span class="dt">O: 25 → 17</span><span class="dt">羟基: 0.03 → 0.02</span><span class="dt">酯基: 0.3 → 0.11</span><span class="dt">蜡: 0 → 100</span></div></div><div class="mat"><div class="mh"><span class="code">AL710</span><span class="mname">蜡 TPG-710</span><b class="ok">确定</b><span class="cnt">10 项</span></div><div class="md"><span class="dt">角色: 树脂 → 助剂</span><span class="dt">树脂类型: 丙烯酸 → 其他</span><span class="dt">固含NV: 50 → 35.0</span><span class="dt">官能度: 1 → 0</span><span class="dt">Tg: 45 → -10.0</span><span class="dt">Mw: 15000 → 500</span><span class="dt">C: 65 → 82</span><span class="dt">H: 9 → 14</span><span class="dt">O: 25 → 4</span><span class="dt">蜡: 0 → 35</span></div></div><div class="mat"><div class="mh"><span class="code">AS400</span><span class="mname">塑化剂</span><b class="ok">确定</b><span class="cnt">10 项</span></div><div class="md"><span class="dt">角色: 树脂 → 助剂</span><span class="dt">树脂类型: 丙烯酸 → 其他</span><span class="dt">固含NV: 50 → 99.0</span><span class="dt">官能度: 1 → 4</span><span class="dt">Tg: 45 → -10.0</span><span class="dt">C: 65 → 73</span><span class="dt">H: 9 → 11</span><span class="dt">O: 25 → 16</span><span class="dt">环氧基: 0 → 0.05</span><span class="dt">酯基: 0.3 → 0.11</span></div></div><div class="mat"><div class="mh"><span class="code">AZ088</span><span class="mname">助剂 BYK-088</span><b class="ok">确定</b><span class="cnt">5 项</span></div><div class="md"><span class="dt">固含NV: 100 → 5.0</span><span class="dt">Mw: 5000 → 2000</span><span class="dt">H: 9 → 10</span><span class="dt">O: 25 → 20</span><span class="dt">N: 1 → 0</span></div></div><div class="mat"><div class="mh"><span class="code">AZ135</span><span class="mname">助剂 ACA-EAA1</span><b class="ok">确定</b><span class="cnt">6 项</span></div><div class="md"><span class="dt">固含NV: 100 → 98.0</span><span class="dt">官能度: 0 → 2</span><span class="dt">C: 65 → 50</span><span class="dt">H: 9 → 8</span><span class="dt">O: 25 → 38</span><span class="dt">酯基: 0.2 → 0.12</span></div></div><div class="mat"><div class="mh"><span class="code">AZ306</span><span class="mname">助剂 BYK306</span><b class="ok">确定</b><span class="cnt">4 项</span></div><div class="md"><span class="dt">固含NV: 100 → 12.5</span><span class="dt">C: 65 → 55</span><span class="dt">O: 25 → 30</span><span class="dt">醚键: 0.1 → 0.2</span></div></div><div class="mat"><div class="mh"><span class="code">FL815C</span><span class="mname">铝银浆 LY815C</span><b class="ok">确定</b><span class="cnt">6 项</span></div><div class="md"><span class="dt">角色: 助剂 → 颜料</span><span class="dt">固含NV: 100 → 65.0</span><span class="dt">C: 65 → 10</span><span class="dt">H: 9 → 0</span><span class="dt">O: 25 → 1</span><span class="dt">颜料: 0 → 65</span></div></div><div class="mat"><div class="mh"><span class="code">RA009</span><span class="mname">氨基树脂 A09-60-LF</span><b class="ok">确定</b><span class="cnt">13 项</span></div><div class="md"><span class="dt">角色: 助剂 → 固化剂</span><span class="dt">树脂类型: 其他 → 氨基</span><span class="dt">固含NV: 100 → 60.0</span><span class="dt">官能度: 0 → 5</span><span class="dt">Tg: 20 → 35.0</span><span class="dt">C: 65 → 60</span><span class="dt">H: 9 → 10</span><span class="dt">O: 25 → 22</span><span class="dt">N: 0 → 22</span><span class="dt">羟基: 0.024 → 0.05</span><span class="dt">酯基: 0.2 → 0.05</span><span class="dt">胺基: 0 → 0.16</span><span class="dt">芳香环: 0.2 → 0.05</span></div></div><div class="mat"><div class="mh"><span class="code">RA083</span><span class="mname">氨基树脂 M-83</span><b class="ok">确定</b><span class="cnt">12 项</span></div><div class="md"><span class="dt">角色: 助剂 → 固化剂</span><span class="dt">树脂类型: 其他 → 氨基</span><span class="dt">固含NV: 100 → 99.5</span><span class="dt">官能度: 0 → 5</span><span class="dt">Tg: 20 → 40.0</span><span class="dt">C: 65 → 58</span><span class="dt">O: 25 → 21</span><span class="dt">N: 0 → 25</span><span class="dt">羟基: 0.024 → 0.04</span><span class="dt">酯基: 0.2 → 0.05</span><span class="dt">胺基: 0 → 0.18</span><span class="dt">芳香环: 0.2 → 0.12</span></div></div><div class="mat"><div class="mh"><span class="code">RA824</span><span class="mname">氨基树脂 8824</span><b class="inf">推断</b><span class="cnt">12 项</span></div><div class="md"><span class="dt">角色: 助剂 → 固化剂</span><span class="dt">树脂类型: 其他 → 氨基</span><span class="dt">固含NV: 100 → 95.0</span><span class="dt">官能度: 0 → 5</span><span class="dt">Tg: 20 → 38.0</span><span class="dt">C: 65 → 58</span><span class="dt">O: 25 → 22</span><span class="dt">N: 0 → 24</span><span class="dt">羟基: 0.024 → 0.04</span><span class="dt">酯基: 0.2 → 0.05</span><span class="dt">胺基: 0 → 0.17</span><span class="dt">芳香环: 0.2 → 0.08</span></div></div><div class="mat"><div class="mh"><span class="code">RF160</span><span class="mname">酚醛树脂 33160G</span><b class="ok">确定</b><span class="cnt">1 项</span></div><div class="md"><span class="dt">固含NV: 60 → 65.0</span></div></div><div class="mat"><div class="mh"><span class="code">RF401</span><span class="mname">酚醛树脂 PR401</span><b class="ok">确定</b><span class="cnt">1 项</span></div><div class="md"><span class="dt">固含NV: 60 → 71.5</span></div></div><div class="mat"><div class="mh"><span class="code">RF516</span><span class="mname">酚醛树脂</span><b class="ok">确定</b><span class="cnt">1 项</span></div><div class="md"><span class="dt">固含NV: 60 → 57.0</span></div></div><div class="mat"><div class="mh"><span class="code">RF950</span><span class="mname">酚醛树脂 8219-B50</span><b class="ok">确定</b><span class="cnt">1 项</span></div><div class="md"><span class="dt">固含NV: 50 → 51.3</span></div></div><div class="mat"><div class="mh"><span class="code">RH601</span><span class="mname">环氧树脂 RX601*75</span><b class="ok">确定</b><span class="cnt">11 项</span></div><div class="md"><span class="dt">角色: 固化剂 → 树脂</span><span class="dt">树脂类型: 酚醛 → 环氧</span><span class="dt">EEW: 0 → 480.0</span><span class="dt">羟值OHV: 350 → 30.0</span><span class="dt">官能度: 3 → 2</span><span class="dt">H: 6 → 7</span><span class="dt">O: 18 → 19</span><span class="dt">环氧基: 0 → 0.155</span><span class="dt">羟基: 0.206 → 0.018</span><span class="dt">芳香环: 0.6 → 0.45</span><span class="dt">醚键: 0.05 → 0.12</span></div></div><div class="mat"><div class="mh"><span class="code">RJ173M</span><span class="mname">聚酯树脂 50173-M-40</span><b class="ok">确定</b><span class="cnt">1 项</span></div><div class="md"><span class="dt">固含NV: 60 → 40.0</span></div></div><div class="mat"><div class="mh"><span class="code">RJ183</span><span class="mname">聚酯树脂 1873</span><b class="ok">确定</b><span class="cnt">1 项</span></div><div class="md"><span class="dt">固含NV: 60 → 40.0</span></div></div><div class="mat"><div class="mh"><span class="code">RX170-140</span><span class="mname">烯类树脂 170-L140UF</span><b class="ok">确定</b><span class="cnt">11 项</span></div><div class="md"><span class="dt">树脂类型: 丙烯酸 → 乙烯基</span><span class="dt">固含NV: 50 → 100.0</span><span class="dt">官能度: 1 → 0</span><span class="dt">Tg: 45 → 82.0</span><span class="dt">Mw: 15000 → 60000</span><span class="dt">C: 65 → 38</span><span class="dt">H: 9 → 5</span><span class="dt">O: 25 → 0</span><span class="dt">Cl: 0 → 57</span><span class="dt">酯基: 0.3 → 0.01</span><span class="dt">芳香环: 0.25 → 0.02</span></div></div><div class="mat"><div class="mh"><span class="code">RY075N</span><span class="mname">异氰酸酯树脂 FH075N</span><b class="ok">确定</b><span class="cnt">14 项</span></div><div class="md"><span class="dt">角色: 颜料 → 树脂</span><span class="dt">树脂类型: 其他 → 聚氨酯</span><span class="dt">固含NV: 100 → 75.0</span><span class="dt">官能度: 0 → 3</span><span class="dt">Tg: 0 → 10.0</span><span class="dt">C: 10 → 68</span><span class="dt">H: 0 → 9</span><span class="dt">O: 20 → 17</span><span class="dt">N: 0 → 9</span><span class="dt">酯基: 0 → 0.06</span><span class="dt">胺基: 0 → 0.06</span><span class="dt">酰胺: 0 → 0.05</span><span class="dt">芳香环: 0.5 → 0.15</span><span class="dt">颜料: 100 → 0</span></div></div><div class="mat"><div class="mh"><span class="code">RY460</span><span class="mname">异氰酸酯树脂 ITBL-460S</span><b class="ok">确定</b><span class="cnt">14 项</span></div><div class="md"><span class="dt">角色: 颜料 → 树脂</span><span class="dt">树脂类型: 其他 → 聚氨酯</span><span class="dt">固含NV: 100 → 57.0</span><span class="dt">官能度: 0 → 3</span><span class="dt">Tg: 0 → 15.0</span><span class="dt">C: 10 → 70</span><span class="dt">H: 0 → 9</span><span class="dt">O: 20 → 16</span><span class="dt">N: 0 → 10</span><span class="dt">酯基: 0 → 0.06</span><span class="dt">胺基: 0 → 0.07</span><span class="dt">酰胺: 0 → 0.05</span><span class="dt">芳香环: 0.5 → 0.15</span><span class="dt">颜料: 100 → 0</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>三、落盘位置</h2>
+    <div class="pipeline">
+      组成经验规则代码：<b>generalization/workbench/compo_rules.py</b>（COMPO 组成档案 + OVERRIDES 字段覆盖 + SOURCE_TEXT 依据）。<br>
+      描述符库（补全后）：<b>generalization/workbench/materials.py</b> 与 <b>generalization/scripts/materials.py</b>（模块加载时由 compo_rules 覆盖基线）。<br>
+      数据集（补全后）：<b>合并版数据集.xlsx · 原料主数据</b>，被覆盖原料 <b>数据来源</b> 标注为 <b>COMPO_RULES</b>、<b>备注</b> 记录送检组成原文。<br>
+      下游一致性（重算）：<b>merged_data.pkl · full_mat / desc_df</b> 按补全后原料重算，<b>合并版数据集.xlsx</b> 的 配方明细/配方级描述符/建模输入 与其一致（486 样本 × 59 特征）。
+      树脂类型枚举新增 <b>氨基</b>，<b>rtype_氨基</b> 特征生效，建模可区分氨基（三聚氰胺）交联剂。
+    </div>
+  </section>
+
+  <footer>经验规则：固含取组成比值 · 角色/类型按组成家族 · 化学量仅覆盖强证据项。已送检原料为实证值，其余保留估算。补全已同步至原料描述符库、合并数据集与下游重算特征。</footer>
+</div>
+</body>
+</html>

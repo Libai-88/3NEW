@@ -150,7 +150,7 @@ def honest_eval(y_true_unc, y_pred_unc, y_true_all, y_pred_all, cap=300):
     unc_mask = y_true_all < cap
     acc_unc = accuracy_score(ybin_true[unc_mask], ybin_pred[unc_mask]) if unc_mask.sum() > 0 else float('nan')
     # 截尾样本召回（真实 ≥300 是否被判为 ≥300）
-    cen_mask = y_true_all >= cap
+    cen_mask = (y_true_all == cap).astype(bool)
     rec_cen = accuracy_score(ybin_true[cen_mask], ybin_pred[cen_mask]) if cen_mask.sum() > 0 else float('nan')
     return r2_unc, acc, acc_unc, rec_cen
 
@@ -167,7 +167,7 @@ p_hi, keep_c = clf_oof(Xt, ybin, sert, MEK_CFG['keep_c'])
 auc_clf = roc_auc_score(ybin, p_hi)
 print(f'  边界分类器 AUC={auc_clf:.4f}')
 y_proxy = yt.copy()
-cen_mask = yt >= cap
+cen_mask = (yt == cap).astype(bool)
 y_proxy[cen_mask] = cap + MEK_CFG['extra'] * p_hi[cen_mask]
 # 特征选择 + 回归
 sel_y = np.sqrt(y_proxy)

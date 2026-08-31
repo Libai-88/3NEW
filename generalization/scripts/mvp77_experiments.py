@@ -113,7 +113,7 @@ def cv_aft(Xs, y_orig, ser, k, n_keep, nseed=5, dist='normal', scale=1.0,
            extra_feat=None, n_est=1500, lr=0.008, max_depth=4):
     """AFT 5折CV：未截尾 [y,y]，截尾 [300,inf)"""
     cap = 300
-    cen_mask = y_orig >= cap
+    cen_mask = (y_orig == cap).astype(bool)
     yl = y_orig.copy(); yu = y_orig.copy()
     yu[cen_mask] = np.inf
     # 特征选择：用截断目标（min(y,cap)）的重要性
@@ -150,7 +150,7 @@ def honest_eval(y_true_unc, y_pred_unc, y_true_all, y_pred_all, cap=300):
     acc = accuracy_score(ybin_true, ybin_pred)
     unc_mask = y_true_all < cap
     acc_unc = accuracy_score(ybin_true[unc_mask], ybin_pred[unc_mask]) if unc_mask.sum() > 0 else float('nan')
-    cen_mask = y_true_all >= cap
+    cen_mask = (y_true_all == cap).astype(bool)
     rec_cen = accuracy_score(ybin_true[cen_mask], ybin_pred[cen_mask]) if cen_mask.sum() > 0 else float('nan')
     return r2_unc, acc, acc_unc, rec_cen
 
@@ -161,7 +161,7 @@ d = get_data('MEK擦拭')
 Xt, yt, sert = d
 cap = 300
 ybin = (yt >= cap).astype(int)
-cen_mask = yt >= cap
+cen_mask = (yt == cap).astype(bool)
 unc_idx = np.where(~cen_mask)[0]
 print(f'  样本={len(yt)}, 未截尾={int((~cen_mask).sum())}, 截尾={int(cen_mask.sum())}')
 

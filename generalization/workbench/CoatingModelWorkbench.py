@@ -77,7 +77,7 @@ def smi_aggregate(comp):
 
 # ---------- 描述符计算核心 ----------
 ROLES = ['树脂', '固化剂', '溶剂', '助剂', '颜料']
-RTYPES = ['环氧', '酚醛', '聚酯', '乙烯基', '丙烯酸', '聚氨酯', '其他']
+RTYPES = ['环氧', '酚醛', '聚酯', '乙烯基', '丙烯酸', '聚氨酯', '氨基', '其他']
 CONT_DESC = ['NV', 'density', 'Mw', 'EEW', 'AV', 'OHV', 'amine', 'func', 'Tg', 'bp', 'fp',
              'dD', 'dP', 'dH', 'pol', 'evap', 'C', 'H', 'O', 'N', 'S', 'Cl',
              'fg_epoxy', 'fg_oh', 'fg_cooh', 'fg_ester', 'fg_amine', 'fg_amide', 'fg_arom', 'fg_ether',
@@ -85,7 +85,7 @@ CONT_DESC = ['NV', 'density', 'Mw', 'EEW', 'AV', 'OHV', 'amine', 'func', 'Tg', '
 ENH_FEATURES = [
     'resin_frac', 'xlink_frac', 'solvent_frac', 'additive_frac', 'pigment_frac',
     'xlink_resin_ratio', 'oh_epoxy_eq_ratio', 'epoxy_eq_100g', 'oh_eq_100g', 'n_components', 'avg_func',
-    'rtype_环氧', 'rtype_酚醛', 'rtype_聚酯', 'rtype_乙烯基', 'rtype_丙烯酸', 'rtype_聚氨酯', 'rtype_其他',
+    'rtype_环氧', 'rtype_酚醛', 'rtype_聚酯', 'rtype_乙烯基', 'rtype_丙烯酸', 'rtype_聚氨酯', 'rtype_氨基', 'rtype_其他',
 ] + ['w_' + d for d in CONT_DESC] + ['s_' + fg for fg in ['fg_epoxy', 'fg_oh', 'fg_cooh', 'fg_ester', 'fg_amine', 'fg_amide', 'fg_arom', 'fg_ether']] \
 + [f'{role}_w_{dk}' for role in ['树脂', '固化剂', '溶剂'] for dk in ['EEW', 'AV', 'OHV', 'Tg', 'func', 'fg_epoxy', 'fg_oh', 'fg_arom', 'fg_ether', 'Mw', 'NV']] \
 + [f'{role}_mass' for role in ['树脂', '固化剂', '溶剂']] \
@@ -248,7 +248,7 @@ def load_dataset(path):
             tgt = str(row.get('目标属性', '')).strip()
             val = row.get('测试值', None)
             if sid and tgt and pd.notna(val):
-                perf.setdefault(sid, {})[tgt] = float(val)
+                perf.setdefault(sid, {})[tgt] = normalize_label(tgt, float(val))
                 if sid in samples:
                     samples[sid]['标签状态'] = '实测'
 
@@ -260,8 +260,8 @@ def load_dataset(path):
             sid = str(row.get('样本ID', '')).strip()
             if sid:
                 proc[sid] = {
-                    '烘烤温度': row.get('烘烤温度(℃)', None),
-                    '烘烤时间': row.get('烘烤时间(min)', None),
+                    '烘烤温度': _clean_num(row.get('烘烤温度(℃)', None)),
+                    '烘烤时间': _clean_num(row.get('烘烤时间(min)', None)),
                 }
 
     return mat_lib, samples, perf, proc
@@ -283,6 +283,45 @@ CODE_CANON = {
 
 def canon(code):
     return CODE_CANON.get(str(code).strip(), str(code).strip())
+
+
+def normalize_label(tgt, val):
+    """目标标签的域语义归一化（单一真源，供 load_dataset 统一调用）。
+
+    水煮等级：域规约「1 最好、4 最差」，员工偶记 5~10 级均属不合格，统一归并为 4。
+    """
+    if tgt == '水煮等级' and val is not None and val >= 5:
+        return 4.0
+    return val
+
+
+def _clean_num(v):
+    """把 None/空串/NaN 统一为 None，其余转为 float（避免 NaN 污染特征矩阵）。"""
+    if v is None:
+        return None
+    if isinstance(v, str) and not v.strip():
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if (isinstance(f, float) and np.isnan(f)) else f
+
+
+def _bake_feat(v):
+    """烘烤参数特征：None/NaN → 0（无记录样本不引入 NaN）。"""
+    f = _clean_num(v)
+    return 0.0 if f is None else f
+
+
+# MEK 擦拭「截尾」判别阈值：域说明中约 100 次已可满足买家需求，300 次为退让上限；
+# 实测记录到 >300（如 350/400/550）为真实失败次数，应作为观测值而非右截尾。
+MEK_CAP = 300
+
+
+def is_mek_censored(val):
+    """MEK 右截尾判定：只有记录值恰为退让上限 300 时视为截尾；真实 >300 值为观测值。"""
+    return val == MEK_CAP
 
 
 def explicit_ratios(comp):
@@ -313,8 +352,8 @@ def build_sample_features(comp, mat_lib, present_codes=None, bake_temp=None, bak
     comp = {canon(k): v for k, v in comp.items()}
     codes = present_codes if present_codes is not None else sorted(mat_lib.keys())
     row = [float(comp.get(c, 0)) for c in codes]
-    row.append(float(bake_temp) if bake_temp is not None else 0)
-    row.append(float(bake_time) if bake_time is not None else 0)
+    row.append(_bake_feat(bake_temp))
+    row.append(_bake_feat(bake_time))
     d = enhanced_descriptors(comp, mat_lib, bake_temp=bake_temp, bake_time=bake_time)
     if d is None:
         return None
@@ -509,7 +548,7 @@ def _cv_aft(X, y_orig, series, n_keep, nseed=5):
     from sklearn.model_selection import KFold
     from sklearn.metrics import accuracy_score, roc_auc_score
     cap = 300
-    cen_mask = y_orig >= cap
+    cen_mask = (y_orig == cap).astype(bool)
     yl = y_orig.copy(); yu = y_orig.copy()
     yu[cen_mask] = np.inf
     keep_idx = select_features(X, np.sqrt(np.minimum(y_orig, cap)), n_keep)
@@ -543,7 +582,7 @@ def _fit_final_aft(X, y_orig, series, n_keep, nseed=5):
     """全量训练最终 AFT 边界模型（多种子集成），返回 (模型列表, 系列编码表, keep_idx)"""
     import xgboost as xgb
     cap = 300
-    cen_mask = y_orig >= cap
+    cen_mask = (y_orig == cap).astype(bool)
     yl = y_orig.copy(); yu = y_orig.copy()
     yu[cen_mask] = np.inf
     keep_idx = select_features(X, np.sqrt(np.minimum(y_orig, cap)), n_keep)
@@ -670,7 +709,7 @@ def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
             # 阶段1a：分类器（提供 p_hi 特征给回归）
             cap = cfg.get('cap', 300)
             ybin = (y_orig >= cap).astype(int)
-            cen_mask = y_orig >= cap
+            cen_mask = (y_orig == cap).astype(bool)
             unc_idx = np.where(~cen_mask)[0]
             p_hi, keep_c = _clf_oof(X, ybin, series, cfg['keep_c'])
             # 阶段1b：AFT 边界（survival:aft，右截尾 [cap,inf)）

@@ -95,7 +95,7 @@ def loso_eval(tgt):
         if tgt in ('MEK', 'MEK擦拭'):
             # 两阶段：未截尾回归 + 边界
             cap = cfg.get('cap', 300)
-            cen = yte >= cap
+            cen = (yte == cap)
             unc_te = ~cen
             if unc_te.sum() >= 5:
                 # 未截尾回归（训练时丢弃截尾）

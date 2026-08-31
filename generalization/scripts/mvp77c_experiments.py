@@ -110,7 +110,7 @@ def clf_oof(Xs, ybin, ser, n_keep, nseed=10, extra_feat=None):
 
 def cv_aft(Xs, y_orig, ser, k, n_keep, nseed=10, dist='normal', scale=1.0):
     cap = 300
-    cen_mask = y_orig >= cap
+    cen_mask = (y_orig == cap).astype(bool)
     yl = y_orig.copy(); yu = y_orig.copy()
     yu[cen_mask] = np.inf
     imp = get_imp(Xs, np.sqrt(np.minimum(y_orig, cap)))
@@ -178,7 +178,7 @@ d = get_data('MEK擦拭')
 Xt, yt, sert = d
 cap = 300
 ybin = (yt >= cap).astype(int)
-cen_mask = yt >= cap
+cen_mask = (yt == cap).astype(bool)
 unc_idx = np.where(~cen_mask)[0]
 print(f'  样本={len(yt)}, 未截尾={int((~cen_mask).sum())}, 截尾={int(cen_mask.sum())}')
 

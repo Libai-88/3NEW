@@ -91,5 +91,5 @@ def formulation_descriptors(comp_dict, bake_temp=None, bake_time=None):
 DESC_FEATURES = [
     'resin_frac','xlink_frac','solvent_frac','additive_frac','pigment_frac',
     'xlink_resin_ratio','oh_epoxy_eq_ratio','epoxy_eq_100g','oh_eq_100g','n_components','avg_func',
-    'rtype_环氧','rtype_酚醛','rtype_聚酯','rtype_乙烯基','rtype_丙烯酸','rtype_聚氨酯','rtype_其他',
+    'rtype_环氧','rtype_酚醛','rtype_聚酯','rtype_乙烯基','rtype_丙烯酸','rtype_聚氨酯','rtype_氨基','rtype_其他',
 ] + ['w_' + d for d in CONT_DESC] + ['s_' + fg for fg in ['fg_epoxy','fg_oh','fg_cooh','fg_ester','fg_amine','fg_amide','fg_arom','fg_ether']]

@@ -4,7 +4,7 @@
 覆盖：环氧酚醛体系(文件2) / 有机体系(文件3) / 聚酯体系(文件4)
 描述符口径：
   role    : 树脂/固化剂/溶剂/助剂/颜料
-  rtype   : 树脂化学类别 (环氧/酚醛/聚酯/乙烯基/丙烯酸/聚氨酯/其他)
+  rtype   : 树脂化学类别 (环氧/酚醛/聚酯/乙烯基/丙烯酸/聚氨酯/氨基/其他)
   NV      : 固含 % (按到货状态)
   density : 密度 g/cm3
   Mw      : 分子量 g/mol
@@ -23,8 +23,9 @@
   fg_*    : 官能团密度 mol/100g (环氧/羟基/羧基/酯基/胺基/酰胺/芳香环/醚键)
   wax     : 蜡含量 %
   pig     : 颜料含量 %
-注：树脂/助剂等专有原料的描述符为"化学类别典型值+文件信息"估算，
-    正式建模时应按数据集模板用 SDS/TDS 实测值替换。
+注：树脂/助剂等专有原料的描述符基线为"化学类别典型值+文件信息"估算；
+    已送检原料（见 compo_rules.COMPO）由供应商组成覆盖为实证值（固含、角色、
+    树脂类型、官能团密度等），其余保留基线估算。组成→描述符的经验规则见 compo_rules。
 """
 
 MAT = {
@@ -136,4 +137,14 @@ CONT_DESC = ['NV','density','Mw','EEW','AV','OHV','amine','func','Tg','bp','fp',
              'fg_epoxy','fg_oh','fg_cooh','fg_ester','fg_amine','fg_amide','fg_arom','fg_ether',
              'wax','pig']
 ROLES = ['树脂','固化剂','溶剂','助剂','颜料']
-RTYPES = ['环氧','酚醛','聚酯','乙烯基','丙烯酸','聚氨酯','其他']
+RTYPES = ['环氧','酚醛','聚酯','乙烯基','丙烯酸','聚氨酯','氨基','其他']
+
+# 组成经验补全：对已送检原料，用 compo_rules 的组成证据覆盖类别典型值基线
+import os as _os, sys as _sys
+_this = _os.path.dirname(_os.path.abspath(__file__))
+for _p in (_this, _os.path.dirname(_this), _os.path.join(_os.path.dirname(_this), 'workbench')):
+    if _p not in _sys.path:
+        _sys.path.insert(0, _p)
+from compo_rules import apply as _compo_apply
+_compo_apply(MAT)
+

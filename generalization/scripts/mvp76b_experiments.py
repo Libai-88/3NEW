@@ -135,7 +135,7 @@ def honest_eval(y_true_unc, y_pred_unc, y_true_all, y_pred_all, cap=300):
     acc = accuracy_score(ybin_true, ybin_pred)
     unc_mask = y_true_all < cap
     acc_unc = accuracy_score(ybin_true[unc_mask], ybin_pred[unc_mask]) if unc_mask.sum() > 0 else float('nan')
-    cen_mask = y_true_all >= cap
+    cen_mask = (y_true_all == cap).astype(bool)
     rec_cen = accuracy_score(ybin_true[cen_mask], ybin_pred[cen_mask]) if cen_mask.sum() > 0 else float('nan')
     return r2_unc, acc, acc_unc, rec_cen
 
@@ -146,7 +146,7 @@ d = get_data('MEK擦拭')
 Xt, yt, sert = d
 cap = 300
 ybin = (yt >= cap).astype(int)
-cen_mask = yt >= cap
+cen_mask = (yt == cap).astype(bool)
 unc_idx = np.where(~cen_mask)[0]
 print(f'  样本={len(yt)}, 未截尾={int((~cen_mask).sum())}, 截尾={int(cen_mask.sum())}')
 

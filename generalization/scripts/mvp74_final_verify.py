@@ -16,7 +16,7 @@ from lightgbm import LGBMRegressor, LGBMClassifier
 import xgboost as xgb
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from CoatingModelWorkbench import load_dataset, ENH_FEATURES, explicit_ratios, smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors
+from CoatingModelWorkbench import load_dataset, ENH_FEATURES, explicit_ratios, smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors, _bake_feat
 
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '合并版数据集.xlsx')
 mat_lib, samples, perf, proc = load_dataset(path)
@@ -25,8 +25,8 @@ present_codes = sorted(set(canon(str(c).strip()) for s in samples.values() for c
 def build_compact(comp, mat_lib, bt=None, btm=None):
     comp = {canon(k): v for k, v in comp.items()}
     row = [float(comp.get(c, 0)) for c in present_codes]
-    row.append(float(bt) if bt is not None else 0)
-    row.append(float(btm) if btm is not None else 0)
+    row.append(_bake_feat(bt))
+    row.append(_bake_feat(btm))
     d = enhanced_descriptors(comp, mat_lib, bake_temp=bt, bake_time=btm)
     if d is None:
         return None
@@ -140,7 +140,7 @@ d = get_data('MEK擦拭')
 Xm, ym, serm = d
 cap = 300
 ybin = (ym >= cap).astype(int)
-cen_mask = ym >= cap
+cen_mask = (ym == cap).astype(bool)
 unc_idx = np.where(~cen_mask)[0]
 print(f'  样本={len(ym)}, 未截尾={len(unc_idx)}, 截尾={int(cen_mask.sum())}', flush=True)
 
@@ -160,7 +160,7 @@ def clf_oof(Xs, ybin, ser, nseed=5):
 
 def cv_aft(Xs, y_orig, ser, n_keep, nseed=5):
     """AFT 5折CV：右截尾 [300,inf)，返回 (acc@300, AUC, 截尾召回)"""
-    cen = y_orig >= cap
+    cen = (y_orig == cap).astype(bool)
     yl = y_orig.copy(); yu = y_orig.copy()
     yu[cen] = np.inf
     imp = get_imp(Xs, np.sqrt(np.minimum(y_orig, cap)))
