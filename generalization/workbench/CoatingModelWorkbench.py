@@ -36,9 +36,9 @@ except ImportError:
 
 # 配方级机理特征：当量/化学计量比/交联密度/Fox Tg/固化度/Hansen 距离/PVC
 try:
-    from mech_desc import MECH_FEATURES, mech_vector
+    from mech_desc import MECH_FEATURES, mech_vector, MECH_MONO_SIGN_TBIAN
 except ImportError:  # 缺省时不影响其余特征，机理列以 0 占位
-    MECH_FEATURES, mech_vector = [], None
+    MECH_FEATURES, mech_vector, MECH_MONO_SIGN_TBIAN = [], None, {}
 
 
 def _valid_smi_keys():
@@ -376,9 +376,10 @@ def build_sample_features(comp, mat_lib, present_codes=None, bake_temp=None, bak
     row += [smi.get(k, 0.0) for k in SMI_AGG_KEYS]
     if mech_vector is not None:
         # 机理特征：当量/化学计量比/交联密度/Fox Tg/固化度/Hansen 距离/PVC
-        # 羟基与羧基当量按羟值/酸值标准换算（oh_source='ohv'），与登记字段单位自洽
+        # 羟基与羧基当量按羟值/酸值标准换算（oh_source='ohv'），与登记字段单位自洽；
+        # 无烘烤记录的固化类特征置 NaN（实验 T：避免与真实低固化混成伪域）
         row += mech_vector(comp, mat_lib, bake_temp=bake_temp, bake_time=bake_time,
-                           oh_source='ohv')
+                           oh_source='ohv', nan_no_bake=True)
     return row
 
 
@@ -400,6 +401,27 @@ def build_feature_matrix(samples, mat_lib, perf, proc):
         series.append(s.get('系列', ''))
     X = np.array(rows)
     return X, ids, series
+
+
+def feature_names(present_codes):
+    """特征矩阵列名（与 build_sample_features 列序严格一致）"""
+    return list(present_codes) + ['烘烤温度', '烘烤时间'] + list(ENH_FEATURES) + \
+           [f'ratio_{i + 1:02d}' for i in range(22)] + list(SMI_AGG_KEYS) + list(MECH_FEATURES)
+
+
+def domain_check(x_row, keep_idx, X_train, names=None):
+    """适用域检查（防盲目外推）：逐入选特征列判断新样本是否在训练集包络 [min, max] 内。
+    NaN（如缺失工艺）不计为越界。返回 (越界列数, 检查列数, 越界特征名列表)。"""
+    xs = np.asarray(x_row, dtype=float)[keep_idx]
+    cols = np.asarray(X_train, dtype=float)[:, keep_idx]
+    with np.errstate(invalid='ignore'):
+        lo = np.nanmin(cols, axis=0)
+        hi = np.nanmax(cols, axis=0)
+    bad = (~np.isnan(xs)) & ((xs < lo) | (xs > hi))
+    idx = list(np.where(bad)[0])
+    nm = [(names[keep_idx[k]] if names is not None and keep_idx[k] < len(names) else f'col{k}')
+          for k in idx]
+    return len(idx), int(len(xs)), nm
 
 
 # ---------- 系列目标编码 ----------
@@ -437,17 +459,19 @@ def add_series_features(Xtr, Xte, y_tr, ser_tr, ser_te, k=3, add_size=True, add_
 
 
 # ---------- 模型 ----------
-# 实验验证的最优配置（mvp69/mvp70/mvp71/mvp74，5折CV折叠内OOF系列编码，20种子，诚实评估）
-# T弯: sqrt变换 + 噪声过滤(|OOF残差|<=2.49, 阈值=2×重复测量噪声std=1.244) + keep=60 k=8 w=0.85 → R²=0.79
-# MEK: 分类器代理目标(keep_c=75, extra=85, AUC=0.943) + sqrt + keep=45 k=1 → R²=0.70
-# 水煮分类: keep=80, 20种子, 每系列阈值 → acc=0.804
+# 诚实协议下的配置（实验 T/T-2：折叠内选择+公共掩码口径，scripts/mvp86、mvp87，20 种子）
+# T弯: sqrt + 噪声掩码(2.49) + keep=96 k=8 w=0.85 + 机理列单调先验 → 掩码内 R²=0.792±0.002
+#   （预算扫描 base/mech 在 84~96 持平；机理列参与全部三目标同一特征空间，
+#     其收益在 MEK/水煮上显著、T弯上与基线统计持平，保留以维持跨体系外推路线）
+# MEK: 两阶段（AFT 边界 + 未截尾回归含 p_hi 特征）keep=45 k=1 → 未截尾 R²≈0.51（机理列，NaN 工艺口径）
+# 水煮分类: keep=80 → 折内调阈值 acc≈0.77 / AUC≈0.83（机理列正收益，阈值不再折外寻优）
 REG_PARAMS = {
     'T弯': dict(
         xgb=dict(n_estimators=1000, learning_rate=0.015, max_depth=3, subsample=0.7,
                  colsample_bytree=0.8, min_child_weight=1),
         lgb=dict(n_estimators=1000, learning_rate=0.015, num_leaves=15, max_depth=3,
                  subsample=0.7, colsample_bytree=0.8, min_child_samples=10),
-        k=8, n_keep=60, w=0.85, transform='sqrt', noise_thr=2.49),
+        k=8, n_keep=96, w=0.85, transform='sqrt', noise_thr=2.49, mono_mech=True),
     'MEK': dict(
         xgb=dict(n_estimators=1500, learning_rate=0.008, max_depth=4, subsample=0.8,
                  colsample_bytree=0.7, min_child_weight=2),
@@ -462,7 +486,9 @@ N_SEEDS = 20
 
 
 def select_features(X, y, n_keep, clf=False):
-    """XGB importance 特征选择（实验验证 top-k 提升 R²）"""
+    """XGB importance 特征选择（top-N 去冗余）。
+    注意：只允许用于**最终模型训练**（选择集=训练集本身）。评估协议中的 top-N 选择
+    必须用 _fold_selection 在每折训练标签内完成，否则选择步骤见过验证折标签（实验 T：泄漏）。"""
     if clf:
         from xgboost import XGBClassifier
         m = XGBClassifier(n_estimators=300, learning_rate=0.05, max_depth=3,
@@ -475,27 +501,38 @@ def select_features(X, y, n_keep, clf=False):
     return np.argsort(m.feature_importances_)[-n_keep:]
 
 
+def _fold_selection(X, yt, folds, n_keep, clf=False, train_mask=None):
+    """逐折 top-N 特征选择：每折只用该折训练行的标签（诚实评估协议，实验 T）。"""
+    sels = []
+    for tr, te in folds:
+        tr_use = tr if train_mask is None else tr[train_mask[tr]]
+        sels.append(select_features(X[tr_use], yt[tr_use], n_keep, clf=clf))
+    return sels
+
+
 def _clf_oof(X, ybin, series, n_keep, nseed=5):
-    """分类器 OOF P(正类)（折叠内OOF系列编码，多种子）"""
+    """分类器 OOF P(正类)：折叠内 top-N 选择 + 折叠内OOF系列编码 + 多种子。"""
     from sklearn.model_selection import KFold
     from xgboost import XGBClassifier
     from lightgbm import LGBMClassifier
-    keep_idx = select_features(X, ybin, n_keep, clf=True)
-    Xs = X[:, keep_idx]
+    ser = np.array(series)
+    folds = list(KFold(5, shuffle=True, random_state=42).split(X))
+    sels = _fold_selection(X, ybin, folds, n_keep, clf=True)
     oof = np.zeros(len(ybin))
-    kf = KFold(5, shuffle=True, random_state=42)
-    for tr, te in kf.split(Xs):
-        Xtr, Xte = add_series_features(Xs[tr], Xs[te], ybin[tr], np.array(series)[tr], np.array(series)[te], 3)
+    for (tr, te), sel in zip(folds, sels):
+        Xtr, Xte = add_series_features(X[tr][:, sel], X[te][:, sel], ybin[tr], ser[tr], ser[te], 3)
         ps = []
         for sd in range(nseed):
             mx = XGBClassifier(random_state=42 + sd, n_jobs=-1, **CLF_MODEL_PARAMS); mx.fit(Xtr, ybin[tr]); ps.append(mx.predict_proba(Xte)[:, 1])
             ml = LGBMClassifier(random_state=42 + sd, n_jobs=-1, verbose=-1, **CLF_MODEL_PARAMS); ml.fit(Xtr, ybin[tr]); ps.append(ml.predict_proba(Xte)[:, 1])
         oof[te] = np.mean(ps, axis=0)
-    return oof, keep_idx
+    return oof
 
 
-def _cv_reg(Xs, y_orig, series, cfg, trans=None, inv=None):
-    """回归5折CV（折叠内OOF系列编码，20种子堆叠），返回 (R²均值, OOF预测)"""
+def _cv_reg(X, y_orig, series, cfg, trans=None, inv=None, train_mask=None):
+    """回归5折CV：折叠内 top-N 特征选择 + 折叠内OOF系列编码 + 20种子堆叠。
+    train_mask 为真时，各折训练行再与该掩码取交集（掩码本身须由 OOF 预测构造）。
+    返回 (折均R², OOF预测)。"""
     from sklearn.model_selection import KFold
     from sklearn.metrics import r2_score
     from xgboost import XGBRegressor
@@ -503,15 +540,23 @@ def _cv_reg(Xs, y_orig, series, cfg, trans=None, inv=None):
     yt = trans(y_orig) if trans is not None else y_orig
     k = cfg['k']
     w = cfg['w']
-    r2s = []
+    ser = np.array(series)
+    folds = list(KFold(5, shuffle=True, random_state=42).split(X))
+    sels = _fold_selection(X, yt, folds, cfg['n_keep'], train_mask=train_mask)
+    mono_map = cfg.get('mono_map')          # {全局列号: ±1}，XGB 单调先验（仅约束入选列）
     oof = np.zeros(len(y_orig))
-    kf = KFold(5, shuffle=True, random_state=42)
-    for tr, te in kf.split(Xs):
-        Xtr, Xte = add_series_features(Xs[tr], Xs[te], yt[tr], np.array(series)[tr], np.array(series)[te], k)
+    r2s = []
+    for (tr, te), sel in zip(folds, sels):
+        tr_use = tr if train_mask is None else tr[train_mask[tr]]
+        Xtr, Xte = add_series_features(X[tr_use][:, sel], X[te][:, sel], yt[tr_use], ser[tr_use], ser[te], k)
+        xgb_kw = {}
+        if mono_map:
+            mc = tuple(int(mono_map.get(int(s), 0)) for s in sel) + (0,) * (Xtr.shape[1] - len(sel))
+            xgb_kw['monotone_constraints'] = mc
         px, pl = [], []
         for sd in range(N_SEEDS):
-            mx = XGBRegressor(random_state=42 + sd, n_jobs=-1, **cfg['xgb']); mx.fit(Xtr, yt[tr]); px.append(mx.predict(Xte))
-            ml = LGBMRegressor(random_state=42 + sd, n_jobs=-1, verbose=-1, **cfg['lgb']); ml.fit(Xtr, yt[tr]); pl.append(ml.predict(Xte))
+            mx = XGBRegressor(random_state=42 + sd, n_jobs=-1, **cfg['xgb'], **xgb_kw); mx.fit(Xtr, yt[tr_use]); px.append(mx.predict(Xte))
+            ml = LGBMRegressor(random_state=42 + sd, n_jobs=-1, verbose=-1, **cfg['lgb']); ml.fit(Xtr, yt[tr_use]); pl.append(ml.predict(Xte))
         pred = w * np.mean(px, axis=0) + (1 - w) * np.mean(pl, axis=0)
         if inv is not None:
             pred = inv(pred)
@@ -531,7 +576,12 @@ def _fit_final_reg(Xs, y_orig, series, cfg, trans=None, inv=None):
     all_ser = sorted(set(series))
     for s in all_ser:
         Xf = np.hstack([Xf, (np.array(series) == s).astype(float).reshape(-1, 1)])
-    model = XGBRegressor(random_state=42, n_jobs=-1, **cfg['xgb'])
+    xgb_kw = {}
+    if cfg.get('mono_list') is not None:
+        # 与 _cv_reg 相同的物理单调先验，按入选列对齐（附加系列列不约束）
+        xgb_kw['monotone_constraints'] = tuple(int(v) for v in cfg['mono_list']) + \
+            (0,) * (Xf.shape[1] - len(cfg['mono_list']))
+    model = XGBRegressor(random_state=42, n_jobs=-1, **cfg['xgb'], **xgb_kw)
     model.fit(Xf, yt)
     return model, (enc, gm, cnt, std, None, None)
 
@@ -561,7 +611,8 @@ class MEKTwoStage:
 
 
 def _cv_aft(X, y_orig, series, n_keep, nseed=5):
-    """AFT 5折CV（右截尾 [cap,inf)），返回 (边界acc@cap, AUC, 截尾召回, OOF预测, keep_idx)"""
+    """AFT 5折CV（右截尾 [cap,inf)）：折叠内 top-N 选择。
+    返回 (边界acc@cap, AUC, 截尾召回, OOF预测)"""
     import xgboost as xgb
     from sklearn.model_selection import KFold
     from sklearn.metrics import accuracy_score, roc_auc_score
@@ -569,12 +620,13 @@ def _cv_aft(X, y_orig, series, n_keep, nseed=5):
     cen_mask = (y_orig == cap).astype(bool)
     yl = y_orig.copy(); yu = y_orig.copy()
     yu[cen_mask] = np.inf
-    keep_idx = select_features(X, np.sqrt(np.minimum(y_orig, cap)), n_keep)
-    Xs = X[:, keep_idx]
+    sel_y = np.sqrt(np.minimum(y_orig, cap))
+    ser = np.array(series)
+    folds = list(KFold(5, shuffle=True, random_state=42).split(X))
+    sels = _fold_selection(X, sel_y, folds, n_keep)
     oof = np.zeros(len(y_orig))
-    kf = KFold(5, shuffle=True, random_state=42)
-    for tr, te in kf.split(Xs):
-        Xtr, Xte = add_series_features(Xs[tr], Xs[te], yl[tr], np.array(series)[tr], np.array(series)[te], 3)
+    for (tr, te), keep_idx in zip(folds, sels):
+        Xtr, Xte = add_series_features(X[tr][:, keep_idx], X[te][:, keep_idx], yl[tr], ser[tr], ser[te], 3)
         ps = []
         for sd in range(nseed):
             dtr = xgb.DMatrix(Xtr)
@@ -593,7 +645,7 @@ def _cv_aft(X, y_orig, series, n_keep, nseed=5):
     acc = accuracy_score(ybin, yp)
     auc = roc_auc_score(ybin, oof)
     rec = accuracy_score(ybin[cen_mask], yp[cen_mask]) if cen_mask.sum() else 0.0
-    return float(acc), float(auc), float(rec), oof, keep_idx
+    return float(acc), float(auc), float(rec), oof
 
 
 def _fit_final_aft(X, y_orig, series, n_keep, nseed=5):
@@ -646,8 +698,9 @@ def _series_encode_single(x, series_name, enc_tuple):
     return xf
 
 
-def _cv_reg_extra(Xs, y_orig, series, cfg, extra, trans=None, inv=None):
-    """回归5折CV，支持额外特征（如分类器概率），返回 (R², OOF)"""
+def _cv_reg_extra(Xd, y_orig, series, cfg, extra, trans=None, inv=None):
+    """回归5折CV：折叠内 top-N 选择 + 额外特征（如 OOF 分类器概率，不参与选择）。
+    返回 (R², OOF)。"""
     from sklearn.model_selection import KFold
     from sklearn.metrics import r2_score
     from xgboost import XGBRegressor
@@ -655,11 +708,13 @@ def _cv_reg_extra(Xs, y_orig, series, cfg, extra, trans=None, inv=None):
     yt = trans(y_orig) if trans is not None else y_orig
     k = cfg['k']
     w = cfg['w']
+    ser = np.array(series)
+    folds = list(KFold(5, shuffle=True, random_state=42).split(Xd))
+    sels = _fold_selection(Xd, yt, folds, cfg['n_keep'])
     r2s = []
     oof = np.zeros(len(y_orig))
-    kf = KFold(5, shuffle=True, random_state=42)
-    for tr, te in kf.split(Xs):
-        Xtr, Xte = add_series_features(Xs[tr], Xs[te], yt[tr], np.array(series)[tr], np.array(series)[te], k)
+    for (tr, te), sel in zip(folds, sels):
+        Xtr, Xte = add_series_features(Xd[tr][:, sel], Xd[te][:, sel], yt[tr], ser[tr], ser[te], k)
         Xtr = np.hstack([Xtr, extra[tr].reshape(-1, 1)])
         Xte = np.hstack([Xte, extra[te].reshape(-1, 1)])
         px, pl = [], []
@@ -692,7 +747,8 @@ def _fit_final_reg_extra(Xs, y_orig, series, cfg, extra, trans=None, inv=None):
 
 
 def _fit_final_clf(X, ybin, series, n_keep):
-    """全量训练最终边界分类器（含系列编码），返回 (模型, 系列编码表)"""
+    """全量训练最终边界分类器（含系列编码），返回 (模型, 系列编码表, keep_idx)。
+    此处 top-N 选择以训练集全量标签为准——训练选择合法，评估选择必须折叠内（_fold_selection）。"""
     from xgboost import XGBClassifier
     keep_idx = select_features(X, ybin, n_keep, clf=True)
     Xs = X[:, keep_idx]
@@ -705,80 +761,84 @@ def _fit_final_clf(X, ybin, series, n_keep):
         Xf = np.hstack([Xf, (np.array(series) == s).astype(float).reshape(-1, 1)])
     model = XGBClassifier(random_state=42, n_jobs=-1, **CLF_MODEL_PARAMS)
     model.fit(Xf, ybin)
-    return model, (enc, gm, cnt, std, all_ser)
+    return model, (enc, gm, cnt, std, all_ser), keep_idx
 
 
 def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
-    """训练并5折CV评估（折叠内OOF系列编码，多种子集成），返回 (模型, 指标, 系列编码表)"""
+    """训练并 5 折 CV 诚实评估（实验 T 协议，scripts/mvp86 验证）：
+      · top-N 特征选择在**每折训练标签内**完成（评估不接触验证折标签）；
+      · 系列目标编码折叠内 OOF；
+      · 噪声掩码由第一遍折叠内 OOF 残差构造，第二遍仅从**训练侧**剔除掩码外样本；
+      · 水煮分类阈值折内调优（训练折自身概率）→ 验证折应用，报告不重复使用同一份标签。
+    最终产物模型的选择/阈值基于其全部训练数据（训练选择合法），仅评估口径收紧。
+    返回 (模型, 指标, 系列编码表)"""
     from sklearn.model_selection import KFold
     from sklearn.metrics import r2_score, accuracy_score, roc_auc_score
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     y_orig = y.copy()
     if task == 'reg':
-        from xgboost import XGBRegressor
-        from lightgbm import LGBMRegressor
         cfg = REG_PARAMS.get(tgt, REG_PARAMS.get({'MEK擦拭': 'MEK', '水煮等级': '水煮'}.get(tgt, tgt), REG_PARAMS['T弯']))
         trans = np.sqrt if cfg.get('transform') == 'sqrt' else None
-        inv = (lambda p: p ** 2) if trans is not None else None
-        # 目标构造
-        y_eval = y_orig
+        inv = (lambda p: np.clip(p, 0, None) ** 2) if trans is not None else None
+        # ---------- MEK：诚实两阶段（AFT 边界 + 未截尾回归，实验 K/L） ----------
         if tgt in ('MEK', 'MEK擦拭'):
-            # 实验 K/L：诚实两阶段模型（AFT 边界 + 未截尾回归）
-            # 阶段1a：分类器（提供 p_hi 特征给回归）
             cap = cfg.get('cap', 300)
             ybin = (y_orig >= cap).astype(int)
             cen_mask = (y_orig == cap).astype(bool)
             unc_idx = np.where(~cen_mask)[0]
-            p_hi, keep_c = _clf_oof(X, ybin, series, cfg['keep_c'])
-            # 阶段1b：AFT 边界（survival:aft，右截尾 [cap,inf)）
-            aft_acc, aft_auc, aft_rec, oof_aft, keep_a = _cv_aft(X, y_orig, series, cfg['n_keep'])
-            # 阶段2：未截尾回归（+ 分类器概率特征）
+            p_hi = _clf_oof(X, ybin, series, cfg['keep_c'])            # 折叠内 OOF 概率
+            aft_acc, aft_auc, aft_rec, oof_aft = _cv_aft(X, y_orig, series, cfg['n_keep'])
             X_unc = X[unc_idx]
             y_unc = y_orig[unc_idx]
             ser_unc = [series[i] for i in unc_idx]
             p_unc = p_hi[unc_idx]
-            sel_y_unc = np.sqrt(y_unc)
-            keep_idx = select_features(X_unc, sel_y_unc, cfg['n_keep'])
-            Xs_unc = X_unc[:, keep_idx]
-            r2_unc, oof_unc = _cv_reg_extra(Xs_unc, y_unc, ser_unc, cfg, p_unc,
-                                            trans=np.sqrt, inv=(lambda p: p ** 2))
-            # 最终模型：分类器(p_hi) + AFT(边界) + 未截尾回归
-            clf_final, enc_c = _fit_final_clf(X, ybin, series, cfg['keep_c'])
+            r2_unc, oof_unc = _cv_reg_extra(X_unc, y_unc, ser_unc, cfg, p_unc,
+                                            trans=np.sqrt, inv=inv)
+            # 产物：分类器 + AFT + 未截尾回归（选择基于各自训练集，p_hi 为训练期特征）
+            clf_final, enc_c, keep_c = _fit_final_clf(X, ybin, series, cfg['keep_c'])
             aft_final, enc_a, keep_a_final = _fit_final_aft(X, y_orig, series, cfg['n_keep'])
-            reg_final, enc_r = _fit_final_reg_extra(Xs_unc, y_unc, ser_unc, cfg, p_unc,
-                                                    trans=np.sqrt, inv=(lambda p: p ** 2))
+            keep_idx = select_features(X_unc, np.sqrt(y_unc), cfg['n_keep'])
+            reg_final, enc_r = _fit_final_reg_extra(X_unc[:, keep_idx], y_unc, ser_unc, cfg, p_unc,
+                                                    trans=np.sqrt, inv=None)
             model = MEKTwoStage(clf_final, aft_final, reg_final, keep_c, keep_a_final, keep_idx,
                                 enc_c, enc_a, enc_r, cap, cfg.get('extra', 85), thr=0.5)
             metrics = {'未截尾R²': float(r2_unc), '边界准确率': float(aft_acc),
                        '边界AUC': float(aft_auc), '截尾召回': float(aft_rec),
                        '样本数': len(y_orig), '未截尾': int(len(unc_idx)),
-                       '截尾': int(int(cen_mask.sum()))}
+                       '截尾': int(cen_mask.sum()),
+                       '评估协议': '折叠内选择+折叠内系列编码'}
             return model, metrics, (enc_c[0], enc_c[1], enc_c[2], enc_c[3], keep_c, None, keep_idx, enc_r, enc_a, keep_a_final)
-        # 特征选择（与实验一致：在变换后目标上计算重要性，实验验证提升 R²）
-        sel_y = np.sqrt(y) if cfg.get('transform') == 'sqrt' else y
-        keep_idx = select_features(X, sel_y, cfg['n_keep'])
-        X = X[:, keep_idx]
-        # 第一遍 CV：全量 OOF 残差
-        r2_full, oof = _cv_reg(X, y_eval, series, cfg, trans=trans, inv=inv)
-        import os
-        if os.environ.get('WB_DEBUG'):
-            print(f'[DBG] tgt={tgt} cfg_keys={sorted(cfg.keys())} k={cfg["k"]} w={cfg["w"]} n_est_xgb={cfg["xgb"]["n_estimators"]} r2_full={r2_full:.4f} n={len(y)}', flush=True)
-        # 噪声过滤（T弯：|OOF残差|<=2×重复测量噪声std）
+        # ---------- T弯等连续目标：两遍折叠内 CV + 公共噪声掩码 ----------
+        if cfg.get('mono_mech') and MECH_MONO_SIGN_TBIAN and MECH_FEATURES \
+                and X.shape[1] >= len(MECH_FEATURES):
+            # 机理列固定拼接在特征向量尾部：按列名映射物理单调先验（XGB 正则）
+            _ms = X.shape[1] - len(MECH_FEATURES)
+            cfg = dict(cfg)
+            cfg['mono_map'] = {_ms + i: int(MECH_MONO_SIGN_TBIAN[f])
+                               for i, f in enumerate(MECH_FEATURES) if f in MECH_MONO_SIGN_TBIAN}
+        r2_pass1, oof1 = _cv_reg(X, y_orig, series, cfg, trans=trans, inv=inv)
         n_filtered = 0
+        fit_mask = np.ones(len(y_orig), dtype=bool)
+        oof, r2_final = oof1, r2_pass1
         if cfg.get('noise_thr'):
-            resid = y_eval - oof
+            resid = y_orig - oof1
             mask = np.abs(resid) <= cfg['noise_thr']
             n_filtered = int((~mask).sum())
             if mask.sum() >= 200:
-                X, y, series = X[mask], y[mask], [series[i] for i in np.where(mask)[0]]
-                y_eval = y_eval[mask]
-                sel_y = np.sqrt(y) if cfg.get('transform') == 'sqrt' else y
-                keep_idx = select_features(X, sel_y, cfg['n_keep'])
-                X = X[:, keep_idx]
-        # 第二遍 CV：过滤后诚实评估
-        r2_final, _ = _cv_reg(X, y_eval, series, cfg, trans=trans, inv=inv)
-        model, enc = _fit_final_reg(X, y, series, cfg, trans=trans, inv=inv)
-        metrics = {'R²': float(r2_final), '样本数': len(y), '系列数': len(set(series))}
+                fit_mask = mask
+                _, oof2 = _cv_reg(X, y_orig, series, cfg, trans=trans, inv=inv, train_mask=mask)
+                oof = oof2
+                r2_final = float(r2_score(y_orig[mask], oof2[mask]))
+        # 产物：在掩码内样本上训练（选择用训练集自身标签，合法）
+        sel_y = trans(y_orig) if trans is not None else y_orig
+        rows = np.where(fit_mask)[0]
+        keep_idx = select_features(X[rows], sel_y[rows], cfg['n_keep'])
+        if cfg.get('mono_map'):
+            cfg['mono_list'] = [int(cfg['mono_map'].get(int(j), 0)) for j in keep_idx]
+        model, enc = _fit_final_reg(X[rows][:, keep_idx], y_orig[rows],
+                                    [series[i] for i in rows], cfg, trans=trans, inv=None)
+        metrics = {'R²': float(r2_final), 'R²(全样本)': float(r2_score(y_orig, oof)),
+                   '样本数': int(fit_mask.sum()), '系列数': len(set(series)),
+                   '评估协议': '折叠内选择+公共掩码'}
         if n_filtered:
             metrics['噪声过滤'] = n_filtered
         return model, metrics, (enc[0], enc[1], enc[2], enc[3], keep_idx, None)
@@ -787,52 +847,64 @@ def train_eval(X, y, series, task='reg', tgt='T弯', n_splits=5):
         from lightgbm import LGBMClassifier
         # 二分类（水煮>=4，标签已由调用方转为0/1）
         n_keep = CLF_N_KEEP
-        keep_idx = select_features(X, y, n_keep, clf=True)
-        X = X[:, keep_idx]
         ser_arr = np.array(series)
+        folds = list(KFold(n_splits=n_splits, shuffle=True, random_state=42).split(X))
+        sels = _fold_selection(X, y, folds, n_keep, clf=True)
         oof_p = np.zeros(len(y))
-        accs = []
-        for tr, te in kf.split(X):
-            Xtr, Xte = add_series_features(X[tr], X[te], y[tr], ser_arr[tr], ser_arr[te])
-            px, pl = [], []
+        trn_p = np.zeros(len(y))     # 各折训练样本在"该折模型"下的自身概率（供折内调阈值）
+        for (tr, te), sel in zip(folds, sels):
+            Xtr, Xte = add_series_features(X[tr][:, sel], X[te][:, sel], y[tr], ser_arr[tr], ser_arr[te])
+            px_te, pl_te, px_tr, pl_tr = [], [], [], []
             for sd in range(N_SEEDS):
-                mx = XGBClassifier(random_state=42 + sd, n_jobs=-1, **CLF_MODEL_PARAMS); mx.fit(Xtr, y[tr]); px.append(mx.predict_proba(Xte)[:, 1])
-                ml = LGBMClassifier(random_state=42 + sd, n_jobs=-1, verbose=-1, **CLF_MODEL_PARAMS); ml.fit(Xtr, y[tr]); pl.append(ml.predict_proba(Xte)[:, 1])
-            oof_p[te] = 0.5 * np.mean(px, axis=0) + 0.5 * np.mean(pl, axis=0)
-            accs.append(accuracy_score(y[te], (oof_p[te] >= 0.5).astype(int)))
-        # 全局阈值 + 每系列阈值（样本数>=8的系列用专属阈值，其余用全局）
-        best_g = (0.0, 0.5)
-        for th in np.arange(0.35, 0.66, 0.005):
-            acc = accuracy_score(y, (oof_p >= th).astype(int))
-            if acc > best_g[0]:
-                best_g = (acc, th)
-        th_map = {}
-        for s in set(series):
-            mask = ser_arr == s
-            if mask.sum() >= 8:
-                best = (0.0, best_g[1])
-                for th in np.arange(0.35, 0.66, 0.005):
-                    acc = accuracy_score(y[mask], (oof_p[mask] >= th).astype(int))
-                    if acc > best[0]:
-                        best = (acc, th)
-                th_map[s] = best[1]
-        pred = np.zeros(len(y))
-        for s in set(series):
-            mask = ser_arr == s
-            th = th_map.get(s, best_g[1])
-            pred[mask] = (oof_p[mask] >= th).astype(int)
-        acc_ps = accuracy_score(y, pred)
-        auc = roc_auc_score(y, oof_p)
-        enc, gm, cnt, std = fit_series_enc(y, np.array(series), 3)
-        Xf = np.hstack([X, np.array([enc.get(s, gm) for s in series]).reshape(-1, 1)])
+                mx = XGBClassifier(random_state=42 + sd, n_jobs=-1, **CLF_MODEL_PARAMS); mx.fit(Xtr, y[tr])
+                ml = LGBMClassifier(random_state=42 + sd, n_jobs=-1, verbose=-1, **CLF_MODEL_PARAMS); ml.fit(Xtr, y[tr])
+                px_te.append(mx.predict_proba(Xte)[:, 1]); pl_te.append(ml.predict_proba(Xte)[:, 1])
+                px_tr.append(mx.predict_proba(Xtr)[:, 1]); pl_tr.append(ml.predict_proba(Xtr)[:, 1])
+            oof_p[te] = 0.5 * np.mean(px_te, axis=0) + 0.5 * np.mean(pl_te, axis=0)
+            trn_p[tr] = 0.5 * np.mean(px_tr, axis=0) + 0.5 * np.mean(pl_tr, axis=0)
+
+        def _tune_th(yy, pp):
+            best = (0.0, 0.5)
+            for t in np.arange(0.35, 0.66, 0.005):
+                a = float(accuracy_score(yy, (pp >= t).astype(int)))
+                if a > best[0]:
+                    best = (a, float(t))
+            return best
+
+        # 诚实准确率：折内调每系列阈值（训练折自身概率）→ 验证折应用
+        pred_h = np.zeros(len(y))
+        for tr, te in folds:
+            g_th_f = _tune_th(y[tr], trn_p[tr])[1]
+            th_f = {}
+            for s in set(ser_arr[tr]):
+                mtr = tr[ser_arr[tr] == s]
+                if len(mtr) >= 8:
+                    th_f[s] = _tune_th(y[mtr], trn_p[mtr])[1]
+            for i in te:
+                pred_h[i] = int(oof_p[i] >= th_f.get(ser_arr[i], g_th_f))
+        acc_honest = float(accuracy_score(y, pred_h))
+        acc_05 = float(accuracy_score(y, (oof_p >= 0.5).astype(int)))
+        auc = float(roc_auc_score(y, oof_p))
+        # 实验 T 发现：公平口径下「折内调每系列阈值」并不优于固定 0.5（甚至略差），
+        # 旧协议中调阈值的优势来自"在同一份 OOF 上寻优又汇报"的重复使用。
+        # 因此主口径与部署阈值统一为固定 0.5：产物不再携带每系列阈值表，
+        # 避免按系列记忆批次偏置（该做法在跨系列外推中不可迁移）。
+        # 产物模型：全局选择 + 全量训练
+        keep_idx = select_features(X, y, n_keep, clf=True)
+        Xs = X[:, keep_idx]
+        enc, gm, cnt, std = fit_series_enc(y, ser_arr, 3)
+        Xf = np.hstack([Xs, np.array([enc.get(s, gm) for s in series]).reshape(-1, 1)])
         Xf = np.hstack([Xf, np.array([cnt.get(s, 0) for s in series]).reshape(-1, 1)])
         Xf = np.hstack([Xf, np.array([std.get(s, 0.0) for s in series]).reshape(-1, 1)])
         all_ser = sorted(set(series))
         for s in all_ser:
-            Xf = np.hstack([Xf, (np.array(series) == s).astype(float).reshape(-1, 1)])
+            Xf = np.hstack([Xf, (ser_arr == s).astype(float).reshape(-1, 1)])
         model = XGBClassifier(random_state=42, n_jobs=-1, **CLF_MODEL_PARAMS)
         model.fit(Xf, y)
-        return model, {'准确率': float(acc_ps), 'AUC': float(auc), '样本数': len(y), '系列数': len(set(series))}, (enc, gm, cnt, std, keep_idx, None, th_map, best_g[1])
+        metrics = {'准确率': acc_05, '准确率(折内调阈值对照)': acc_honest, 'AUC': auc,
+                   '样本数': len(y), '系列数': len(set(series)),
+                   '评估协议': '折叠内选择+固定阈值0.5'}
+        return model, metrics, (enc, gm, cnt, std, keep_idx, None, {}, 0.5)
 
 
 def predict_with_series(model, x, series_name, enc, gm, cnt, std, keep_idx, all_ser, tgt='T弯', classes=None, th_map=None, best_th=0.5, enc_r=None, keep_r=None):
@@ -894,6 +966,8 @@ class WorkbenchApp:
         self.ids = None
         self.series = None
         self.models = {}
+        self.present_codes = None
+        self.feat_names = None
 
         self._build_ui()
         self.log('欢迎使用涂料配方性能预测工作台 v2.0（组分特征+系列编码）。请先导入数据（终极版模板或合并版数据集）。')
@@ -964,6 +1038,7 @@ class WorkbenchApp:
         try:
             self.mat_lib, self.samples, self.perf, self.proc = load_dataset(path)
             self.present_codes = sorted(set(canon(str(c).strip()) for s in self.samples.values() for c in s['组分']))
+            self.feat_names = feature_names(self.present_codes)
             self.X, self.ids, self.series = build_feature_matrix(self.samples, self.mat_lib, self.perf, self.proc)
             self.file_lbl.config(text=os.path.basename(path))
             self.summary.delete('1.0', 'end')
@@ -1027,7 +1102,7 @@ class WorkbenchApp:
                     continue
                 X, y, series, task = data
                 model, metrics, enc = train_eval(X, y, series, task, tgt=tgt)
-                self.models[tgt] = (model, X.shape[1], enc, sorted(set(series)))
+                self.models[tgt] = (model, X.shape[1], enc, sorted(set(series)), X)
                 mstr = '  '.join(f'{k}={v:.3f}' if isinstance(v, float) else f'{k}={v}' for k, v in metrics.items())
                 out.append(f'[{tgt}] ({task}) {mstr}\n')
             self.root.after(0, lambda: self._show_train_result(''.join(out)))
@@ -1075,23 +1150,33 @@ class WorkbenchApp:
         x = np.array([row])
         ser_name = self.series_var.get().strip()
         out = ['预测结果:\n']
-        for tgt, (model, nfeat, enc_tuple, all_ser) in self.models.items():
+        for tgt, mrec in self.models.items():
+            model, nfeat, enc_tuple, all_ser, Xtr = mrec
             enc, gm, cnt, std, keep_idx, classes = enc_tuple[:6]
             th_map = enc_tuple[6] if len(enc_tuple) > 6 else None
             best_th = enc_tuple[7] if len(enc_tuple) > 7 else 0.5
             p = predict_with_series(model, row, ser_name, enc, gm, cnt, std, keep_idx, all_ser, tgt, classes, th_map, best_th)
             tag = '系列编码' if ser_name in enc else '全局均值(新系列)'
+            # 适用域检查：新配方是否落在训练包络内（越界即外推，预测可信度下降）
+            dom = ''
+            if isinstance(model, MEKTwoStage):
+                ki = np.unique(np.concatenate([model.keep_c, model.keep_a, model.keep_r]))
+            else:
+                ki = keep_idx if keep_idx is not None else np.arange(len(row))
+            n_out, n_chk, bad = domain_check(row, ki, Xtr, self.feat_names)
+            if n_out:
+                dom = f'  ⚠外推:{n_out}/{n_chk}特征越界[{",".join(bad[:4])}]'
             if tgt == '水煮等级':
-                out.append(f'  {tgt}: {"通过(>=4级)" if p >= 0.5 else "不通过(<4级)"}  [{tag}]\n')
+                out.append(f'  {tgt}: {"通过(>=4级)" if p >= 0.5 else "不通过(<4级)"}  [{tag}]{dom}\n')
             elif tgt in ('MEK', 'MEK擦拭') and isinstance(p, tuple):
                 val, flag = p
                 if flag:
-                    out.append(f'  {tgt}: ≥300 次（AFT 边界判别）  [{tag}]\n')
+                    out.append(f'  {tgt}: ≥300 次（AFT 边界判别）  [{tag}]{dom}\n')
                 else:
-                    out.append(f'  {tgt}: {val:.2f} 次  [{tag}]\n')
+                    out.append(f'  {tgt}: {val:.2f} 次  [{tag}]{dom}\n')
             else:
                 unit = {'T弯': 'mm', 'MEK擦拭': '次'}.get(tgt, '')
-                out.append(f'  {tgt}: {p:.2f} {unit}  [{tag}]\n')
+                out.append(f'  {tgt}: {p:.2f} {unit}  [{tag}]{dom}\n')
         self.predict_result.delete('1.0', 'end')
         self.predict_result.insert('end', ''.join(out))
 
@@ -1124,7 +1209,8 @@ class WorkbenchApp:
                     continue
                 x = np.array([row])
                 rec = {'样本ID': sid, '系列': ser_name}
-                for tgt, (model, nfeat, enc_tuple, all_ser) in self.models.items():
+                for tgt, mrec2 in self.models.items():
+                    model, nfeat, enc_tuple, all_ser, Xtr = mrec2
                     enc, gm, cnt, std, keep_idx, classes = enc_tuple[:6]
                     th_map = enc_tuple[6] if len(enc_tuple) > 6 else None
                     best_th = enc_tuple[7] if len(enc_tuple) > 7 else 0.5
@@ -1134,6 +1220,14 @@ class WorkbenchApp:
                         rec[tgt] = '≥300' if flag else round(float(val), 2)
                     else:
                         rec[tgt] = int(p) if tgt == '水煮等级' else round(float(p), 2)
+                    if isinstance(model, MEKTwoStage):
+                        ki = np.unique(np.concatenate([model.keep_c, model.keep_a, model.keep_r]))
+                    else:
+                        ki = keep_idx if keep_idx is not None else np.arange(len(row))
+                    n_out, n_chk, bad = domain_check(row, ki, Xtr, self.feat_names)
+                    rec[tgt + '_越界特征数'] = n_out
+                    if n_out:
+                        rec[tgt + '_越界列'] = ','.join(bad[:6])
                 rows_out.append(rec)
                 out.append(f'  {sid}: ' + '  '.join(f'{t}={rec[t]}' for t in self.models) + '\n')
             self.predict_result.delete('1.0', 'end')

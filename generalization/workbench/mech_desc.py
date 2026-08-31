@@ -84,6 +84,15 @@ MECH_FEATURES = [
     'cat_per_epoxy_eq', 'acid_phosphate_frac', 'wax_frac',
 ]
 
+# T弯方向上的物理单调先验（T弯 mm，越大=越脆=越差）：
+#   交联/刚性↑ → 更脆（mm↑）：+1；当量偏离、玻璃化受限 → 欠固化更柔（mm↓）：-1
+# 用作 XGBoost monotone_constraints 正则（实验 T/T-2 验证：域内小幅稳定正、外推中性）。
+# 仅收录方向证据充分的列，不确定列一律不加约束（避免错误先验堵死拟合）。
+MECH_MONO_SIGN_TBIAN = {
+    'ne_potential': 1, 'ne_effective': 1, 'xlink_per_binder': 1,
+    'tg_fox_solids': 1, 'pvc': 1, 'stoich_dev_epoxy': -1, 'cure_margin_neg': -1,
+}
+
 
 def _fg(mat, key):
     v = mat.get(key, 0.0)
@@ -122,10 +131,12 @@ def hansen_dist(d_src, d_tgt):
 
 
 def mech_features(comp, mat_lib, bake_temp=None, bake_time=None,
-                  ea=EA_DEFAULT, oh_source='rec'):
+                  ea=EA_DEFAULT, oh_source='rec', nan_no_bake=False):
     """计算配方级机理特征。comp: {原料代码: 用量g}（原始代码，内部 canon 化）。
 
     返回 (dict 特征, None)；配方无可登记组分时返回 (None, 原因)。
+    nan_no_bake=True 时，依赖烘烤记录的固化类特征在无记录时取 NaN（而非 0），
+    避免「未记录工艺」与「真实低固化」混成同一伪域（泛化加固，实验 T）。
     """
     from CoatingModelWorkbench import canon
     items = []
@@ -315,12 +326,18 @@ def mech_features(comp, mat_lib, bake_temp=None, bake_time=None,
     d['cat_per_epoxy_eq'] = float(eq['cat'] / max(eq['epoxy'], eps)) if eq['epoxy'] > eps else 0.0
     d['acid_phosphate_frac'] = acid_mass / total
     d['wax_frac'] = wax_mass / total
+    if nan_no_bake and bt <= 0:
+        # 无烘烤记录：固化类机理量不可知，置 NaN 交由树模型学习缺失分裂方向
+        for _f in ('t_eff_min', 'ne_effective', 'cure_drive',
+                   'cure_margin', 'cure_margin_eff', 'cure_margin_neg'):
+            d[_f] = float('nan')
     return d, None
 
 
 def mech_vector(comp, mat_lib, bake_temp=None, bake_time=None,
-                ea=EA_DEFAULT, oh_source='rec'):
-    d, err = mech_features(comp, mat_lib, bake_temp, bake_time, ea=ea, oh_source=oh_source)
+                ea=EA_DEFAULT, oh_source='rec', nan_no_bake=False):
+    d, err = mech_features(comp, mat_lib, bake_temp, bake_time, ea=ea, oh_source=oh_source,
+                           nan_no_bake=nan_no_bake)
     if d is None:
         return [0.0] * len(MECH_FEATURES)
-    return [float(d.get(f, 0.0)) for f in MECH_FEATURES]
+    return [float(d.get(f, 0.0)) if d.get(f) is not None else float('nan') for f in MECH_FEATURES]

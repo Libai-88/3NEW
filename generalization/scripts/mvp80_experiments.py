@@ -100,14 +100,14 @@ def loso_eval(tgt):
             if unc_te.sum() >= 5:
                 # 未截尾回归（训练时丢弃截尾）
                 unc_tr = ytr < cap
-                Xtr_u, ytr_u = Xtr2[unc_tr], ytr[unc_tr]
+                Xtr_u, ytr_u = Xtr[unc_tr], ytr[unc_tr]   # 选择后、系列编码前（编码在 CV 内）
                 sertr_u = [sertr[i] for i in np.where(unc_tr)[0]]
                 # 分类器 p_hi 特征
                 ybin_tr = (ytr >= cap).astype(int)
-                p_hi, _ = _clf_oof(Xtr, ybin_tr, sertr, cfg['keep_c'])
+                p_hi = _clf_oof(Xtr, ybin_tr, sertr, cfg['keep_c'])
                 p_hi_u = p_hi[unc_tr]
                 r2, _ = _cv_reg_extra(Xtr_u, ytr_u, sertr_u, cfg, p_hi_u,
-                                      trans=np.sqrt, inv=(lambda p: p ** 2))
+                                      trans=np.sqrt, inv=(lambda p: np.clip(p, 0, None) ** 2))
                 # 测试：用训练集 p_hi 均值近似（简化），直接评估未截尾
                 pred = np.sqrt(yte[unc_te])  # 占位
                 r2_te = float('nan')

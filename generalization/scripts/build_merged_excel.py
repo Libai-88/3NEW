@@ -103,7 +103,8 @@ lines = [
     ('四、使用建议', '1. 建模时按"标签状态"筛选：实测样本用于训练/验证，无标签样本用于预测。'),
     ('', '2. 水煮指标：聚酯金黄 26 条实测全部为 2 级，该体系对水煮不提供判别信息，'
          '评估须按体系拆分报告，避免常量层抬高综合准确率。'),
-    ('', '3. 聚酯金黄 29 条配方无烘烤工艺记录，固化机理量在该体系上取值为 0。'),
+    ('', '3. 聚酯金黄 29 条配方无烘烤工艺记录，「配方级机理特征」表中固化类特征'
+         '（烘烤依赖）对该部分样本留空，表示不可知而非零固化。'),
     ('', '4. 标为「待确认」的原料（DMP、209-基料）需 SDS 核定；「专有估算」行需 TDS 替换。'),
     ('', '5. 用配套 Windows 工作台可一键完成建模与预测。'),
 ]
@@ -281,6 +282,7 @@ ws.freeze_panes = 'H2'
 # ================= Sheet8 配方级机理特征 =================
 # 由 workbench/mech_desc.py 现场计算（不依赖 pkl 中的历史 desc_df），
 # 羟基/羧基当量采用羟值/酸值标准换算口径（oh_source='ohv'，单位自洽）。
+# 无烘烤记录样本的固化类机理量输出为空单元格（NaN 口径：未记录≠零固化，实验 T）。
 ws = wb.create_sheet('配方级机理特征')
 from mech_desc import mech_features, MECH_FEATURES
 mech_headers = ['样本ID', '系列', '体系', '标签状态'] + MECH_FEATURES
@@ -288,12 +290,15 @@ ws.append(mech_headers)
 n_mech = 0
 for s in all_samples:
     d, _err = mech_features(s['组分'], full_mat, s.get('烘烤温度'), s.get('烘烤时间'),
-                            oh_source='ohv')
+                            oh_source='ohv', nan_no_bake=True)
     if d is None:
         continue
     status = '实测' if s['标签状态'] == '实测' else '无标签'
-    ws.append([s['样本ID'], s.get('系列', ''), s['体系'], status]
-              + [round(float(d.get(f, 0.0)), 6) for f in MECH_FEATURES])
+    vals = []
+    for f in MECH_FEATURES:
+        v = float(d.get(f, 0.0))
+        vals.append('' if np.isnan(v) else round(v, 6))
+    ws.append([s['样本ID'], s.get('系列', ''), s['体系'], status] + vals)
     n_mech += 1
 style_table(ws, 1, len(mech_headers), n_mech, kpi_cols=[5, 13, 19, 24, 30])
 for i, w in enumerate([14, 10, 12, 10] + [12] * len(MECH_FEATURES), 1):
@@ -340,10 +345,10 @@ dict_rows = [
     ('r_nco_oh / r_amino_oh','配方级机理特征','数值','-','异氰酸酯/氨基对羟基化学计量比（无该机制时为0）','0.21'),
     ('stoich_dev_epoxy / stoich_dev_nco','配方级机理特征','数值','-','|1−r| 当量偏离度，衡量配比是否接近化学计量点','0.44'),
     ('f_bar','配方级机理特征','数值','-','按当量加权的平均官能度','2.3'),
-    ('ne_potential / ne_effective','配方级机理特征','数值','mol/100g结合料','Flory-Stockmayer 量级潜在/有效交联密度（有效值含固化度折扣）','0.016'),
+    ('ne_potential / ne_effective','配方级机理特征','数值','mol/100g结合料','Flory-Stockmayer 量级潜在/有效交联密度（有效值含固化度折扣；无烘烤记录时 ne_effective 留空）','0.016'),
     ('tg_fox_solids','配方级机理特征','数值','℃','结合料固体分的 Fox 共混玻璃化转变（1/T 加权，非线性）','70.1'),
-    ('cure_margin / cure_margin_eff','配方级机理特征','数值','℃','烘烤温度与共混Tg/固化后Tg之差，为负表示玻璃化受限','90.7'),
-    ('t_eff_min','配方级机理特征','数值','min','以200℃为参考的Arrhenius等效固化时间（Ea=90kJ/mol）','21.6'),
+    ('cure_margin / cure_margin_eff','配方级机理特征','数值','℃','烘烤温度与共混Tg/固化后Tg之差，为负表示玻璃化受限；无烘烤记录时留空','90.7'),
+    ('t_eff_min','配方级机理特征','数值','min','以200℃为参考的Arrhenius等效固化时间（Ea=90kJ/mol）；无烘烤记录时留空','21.6'),
     ('h_d_resin_solvent / h_d_min_pair','配方级机理特征','数值','MPa^0.5','溶剂相与树脂相的Hansen距离（Ra）及最不利配对距离','5.4'),
     ('pvc','配方级机理特征','数值','-','颜料体积浓度=颜料体积/(颜料+结合料体积)，按密度换算','0.18'),
     ('cat_per_epoxy_eq','配方级机理特征','数值','-','催化当量/环氧当量，环氧-酚醛固化速率主变量','0.02'),

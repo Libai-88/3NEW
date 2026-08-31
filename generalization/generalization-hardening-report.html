@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>泛化压力测试与评估加固 · 实验 T</title>
+<style>
+  :root{--ink:#1f2430;--mut:#6b7280;--line:#e5e7eb;--bg:#f7f9fc;--acc:#2f6fed;--good:#168a4f;--warn:#c2561d;--card:#ffffff;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);line-height:1.65}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 28px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.3px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:30px}
+  h2{font-size:18px;margin:34px 0 12px;border-left:4px solid var(--acc);padding-left:10px}
+  h3{font-size:15px;margin:22px 0 8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef2f8;font-weight:600;white-space:nowrap}
+  td:first-child{white-space:nowrap}
+  .good{color:var(--good);font-weight:600}
+  .warn{color:var(--warn);font-weight:600}
+  .num{font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;font-size:11px;font-weight:600;border-radius:20px;padding:1px 9px}
+  .tag.ok{background:#e3f5ea;color:#168a4f}
+  .tag.dn{background:#fdeee2;color:#c2561d}
+  .tag.up{background:#e7eefa;color:#2f6fed}
+  .tag.nt{background:#eeeef2;color:#5b5b66}
+  ul{margin:8px 0;padding-left:20px}
+  li{margin:5px 0}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 2px}
+  .kpi .box{flex:1;min-width:170px;background:#f2f6fc;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .kpi .n{font-size:22px;font-weight:700;margin-top:2px}
+  .kpi .l{font-size:12px;color:var(--mut)}
+  code{background:#f0f2f6;border-radius:5px;padding:1px 6px;font-size:12px;font-family:"JetBrains Mono",Consolas,monospace}
+  .path{font-family:Consolas,monospace;font-size:12px;color:#1f6feb}
+  .note{font-size:12.5px;color:var(--mut);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>泛化压力测试与评估加固（实验 T）</h1>
+  <div class="sub">涂料配方性能预测 · 评估泄漏修复 / 跨系列外推实测 / 物理单调先验 · 不依赖 TDS 的质量提升 · 2026-08-31</div>
+
+  <h2>结论</h2>
+  <div class="card">
+    <div class="kpi">
+      <div class="box"><div class="l">T弯 R²（公共掩码，诚实口径，20 种子）</div><div class="n num">0.792 ± 0.002</div></div>
+      <div class="box"><div class="l">MEK 未截尾 R²（机理列，NaN 工艺口径）</div><div class="n num">0.507 ± 0.006</div></div>
+      <div class="box"><div class="l">水煮 AUC（机理列，阈值无关口径）</div><div class="n num">0.832</div></div>
+      <div class="box"><div class="l">新系列留一外推 R²（诚实缺口）</div><div class="n num" style="color:var(--warn)">≈ −0.05</div></div>
+    </div>
+    <ul>
+      <li>本轮的目标不是抬高分辨率数字，而是让每个已报告的性能数字在<b>收紧后的评估协议</b>下依然成立：特征选择全部移入折叠内、水煮阈值不再在报告数据上寻优、缺失工艺从"记 0"改为 NaN、跨系列外推（留一系列）成为与域内指标并列的决策依据。所有改动中，域内指标只降不升（T弯掩码内 R² 由虚高 0.7982 修正为 0.7888~0.7926），这是对"性能虚高"最直接的排除。</li>
+      <li>量化了三处系统性乐观来源：<b>全局特征选择泄漏 +0.0094</b>；<b>水煮"折外寻优阈值"虚高约 +0.035</b>，且公平口径下调阈值并不优于固定 0.5；<b>机理特征在旧协议下的 T弯增益部分来自候选池扩大放大的选择泄漏</b>——在诚实协议下 T弯与基线统计持平（keep≥84），而 MEK（+0.010）与水煮（AUC +0.022）的收益是真的。</li>
+      <li>新系列外推（LSO）是数据的真实边界：任何特征臂都无法在<b>无试点实测</b>时可靠预测一个从未见过的系列（R² 均值 −0.05~−0.13，最差系列 −5.2）。对策是流程而非模型：新系列先测 1~2 个配方、经系列编码回入，模型即回到域内水平。工作台预测路径已内置该语义（"全局均值(新系列)"标记 + 适用域越界警告）。</li>
+    </ul>
+  </div>
+
+  <h2>1. 加固原则</h2>
+  <div class="card">
+    <p>本轮所有措施按同一准入标准检验：<b>让评估更严时数字应当下降或持平；让外推压力更大时方法不应当失效</b>。据此采纳或拒绝每项改动——</p>
+    <ul>
+      <li><span class="tag ok">采纳</span> 折叠内特征选择（消除选择泄漏）、公共噪声掩码（跨臂可比）、缺失工艺 NaN 化（消除伪域）、T弯机理列单调先验（物理正则）、水煮固定 0.5 阈值（公平口径下最优）、选择预算复核后 keep=96。</li>
+      <li><span class="tag dn">拒绝</span> 序回归（工程化输出受限且无公平增益）、体系样本加权、工艺缺失指示列（均无增益）、每系列调阈值（公平口径劣于不调）、任何"新系列自由外推"的能力宣称。</li>
+    </ul>
+  </div>
+
+  <h2>2. 协议审计：三处乐观来源与修复</h2>
+  <div class="card">
+    <h3>2.1 特征选择泄漏（全局 top-N → 折叠内 top-N）</h3>
+    <p>此前协议在<b>全量数据（含验证折标签）</b>上做重要性排序取 top-N，再做 5 折 CV——选择步骤见过测试标签。候选池越大的臂泄漏越多（机理臂 309 列 vs 基线 269 列），旧协议报告的"机理特征 T弯 +0.007/+0.011"部分来自这一不对称。修复后（<span class="path">scripts/mvp86_generalization_hardening.py</span> P1，20 种子、公共掩码 261/288）：</p>
+    <table>
+      <tr><th>T弯臂（折叠内选择）</th><th>R²(掩码内)</th><th>R²(全样本)</th><th>与旧协议对照</th></tr>
+      <tr><td>base@60</td><td class="num">0.7888 ± 0.0027</td><td class="num">0.7137</td><td>旧协议 base@60 = 0.7982 → <b>选择泄漏 +0.0094</b></td></tr>
+      <tr><td>base@72</td><td class="num">0.7926 ± 0.0025</td><td class="num">0.7165</td><td>预算扫描峰值（见 §5）</td></tr>
+      <tr><td>base+mech@60</td><td class="num">0.7849 ± 0.0022</td><td class="num">0.7117</td><td>−0.0039（p=0.0001）：旧协议增益不成立</td></tr>
+      <tr><td>base+mech@60 + 单调先验</td><td class="num">0.7861 ± 0.0022</td><td class="num">0.7129</td><td>先验 +0.0012（p=0.0005，稳定小正）</td></tr>
+    </table>
+    <h3>2.2 水煮阈值的双重使用</h3>
+    <p>旧协议在同一份 OOF 概率上"先调每系列阈值、再报准确率"。用三种口径重测（P4，20 种子、折叠内选择）：</p>
+    <table>
+      <tr><th>水煮臂</th><th>折外寻优(旧口径)</th><th>折内调阈值→折外应用</th><th>固定 0.5</th><th>AUC</th></tr>
+      <tr><td>base</td><td class="num warn">0.7926</td><td class="num">0.7537 ± 0.0040</td><td class="num good">0.7563</td><td class="num">0.8092</td></tr>
+      <tr><td>base+mech</td><td class="num warn">0.8044</td><td class="num">0.7698 ± 0.0056</td><td class="num good">0.7721</td><td class="num">0.8315</td></tr>
+    </table>
+    <p class="note">公平口径下调阈值反而劣于不调（0.7698 &lt; 0.7721）——训练折内样本概率过自信，阈值被拉偏。工作台与本报告一律采用<b>固定 0.5</b>，AUC 作为阈值无关的判别力口径。虚高幅度 ≈ 0.035。</p>
+    <h3>2.3 缺失工艺记 0 → NaN</h3>
+    <p>无烘烤记录样本（141 行，聚酯金黄与配比方案为主）的固化类机理量（<code>t_eff_min / ne_effective / cure_drive / cure_margin / cure_margin_eff / cure_margin_neg</code>）此前记 0，与"真实低固化"混成同一伪域。改为 NaN 后由树模型学习缺失分裂方向。这一改动直接翻转了 MEK 结论（§4.2）：旧协议"机理列损害 MEK（−0.030）"正是伪域所致。</p>
+    <h3>2.4 同批修复的特征卫生问题</h3>
+    <ul>
+      <li>sqrt 逆变换统一加下截断（<code>clip(p,0)²</code>），消除负预测平方回正的假象。</li>
+      <li>合并版数据集「配方级机理特征」表中固化类列对缺记录样本输出为空单元格，与建模口径一致。</li>
+    </ul>
+  </div>
+
+  <h2>3. 泛化压力测试</h2>
+  <div class="card">
+    <h3>3.1 GroupKFold-by-系列（新样本+已知/新系列混合外推）</h3>
+    <p>按系列分 5 组留出（P2，8 种子，折叠内选择、无掩码、全样本 R²）：</p>
+    <table>
+      <tr><th>臂</th><th>含系列特征</th><th>不含系列特征</th></tr>
+      <tr><td>base</td><td class="num">0.4785 ± 0.0034</td><td class="num">0.4774 ± 0.0044</td></tr>
+      <tr><td>base+mech</td><td class="num">0.4795 ± 0.0045</td><td class="num">0.4754 ± 0.0037</td></tr>
+    </table>
+    <p class="note">与随机 KFold 的域内 ~0.79 相比，按系列分组后降至 ~0.48——域内高分中约三成来自系列内批次信息的可迁移部分被切断，这是诚实的"新批次"预期。各臂持平说明机理列没有牺牲这块能力。</p>
+    <h3>3.2 留一系列外推 LSO（n≥12 的 13 个系列，8 种子）</h3>
+    <table>
+      <tr><th>留出系列</th><th>n</th><th>base</th><th>base+mech</th><th>+单调先验</th></tr>
+      <tr><td>D1</td><td class="num">24</td><td class="num">+0.638</td><td class="num">+0.593</td><td class="num">+0.584</td></tr>
+      <tr><td>D2</td><td class="num">24</td><td class="num">+0.478</td><td class="num">+0.459</td><td class="num">+0.461</td></tr>
+      <tr><td>D3</td><td class="num">24</td><td class="num">+0.503</td><td class="num good">+0.581</td><td class="num good">+0.581</td></tr>
+      <tr><td>D4</td><td class="num">16</td><td class="num">+0.741</td><td class="num">+0.729</td><td class="num">+0.731</td></tr>
+      <tr><td>D7</td><td class="num">30</td><td class="num">−0.231</td><td class="num">−0.250</td><td class="num">−0.240</td></tr>
+      <tr><td>R9</td><td class="num">19</td><td class="num">+0.819</td><td class="num good">+0.862</td><td class="num good">+0.862</td></tr>
+      <tr><td>R02</td><td class="num">15</td><td class="num warn">−4.968</td><td class="num warn">−5.184</td><td class="num warn">−5.184</td></tr>
+      <tr><td>R03</td><td class="num">16</td><td class="num">−0.641</td><td class="num">−0.622</td><td class="num">−0.649</td></tr>
+      <tr><td>C5</td><td class="num">16</td><td class="num">−0.530</td><td class="num">−0.605</td><td class="num">−0.590</td></tr>
+      <tr><td>R4 / R5 / R6 / R8</td><td class="num">12~16</td><td class="num">+0.625 / +0.646 / +0.198 / +0.133</td><td class="num">+0.644 / +0.691 / +0.180 / +0.223</td><td class="num">+0.645 / +0.692 / +0.188 / +0.231</td></tr>
+      <tr><th>样本量加权均值</th><th></th><th class="num">−0.045</th><th class="num">−0.052</th><th class="num">−0.051</th></tr>
+    </table>
+    <p>读数：与训练域化学距离近的系列（D1/D3/D4/R9）即使全新也能到 0.5~0.86；分布错开的系列（R02/C5/R03/D7）任何臂都失败。三臂无系统性差异——<b>没有特征工程能替代"新系列先测一两个点"</b>。因此该缺口按流程处理（§6），并把"新系列外推"排除在能力宣称之外。</p>
+    <h3>3.3 适用域检查（预测侧防线）</h3>
+    <p>工作台预测新增 <code>domain_check</code>：新配方在每个入选特征列上对照训练包络 [min, max]，越界即输出 <code>⚠外推:n/60 特征越界[列名]</code>；批量预测导出附「越界特征数/越界列」两列。缺烘烤 NaN 不计越界。该检查不改变任何指标，只把外推风险显式交给使用者。</p>
+  </div>
+
+  <h2>4. 机理特征层在诚实协议下的再裁决</h2>
+  <div class="card">
+    <h3>4.1 逐目标效应（公共掩码 / 折叠内选择 / 20 种子）</h3>
+    <table>
+      <tr><th>目标</th><th>口径</th><th>base</th><th>base+mech</th><th>差值与检验</th><th>裁决</th></tr>
+      <tr><td rowspan="2">T弯</td><td>R²(掩码) @60</td><td class="num">0.7888</td><td class="num">0.7849</td><td class="num">−0.0039，p=0.0001</td><td><span class="tag nt">预算 60 时负</span></td></tr>
+      <tr><td>R²(掩码) @84/@96</td><td class="num">0.7912 / 0.7907</td><td class="num">0.7905 / 0.7919</td><td class="num">−0.0007（p=0.26）/ +0.0012</td><td><span class="tag ok">大预算持平</span></td></tr>
+      <tr><td>MEK 未截尾回归</td><td>R²（NaN 工艺口径）</td><td class="num">0.4972 ± 0.0050</td><td class="num">0.5069 ± 0.0058</td><td class="num good">+0.0097</td><td><span class="tag ok">正收益</span></td></tr>
+      <tr><td>MEK 边界判别</td><td>acc / AUC</td><td class="num">0.9045 / 0.9354</td><td class="num">0.9104 / 0.9428</td><td class="num good">+0.006 / +0.007</td><td><span class="tag ok">正收益</span></td></tr>
+      <tr><td>水煮</td><td>acc(0.5) / AUC</td><td class="num">0.7563 / 0.8092</td><td class="num">0.7721 / 0.8315</td><td class="num good">+0.016 / +0.022</td><td><span class="tag ok">正收益</span></td></tr>
+    </table>
+    <p class="note">T弯域内已贴噪声地板（重复测量噪声给出的理论上限 ≈0.79），任何候选池扩大都只稀释选择预算——持平即合理。机理列保留于全目标统一特征空间：MEK/水煮有实测收益，且删除机理列等于切断未来体系/工艺跨度数据（配比方案 112 条、TDS 到位后）的化学可解释外推路线。</p>
+    <h3>4.2 MEK 结论翻转的归因</h3>
+    <p>旧协议（mvp85，全局选择 + 固化列记 0）给出"机理列 −0.030"；修复两处缺陷后（折叠内选择 + NaN 口径）为 +0.010。<b>伪域惩罚被解除</b>：无烘烤样本不再被强制映射到"零固化"区域与真实固化梯度冲突。</p>
+    <h3>4.3 单调先验（物理正则）</h3>
+    <p>对方向证据充分的 7 个机理列施加 XGBoost <code>monotone_constraints</code>（<span class="path">mech_desc.MECH_MONO_SIGN_TBIAN</span>）：交联密度/交联剂比/Fox Tg/PVC 升 → T弯 mm 升（更脆）；当量偏离/玻璃化受限 → mm 降（欠固化更柔）。不确定的列一律不约束。效果：域内 +0.0012（p=0.0005，跨 20 种子稳定），LSO 中性。收益小但方向符合机理预期、且属于正则化（降低方差而非增加容量），采纳为 T弯默认。</p>
+  </div>
+
+  <h2>5. 选择预算复核（先注册后验证）</h2>
+  <div class="card">
+    <p>折叠内选择下预算取值先于结果固定为 {60, 72, 84, 96}（<span class="path">scripts/mvp87_budget_honest.py</span>）：</p>
+    <table>
+      <tr><th>keep</th><th>base R²(掩码)</th><th>base+mech R²(掩码)</th></tr>
+      <tr><td class="num">60</td><td class="num">0.7888 ± 0.0027</td><td class="num">0.7849 ± 0.0022</td></tr>
+      <tr><td class="num">72</td><td class="num">0.7926 ± 0.0025</td><td class="num">0.7876 ± 0.0028 (含先验)</td></tr>
+      <tr><td class="num">84</td><td class="num">0.7912 ± 0.0024</td><td class="num">0.7905 ± 0.0027</td></tr>
+      <tr><td class="num">96</td><td class="num">0.7907 ± 0.0029</td><td class="num good">0.7919 ± 0.0024</td></tr>
+    </table>
+    <p>机理列把有效容量摊薄，预算 96（31%）处两臂恢复统计持平且各自接近噪声地板。默认配置定为 <code>keep=96 + 单调先验</code>——这是在"域内饱和、外推不劣"两个约束下唯一同时满足的取值，而非在掩码指标上挑峰值（挑峰会选 base@72）。</p>
+  </div>
+
+  <h2>6. 最终配置与端到端验证</h2>
+  <div class="card">
+    <p>工作台（<span class="path">workbench/CoatingModelWorkbench.py</span>）默认配置已按上表落地，全量 20 种子端到端复跑：</p>
+    <table>
+      <tr><th>目标</th><th>配置</th><th>结果（诚实口径）</th></tr>
+      <tr><td>T弯</td><td>折叠内选择 + 公共掩码（自掩码 n=263）+ keep=96 + 单调先验</td><td class="num">R²=0.8070（掩码内）/ 0.7350（全样本）</td></tr>
+      <tr><td>MEK</td><td>AFT 边界 + 未截尾回归（p_hi 特征，机理列 NaN 口径）keep=45</td><td class="num">未截尾 R²=0.4949 / 边界 acc=0.9254 / AUC=0.9423</td></tr>
+      <tr><td>水煮</td><td>折叠内选择 keep=80 + 固定 0.5 阈值</td><td class="num">acc=0.7535 / AUC=0.8113</td></tr>
+    </table>
+    <p class="note">工作台 T弯的 0.807 使用"各臂自身 OOF 掩码"（263/288），实验脚本使用统一公共掩码（261/288）以便跨臂对比；两者训练与评估均无标签泄漏，口径差异仅在掩码来源。跨臂比较一律以 §2/§4/§5 的公共掩码数字为准。</p>
+  </div>
+
+  <h2>7. 使用指引（防止误用外推能力）</h2>
+  <div class="card">
+    <ul>
+      <li><b>新系列必须试点</b>：预测全新系列时模型输出带「全局均值(新系列)」标记，该路径的诚实精度即 LSO 数字（不保证优于训练均值）。标准流程：新系列先测 1~2 个配方 → 录入 → 该系列进入系列编码 → 后续配方按域内精度使用。</li>
+      <li><b>看越界警告</b>：预测结果出现「⚠外推:n/N 特征越界」时，配方在化学空间上超出训练包络，输出仅供排序参考。</li>
+      <li><b>MEK 截尾口径不变</b>：≥300 判定由 AFT 边界给出（acc 0.93 / AUC 0.94），未截尾 R² 只在 &lt;300 样本上评估。</li>
+      <li><b>水煮按体系拆分读</b>：聚酯金黄 26 条实测全为 2 级（无失效样本），其 acc=1.0 是常数正确，不提供判别证据。</li>
+      <li><b>指标不追高</b>：T弯域内已贴噪声地板 0.79；提升路径只剩测量降噪（重复 4 次取均值可将上限提至 0.95）与 TDS 到位后的描述符替换。</li>
+    </ul>
+  </div>
+
+  <h2>8. 复现</h2>
+  <div class="card">
+    <pre style="background:#f6f8fc;border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:12.5px;overflow:auto"><code>python scripts/mvp86_generalization_hardening.py --s1 20 --s2 8   # 实验 T：协议审计 + 泛化压力测试
+python scripts/mvp87_budget_honest.py --seeds 20                  # 实验 T-2：诚实口径选择预算复核
+python scripts/build_merged_excel.py                              # 重生成合并版数据集（机理表 NaN 口径）</code></pre>
+    <p class="note">依赖：numpy / pandas / openpyxl / scipy / scikit-learn / xgboost / lightgbm。结果 JSON：<span class="path">mvp86_result.json / mvp87_result.json</span>。</p>
+  </div>
+
+  <div class="note" style="margin-top:26px">相关：机理特征构造与数据质量修复见 <span class="path">mechanism-optimization-report.html</span>；实验 Q（序回归/分层/加权）与本报告 §1 拒绝清单一致。</div>
+</div>
+</body>
+</html>

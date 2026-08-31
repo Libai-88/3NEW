@@ -38,6 +38,7 @@ from CoatingModelWorkbench import (
     load_dataset, build_sample_features, build_feature_matrix,
     enhanced_descriptors, explicit_ratios, smi_aggregate,
     canon, ENH_FEATURES, SMI_AGG_KEYS, CONT_DESC, ROLES, RTYPES, MECH_FEATURES,
+    feature_names,
 )
 from materials import MAT, ALIAS
 from flow import suggest_type, validate_file, build_manifest, build_acquisition_plan, build_readiness_report, FILE_TYPES
@@ -552,13 +553,14 @@ def export_features(mat_lib, samples, perf, proc, out_path):
                 cell.alignment = Alignment(vertical='center', wrap_text=True)
 
     wb = Workbook()
+    _cell = lambda v: '' if (isinstance(v, float) and np.isnan(v)) else round(float(v), 6)
     ws = wb.active; ws.title = '配方级描述符'
     ws.append(['样本ID', '系列', '体系', '标签状态'] + feat_names)
     for i, sid in enumerate(ids):
         s = samples.get(sid, {})
         status = '实测' if s.get('标签状态') == '实测' else '无标签'
         ws.append([sid, series[i], s.get('体系', ''), status] +
-                  [round(float(v), 6) for v in X[i]])
+                  [_cell(v) for v in X[i]])
     style_table(ws, 1, len(feat_names) + 4, len(ids))
     for i, w in enumerate([14, 10, 12, 10] + [10] * len(feat_names), 1):
         ws.column_dimensions[get_column_letter(i)].width = w
@@ -574,7 +576,7 @@ def export_features(mat_lib, samples, perf, proc, out_path):
                    round(float(t_w), 4) if t_w is not None else '',
                    round(float(m_w), 4) if m_w is not None else '',
                    round(float(z_w), 4) if z_w is not None else ''] +
-                  [round(float(v), 6) for v in X[i]])
+                  [_cell(v) for v in X[i]])
     style_table(ws, 1, len(feat_names) + 7, len(ids))
     for i, w in enumerate([14, 10, 12, 10, 10, 10, 10] + [10] * len(feat_names), 1):
         ws.column_dimensions[get_column_letter(i)].width = w
