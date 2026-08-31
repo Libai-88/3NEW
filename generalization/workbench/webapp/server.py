@@ -37,7 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from CoatingModelWorkbench import (
     load_dataset, build_sample_features, build_feature_matrix,
     enhanced_descriptors, explicit_ratios, smi_aggregate,
-    canon, ENH_FEATURES, SMI_AGG_KEYS, CONT_DESC, ROLES, RTYPES,
+    canon, ENH_FEATURES, SMI_AGG_KEYS, CONT_DESC, ROLES, RTYPES, MECH_FEATURES,
 )
 from materials import MAT, ALIAS
 from flow import suggest_type, validate_file, build_manifest, build_acquisition_plan, build_readiness_report, FILE_TYPES
@@ -519,7 +519,7 @@ def convert_features(mat_lib, samples, perf, proc):
         rows.append(row); ids.append(sid); series.append(s.get('系列', ''))
     X = np.array(rows)
     feat_names = present_codes + ['烘烤温度', '烘烤时间'] + ENH_FEATURES + \
-                 [f'r_{i}' for i in range(22)] + SMI_AGG_KEYS
+                 [f'r_{i}' for i in range(22)] + SMI_AGG_KEYS + list(MECH_FEATURES)
     return X, ids, series, feat_names
 
 

@@ -17,8 +17,11 @@ import os
 import sys
 import threading
 import traceback
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
+try:
+    import tkinter as tk
+    from tkinter import ttk, filedialog, messagebox, scrolledtext
+except ImportError:
+    tk = None
 import re
 import numpy as np
 import pandas as pd
@@ -30,6 +33,12 @@ except ImportError:
     # 打包后 smi_desc 内嵌
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from smi_desc import CODE_DESC, SMI_KEYS as _SMI_RAW_KEYS
+
+# 配方级机理特征：当量/化学计量比/交联密度/Fox Tg/固化度/Hansen 距离/PVC
+try:
+    from mech_desc import MECH_FEATURES, mech_vector
+except ImportError:  # 缺省时不影响其余特征，机理列以 0 占位
+    MECH_FEATURES, mech_vector = [], None
 
 
 def _valid_smi_keys():
@@ -278,6 +287,10 @@ CODE_CANON = {
     'AZ088（BYK088)': 'AZ088', 'BYK-306': 'BYK306',
     '35.7%白浆-新': '35.7%白浆', '35.7%白浆-209': '35.7%白浆',
     '14.28%-炭黑浆料': '14.28%炭黑浆料', 'RX170\n-140': 'RX170-140',
+    # 同物合并（与 workbench/handbook_fixes.MERGE_ALIAS 保持一致）：
+    # 占位记录与库内既有原料指向同一物质/同一商品时，统一用后者描述符
+    'MEK': 'TT444', '50173M': 'RJ173M', '209-白浆': '35.7%白浆',
+    '35.7%白浆-新（无306）': '35.7%白浆', '3%气硅混合料': '3%气硅',
 }
 
 
@@ -361,6 +374,11 @@ def build_sample_features(comp, mat_lib, present_codes=None, bake_temp=None, bak
     row += explicit_ratios(comp)
     smi = smi_aggregate(comp)
     row += [smi.get(k, 0.0) for k in SMI_AGG_KEYS]
+    if mech_vector is not None:
+        # 机理特征：当量/化学计量比/交联密度/Fox Tg/固化度/Hansen 距离/PVC
+        # 羟基与羧基当量按羟值/酸值标准换算（oh_source='ohv'），与登记字段单位自洽
+        row += mech_vector(comp, mat_lib, bake_temp=bake_temp, bake_time=bake_time,
+                           oh_source='ohv')
     return row
 
 

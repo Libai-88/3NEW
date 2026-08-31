@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>从典型值到机理量 · 模型优化实验报告</title>
+<style>
+  :root{--ink:#1f2430;--mut:#6b7280;--line:#e5e7eb;--bg:#f7f9fc;--acc:#2f6fed;--good:#168a4f;--warn:#c2561d;--card:#ffffff;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);line-height:1.65}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 28px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.3px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:30px}
+  h2{font-size:18px;margin:34px 0 12px;border-left:4px solid var(--acc);padding-left:10px}
+  h3{font-size:15px;margin:22px 0 8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef2f8;font-weight:600;white-space:nowrap}
+  td:first-child{white-space:nowrap}
+  .good{color:var(--good);font-weight:600}
+  .warn{color:var(--warn);font-weight:600}
+  .num{font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;font-size:11px;font-weight:600;border-radius:20px;padding:1px 9px}
+  .tag.ok{background:#e3f5ea;color:#168a4f}
+  .tag.dn{background:#fdeee2;color:#c2561d}
+  .tag.up{background:#e7eefa;color:#2f6fed}
+  .tag.nt{background:#eeeef2;color:#5b5b66}
+  ul{margin:8px 0;padding-left:20px}
+  li{margin:5px 0}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 2px}
+  .kpi .box{flex:1;min-width:170px;background:#f2f6fc;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .kpi .n{font-size:22px;font-weight:700;margin-top:2px}
+  .kpi .l{font-size:12px;color:var(--mut)}
+  code{background:#f0f2f6;border-radius:5px;padding:1px 6px;font-size:12px;font-family:"JetBrains Mono",Consolas,monospace}
+  .path{font-family:Consolas,monospace;font-size:12px;color:#1f6feb}
+  .note{font-size:12.5px;color:var(--mut);margin-top:10px}
+  .eq{background:#f6f8fc;border-left:3px solid var(--acc);padding:8px 12px;margin:8px 0;font-family:Consolas,monospace;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>从典型值到机理量：模型优化实验报告</h1>
+  <div class="sub">涂料配方性能预测 · 跨体系泛化方案 · 机理特征层 / 数据质量修复 / 评估口径修正 · 2026-08-31</div>
+
+  <h2>结论</h2>
+  <div class="card">
+    <div class="kpi">
+      <div class="box"><div class="l">T弯 R²（公共掩码口径，20 种子）</div><div class="n num" id="kpi-t">—</div></div>
+      <div class="box"><div class="l">MEK 未截尾 R²（20 种子）</div><div class="n num" id="kpi-mek">—</div></div>
+      <div class="box"><div class="l">水煮 acc（仅环氧酚醛，20 种子）</div><div class="n num" id="kpi-w">—</div></div>
+    </div>
+    <ul>
+      <li id="c1">—</li>
+      <li id="c2">—</li>
+      <li id="c3">—</li>
+      <li>诊断层面确认了两件限制上限的事实：<b>26 种原料的描述符向量与同族原料完全相同</b>（占样本 28.8%），以及<b>补录的聚酯金黄标签近乎常量</b>（水煮 26 条全为 2 级、MEK 14/17 条为 50）。前者只能靠 TDS 消除，后者要求实验室改记录口径。</li>
+      <li>发现并修正了一处评估缺陷：原有的"噪声过滤后 R²"在不同特征臂之间比较的是<b>不同样本集合</b>，导致同一对配置的差值在 5 种子与 20 种子下符号相反。修正为公共掩码后结论稳定，见「评估口径修正」。</li>
+    </ul>
+  </div>
+
+  <h2>一、问题诊断</h2>
+  <div class="card">
+    <h3>1.1 典型值造成的特征同值退化</h3>
+    <p style="font-size:13.5px">原料描述符基线取自「化学类别典型值」。同一类别下的不同商品因此获得完全相同的向量，描述符通道无法表达"选了哪个产品"。</p>
+    <table>
+      <tr><th>指标</th><th>数值</th><th>含义</th></tr>
+      <tr><td>登记原料 / 不同描述符向量</td><td class="num">70 / 52</td><td>18 个原料与同族完全重复</td></tr>
+      <tr><td>处于同值组的原料</td><td class="num">26</td><td>六组，最大一组 6 种环氧树脂</td></tr>
+      <tr><td>受影响样本</td><td class="num">140 / 486（28.8%）</td><td>这些样本只能靠组分用量列记忆商品</td></tr>
+      <tr><td>受影响用量质量</td><td class="num">28.7%</td><td>按各原料在全部配方中的用量质量计</td></tr>
+      <tr><td>已由送检组成覆盖</td><td class="num">24 / 70</td><td>其余 46 项仍为类别估算，需 TDS</td></tr>
+    </table>
+    <div class="note">典型同值组：<code>IR877 IR909 IR557 R170M IR868 IR842</code>（环氧树脂，NV/EEW/Tg/官能团全部相同）、<code>AL800 IA800 IA8000 IA151 IA893</code>（丙烯酸树脂）、<code>AZ551 BYK306 FL208 FL208S</code>（助剂）。</div>
+
+    <h3>1.2 占位行的默认值被复制到不同化学物质上</h3>
+    <p style="font-size:13.5px">「原料主数据」中 15 行标为「专有估算」的记录，是建库时按代码模式生成的占位行：五种溶剂共用同一套物性，且部分固含与其自身代码名矛盾。</p>
+    <table>
+      <tr><th>原料代码</th><th>问题</th><th>处置</th></tr>
+      <tr><td>MIBK / DPM / DBE / DMP / MEK</td><td>共用「密度 1.0、分子量 110、沸点 160、Hansen 17.5/6/8」</td><td>按公开手册值改写；MEK 并入丁酮（同一物质）</td></tr>
+      <tr><td><code>40%818</code></td><td>固含记为 55%，代码名自证 40%</td><td>按名称改为 40</td></tr>
+      <tr><td><code>3%气硅混合料</code> / <code>10%135</code></td><td>固含记为 50%，与名称矛盾</td><td>分别并入「3%气硅」、按 10% 稀释品改固含</td></tr>
+      <tr><td><code>50173M</code> / <code>209-白浆</code> / <code>35.7%白浆-新（无306）</code></td><td>与已登记原料实为同一商品</td><td>同物合并（RJ173M / 35.7%白浆）</td></tr>
+      <tr><td><code>气硅</code> / <code>6#炭黑-阿克苏</code></td><td>气相二氧化硅固含误记 50%、真密度误记 1.0；炭黑真密度误记 3.0、颜料含量记 0</td><td>按公开物性与族内既有记录改写</td></tr>
+      <tr><td><code>DMP</code> / <code>209-基料</code></td><td>缩写歧义（三种物质皆用 DMP）/ 组成未记录</td><td><span class="tag nt">待确认</span> 保留原值并标注，需 SDS 核定</td></tr>
+    </table>
+    <div class="note">这 15 行合计占配方用量质量 13.7%、涉及 81 个样本，但除 1 条聚酯金黄配方外全部落在<b>无标签的环氧-配比方案</b>体系。因此本项修复不改变当前三项指标，价值在于让那 112 条配方可用于跨体系外推验证与补测排程。</div>
+
+    <h3>1.3 补录标签近乎常量（本次新发现）</h3>
+    <table>
+      <tr><th>体系 · 目标</th><th>样本数</th><th>不同取值数</th><th>众数占比</th><th>可用性</th></tr>
+      <tr><td>环氧酚醛 · T弯</td><td class="num">277</td><td class="num">263</td><td class="num">1%</td><td><span class="tag ok">可用</span></td></tr>
+      <tr><td>环氧酚醛 · MEK擦拭</td><td class="num">318</td><td class="num">128</td><td class="num">14%</td><td><span class="tag ok">可用</span>（含 43 条 300 截尾）</td></tr>
+      <tr><td>环氧酚醛 · 水煮等级</td><td class="num">189</td><td class="num">9</td><td class="num">36%</td><td><span class="tag ok">可用</span></td></tr>
+      <tr><td>聚酯金黄 · T弯</td><td class="num">11</td><td class="num">2</td><td class="num">91%</td><td><span class="tag dn">近乎常量</span></td></tr>
+      <tr><td>聚酯金黄 · MEK擦拭</td><td class="num">17</td><td class="num">2</td><td class="num">82%</td><td><span class="tag dn">近乎常量</span>（50×14、55×3）</td></tr>
+      <tr><td>聚酯金黄 · 水煮等级</td><td class="num">26</td><td class="num">1</td><td class="num">100%</td><td><span class="tag dn">完全常量</span>（全为 2 级）</td></tr>
+    </table>
+    <p style="font-size:13.5px">原始记录表中该产线写的是 <code>MEK &lt;50 / 50</code>、水煮只记合格级别——实验室登记的是<b>判定结论而非实测值</b>。后果有二：</p>
+    <ul>
+      <li>这些标签无法支撑该体系的监督学习，池化训练会把它们当作有效信息：MEK 在聚酯金黄上的体系内 R² 为 −30.0，且拖累主力体系（合并训练 0.4830 vs 仅环氧酚醛 0.5016）。</li>
+      <li>任何"按体系分层"的准确率都会被常量层虚高：水煮按体系分层时该层 acc=1.0（常数判合格即全对），综合 acc 从真实判别水平 0.767 被抬到 0.795。<b>本报告的分层结果一律按体系拆开报告。</b></li>
+    </ul>
+  </div>
+
+  <h2>二、改动一：配方级机理特征层</h2>
+  <div class="card">
+    <p style="font-size:13.5px">原特征层对原料描述符做<b>质量分数线性加权</b>（<code>w_*</code>），丢失了三类化学上最关键的信息：反应当量与化学计量比、共混玻璃化转变（按 1/T 加权而非线性）、工艺-化学耦合。新增 <span class="path">workbench/mech_desc.py</span> 输出 40 维机理量，只用已登记描述符与公开化学常数，不依赖 TDS。</p>
+    <table>
+      <tr><th>组</th><th>特征</th><th>依据</th></tr>
+      <tr><td>当量浓度</td><td><code>eq_epoxy / eq_oh_phenol / eq_oh_ali / eq_oh_all / eq_cooh / eq_nco / eq_amine / eq_cat</code></td><td>mol/100g；环氧按 EEW、羟/羧按羟值/酸值标准换算；封闭异氰酸酯与醚化氨基树脂按 NCO/活性氢当量（公开典型值 × 送检组成活性占比）</td></tr>
+      <tr><td>化学计量比</td><td><code>r_phenol_epoxy / r_oh_epoxy / r_nco_oh / r_amino_oh / stoich_dev_epoxy / stoich_dev_nco</code></td><td>当量比与 |1−r| 偏离度；跨体系通用，替代原先硬编码到环氧酚醛原料的 22 维显式比例</td></tr>
+      <tr><td>网络结构</td><td><code>f_bar / ne_potential / ne_effective / xlink_per_binder</code></td><td>Flory-Stockmayer 量级交联密度：限制性当量 × (f̄−2)/f̄，按结合料固体归一</td></tr>
+      <tr><td>玻璃化</td><td><code>tg_fox_solids / tg_linear_solids / tg_rise_est</code></td><td>Fox 方程按固体分 1/T 加权；排除溶剂与颜料（原 <code>w_Tg</code> 把溶剂也算进去了）</td></tr>
+      <tr><td>工艺耦合</td><td><code>cure_margin / cure_margin_eff / cure_margin_neg / t_eff_min / cure_drive</code></td><td>Arrhenius 等效固化时间（参考 200℃，Ea=90 kJ/mol）；固化后 Tg 与烘烤温度之差，为负表示反应受玻璃化限制</td></tr>
+      <tr><td>相容性/挥发</td><td><code>h_d_resin_solvent / h_d_min_pair / solvent_power / evap_solvent_w</code></td><td>溶剂相与树脂相的 Hansen 距离（相对量，原线性加权把它抵消了）</td></tr>
+      <tr><td>体积浓度</td><td><code>pvc / pvc_over_binder_vol / dbp_w_pigment</code></td><td>按密度把质量分数换算成颜料体积浓度；DBP 吸油值取公开典型值</td></tr>
+      <tr><td>催化/助剂</td><td><code>cat_per_epoxy_eq / acid_phosphate_frac / wax_frac</code></td><td>环氧-酚醛固化速率主变量</td></tr>
+    </table>
+    <div class="eq">r_phenol_epoxy = Σ 环氧当量 / Σ 活性氢当量　　ne_potential = min(环氧当量, 活性氢当量) × (f̄−2)/f̄ × 100 / 结合料固体量　　t_eff = t · exp[−Ea/R · (1/T_bake − 1/T_ref)]　　1/Tg,blend = Σ w<sub>i</sub>/T<sub>i</sub>（开尔文，仅固体分）</div>
+    <p style="font-size:13.5px">特征有效性（与目标的 Spearman 相关，绝对值排序）：T弯 由 <code>stoich_dev_epoxy</code>（ρ=+0.526）、<code>r_phenol_epoxy</code>（−0.509）、<code>cat_per_epoxy_eq</code>（+0.496）领衔；MEK 由 <code>r_phenol_epoxy</code>（−0.480）、<code>f_bar</code>（+0.477）、<code>eq_oh_phenol</code>（+0.453）领衔；水煮由 <code>eq_nco</code>／<code>r_nco_oh</code>（|ρ|≈0.254）领衔——后两者的非零完全来自新增的异氰酸酯当量通道，原先 <code>amine</code>、<code>NCO</code> 两个通道恒为 0。</p>
+  </div>
+
+  <h2>三、改动二：数据质量与分子描述符覆盖</h2>
+  <div class="card">
+    <table>
+      <tr><th>项</th><th>改前</th><th>改后</th></tr>
+      <tr><td>原料主数据行数</td><td class="num">85</td><td class="num">80（5 项同物合并）</td></tr>
+      <tr><td>描述符状态标注</td><td>已计算 / 专有估算</td><td>已计算 70 / 手册值 8 / 待确认 2</td></tr>
+      <tr><td>SMILES 分子描述符覆盖</td><td class="num">31 种原料</td><td class="num">41 种原料（+二甲苯、PMA、醋酸丁酯、环己酮、PM、二乙二醇单丁醚、乙二醇单丁醚、MIBK、DPM 等结构明确的小分子）</td></tr>
+      <tr><td>羟基/羧基当量口径</td><td class="num">与羟值/酸值相差约 3 倍</td><td>按 OHV/56.1、AV/56.1 标准换算，单位自洽；两种口径均入实验对比</td></tr>
+      <tr><td>机理特征表</td><td>无</td><td>数据集新增「配方级机理特征」工作表，486 样本 × 40 特征</td></tr>
+    </table>
+    <div class="note">未处理的石油馏分（100号/150号溶剂、石脑油）与聚合物类原料不补 SMILES——单一结构式无法代表其组成，需 TDS 或结构表征。分子描述符现覆盖 41/80 种原料。</div>
+  </div>
+
+  <h2>四、改动三：建模方式检验（四项，两项判负）</h2>
+  <div class="card">
+    <p style="font-size:13.5px">协议与历史一致（5 折、折叠内 OOF 系列编码、XGB+LGB 集成、20 种子或标注的种子数），差异只在被检验的那一项。</p>
+    <table>
+      <tr><th>改动</th><th>动机</th><th>结果</th><th>裁决</th></tr>
+      <tr>
+        <td>水煮改用序回归<br><span class="note">K−1 累积分解求期望等级</span></td>
+        <td>等级是有序变量，二值化（≥4）丢弃次序信息</td>
+        <td class="num">AUC 0.8339 vs 二值 0.8264；但 MAE 1.06 级、R²=−0.85、直接判合格 acc 仅 0.679</td>
+        <td><span class="tag dn">不采纳</span> 排序能力略升，工程判定显著变差</td>
+      </tr>
+      <tr>
+        <td>阈值分层改用化学计量比 r 分箱<br><span class="note">替代按系列分层</span></td>
+        <td>机理同质的样本应共享判定，而非共享批号</td>
+        <td class="num">5 层（最小层 43）acc 0.8047 vs 按系列 0.7953 vs 不分层 0.7860（5 种子）</td>
+        <td><span class="tag up">保留观察</span> 增益 +0.009，与现行协议同量级；两种分层都在同一 OOF 上调阈值，存在同等乐观偏差</td>
+      </tr>
+      <tr>
+        <td>小样本体系样本加权<br><span class="note">聚酯金黄 ×3</span></td>
+        <td>26 条标签被 345 条淹没</td>
+        <td class="num">MEK 未截尾 R² 0.4830 → 0.4726；聚酯金黄体系内 R² −30.0 → −4.3（仍不可用）</td>
+        <td><span class="tag dn">不采纳</span> 常量标签使该体系无法学习，加权只放大噪声且伤主力体系</td>
+      </tr>
+      <tr>
+        <td>工艺记录缺失指示列</td>
+        <td>无烘烤记录的样本此前被记为 0℃，与"真低温"混淆</td>
+        <td class="num">T弯 过滤后 R² 0.8249 → 0.7627</td>
+        <td><span class="tag dn">不采纳</span> 有标签样本烘烤记录覆盖已达 96%，该列近似常数，只挤占 top-N 名额</td>
+      </tr>
+    </table>
+    <div class="note">缺失工艺记录的正确处理位置是数据层而非特征层：聚酯金黄与配比方案的烘烤条件已在数据集「使用说明」中标为缺口，源文件仅 25.11.11 一批在设计说明里记有"按205*12min"，不足以覆盖该体系，未据此填充。</div>
+  </div>
+
+  <h2>五、评估口径修正：噪声过滤造成的臂间不可比</h2>
+  <div class="card">
+    <p style="font-size:13.5px">沿用协议先建模取 OOF 残差，再按 <code>|残差| ≤ 2×噪声std</code> 剔除样本，并在<b>剔除后的子集上报告 R²</b>。该子集由每个特征臂自己的残差决定，于是不同臂比较的是不同样本集合：预测更平滑的臂把更多"容易"样本留在评估集内，R² 被抬高。这是同一对配置在 5 种子与 20 种子下差值符号相反的原因（+0.047 与 −0.040），而不是机理特征真有害。</p>
+    <div class="eq">修正：噪声掩码只由参考臂（base, keep=60）全量 OOF 确定一次 → 所有臂共用；评估集固定为全部有标签样本（训练折内才剔除掩码外样本）。</div>
+    <table>
+      <tr><th>口径</th><th>评估集</th><th>是否随臂变化</th><th>可用于 A/B</th></tr>
+      <tr><td>原「过滤后 R²」</td><td>该臂自己筛剩的子集</td><td><span class="tag dn">是</span></td><td>否</td></tr>
+      <tr><td>修正「全样本 R²」</td><td>全部 288 条 T弯标签</td><td><span class="tag ok">否</span></td><td>是</td></tr>
+      <tr><td>修正「掩码内 R²」</td><td>公共掩码 261 条</td><td><span class="tag ok">否</span></td><td>是</td></tr>
+    </table>
+    <p style="font-size:13.5px">MEK（未截尾子集由标签值决定，与臂无关）与水煮（全样本固定）不受此缺陷影响，其 A/B 结论直接可比。</p>
+  </div>
+
+  <!--RESULTS-->
+
+  <h2>六、剩余瓶颈与下一步</h2>
+  <div class="card">
+    <table>
+      <tr><th>瓶颈</th><th>不解决则</th><th>需要什么</th><th>成本</th></tr>
+      <tr><td>26 种原料描述符同值</td><td>28.8% 样本的商品选择仍是盲区，跨体系迁移无信号</td><td>供应商 TDS：Tg、羟值、酸值、环氧当量、官能度、分子量/分散度、固含</td><td>低（问询即可，无需检测）</td></tr>
+      <tr><td>T弯测量噪声 σ=1.244</td><td>噪声地板 R²≈0.789，任何特征/算法改进都不会产生真实增益</td><td>同配方重复测量 4 次取均值（上限可抬到 0.948）</td><td>中（占试验机时）</td></tr>
+      <tr><td>MEK 右截尾 43 条</td><td>未截尾 R² 卡在 0.5 量级</td><td>超出 300 时继续计数记录真实值，而非停在退让上限</td><td>低</td></tr>
+      <tr><td>聚酯金黄只记判定结论</td><td>该体系无法建模，池化评估被常量层污染</td><td>改记录口径：登记实测值（擦洗至失效次数、每板水煮级别）而非合格/不合格</td><td>低（流程改动）</td></tr>
+      <tr><td>环氧-配比方案 112 条无标签</td><td>跨体系泛化（LOSO）仍无法验证</td><td>按 r / νe / PVC 空白区做 D-optimal 选点补测，而非随机补标签</td><td>高（需实测）</td></tr>
+      <tr><td>DMP、209-基料 身份不明</td><td>21+1 个配方的描述符仍为占位值</td><td>物料编码或 SDS</td><td>低</td></tr>
+    </table>
+    <div class="note">选点建议依据：实验 M 表明系列结构化数据上随机/分层采样优于纯不确定性采样（0.688 vs 0.647）；实验 N 与数据困境专项表明 T弯上限由测量噪声决定。因此新实验预算应优先投向重复测量与记录口径，而不是扩大配方数量。</div>
+  </div>
+
+  <h2>附：复现</h2>
+  <div class="card">
+    <div class="path">python scripts/mvp81_mech_features.py --seeds 5      # 实验 P：机理特征 A/B 四臂筛选</div>
+    <div class="path">python scripts/mvp82_modeling_variants.py --seeds 5   # 实验 Q：序回归 / r 分层 / 体系加权 / 缺失指示</div>
+    <div class="path">python scripts/mvp83_selection_budget.py --seeds 5    # 实验 P-2：top-N 预算扫描</div>
+    <div class="path">python scripts/mvp84_common_mask_eval.py --seeds 20   # 实验 P-3：公共掩码口径下的 T弯终验</div>
+    <div class="path">python scripts/mvp85_final_ab.py --seeds 20           # 实验 P-4：MEK / 水煮 20 种子终验</div>
+    <div class="path">python scripts/extend_smiles.py                       # 补算小分子 RDKit 描述符（幂等）</div>
+    <div class="path">python scripts/build_merged_excel.py                  # 重生成合并版数据集（含机理特征表）</div>
+    <div class="note">依赖 <code>numpy pandas openpyxl scikit-learn xgboost lightgbm scipy</code>；<code>extend_smiles.py</code> 额外需要 <code>rdkit</code>。全部脚本使用相对路径。</div>
+  </div>
+</div>
+</body>
+</html>

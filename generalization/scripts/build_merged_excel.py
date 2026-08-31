@@ -2,11 +2,12 @@
 """
 合并版数据集 Excel 生成：终极版模板结构 + 全部数据
 ==================================================
-- 原料主数据：85 种原料（含新增估算）
-- 配方明细：514 样本（373 有标签 + 141 无标签）
+- 原料主数据：80 种原料（同物异名已合并；占位行按公开手册值/名称自证修正，余量标「待确认」）
+- 配方明细：486 样本（371 有标签 + 115 无标签）
 - 性能结果：有标签样本的 T弯/MEK/水煮
 - 工艺条件：烘烤参数
 - 配方级描述符：数值填充（不依赖公式）
+- 配方级机理特征：workbench/mech_desc.py 计算的当量/计量比/νe/Fox Tg/固化度等
 - 建模输入：ML-ready 宽表
 """
 import pickle, warnings, os
@@ -14,19 +15,28 @@ import numpy as np
 import pandas as pd
 warnings.filterwarnings('ignore')
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 from materials import CONT_DESC, ALIAS
+import handbook_fixes as HF
 
 D = pickle.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'merged_data.pkl'),'rb'))
 full_mat = D['full_mat']; new_mats = D['new_mats']
 all_samples = D['all_samples']; desc_df = D['desc_df']
 
+# 占位描述符修正：同物合并 + 名称自证固含 + 公开手册常数 + 族内一致
+_fix_changed, _MERGE, _PENDING = HF.apply(full_mat)
+for _c in _MERGE:
+    full_mat.pop(_c, None)
+new_mats = [c for c in new_mats if c not in _MERGE]
+
 def clean_code(code):
-    """原始代码 → 清洗代码（应用ALIAS映射）"""
+    """原始代码 → 清洗代码（应用ALIAS映射与同物合并表）"""
     key = str(code).strip()
-    return ALIAS.get(key, key)
+    key = ALIAS.get(key, key)
+    return _MERGE.get(key, key)
 
 # ---------- 样式 ----------
 HDR_FILL = PatternFill('solid', fgColor='1F2937')
@@ -73,23 +83,29 @@ lines = [
     ('一、数据构成', '本文件将现有全部数据源整理并填入终极版模板 v3：'),
     ('', '  · 有标签样本 371 条（环氧酚醛 345 + 聚酯金黄 26，含 T弯/MEK/水煮 实测值）'),
     ('', '  · 无标签配方 115 条（环氧配比方案 112 + 聚酯金黄 3）'),
-    ('', '  · 原料主数据 85 种（含按代码模式估算的新原料）'),
+    ('', '  · 原料主数据 80 种（同物异名已合并；无 TDS 的占位行按公开手册值/名称自证修正）'),
     ('', ''),
     ('二、数据来源', '1. 配料测试数据汇总V1.xlsx（有标签）'),
     ('', '2. AI研发26.7.22配比方案.xlsx（无标签-环氧）'),
     ('', '3. 聚酯金黄-AI(1).xlsx（无标签-聚酯）'),
     ('', '4. AI项目原料送检、部分实验数据.xlsx（原料信息）'),
     ('', ''),
-    ('三、工作表说明', '1. 原料主数据：85 种原料描述符（新增原料为估算值，标注"估算"）。'),
+    ('三、工作表说明', '1. 原料主数据：80 种原料描述符；「描述符状态」区分 已计算/手册值/专有估算/待确认。'),
     ('', '2. 配方明细：486 样本的配方长表（每行=一个组分）。'),
     ('', '3. 性能结果：实测样本（含聚酯金黄 26 条补全）的性能数据。'),
     ('', '4. 工艺条件：烘烤温度/时间等。'),
-    ('', '5. 配方级描述符：486×59 特征矩阵（数值，可直接建模）。'),
-    ('', '6. 建模输入：宽表，一行=一个样本，特征+目标，可直接导入训练。'),
+    ('', '5. 配方级描述符：按质量分数加权的原料描述符（线性口径）。'),
+    ('', '6. 配方级机理特征：当量浓度、化学计量比、交联密度、Fox Tg、固化度、'
+         'Hansen 距离、PVC 等非线性机理量（由 workbench/mech_desc.py 计算）。'),
+    ('', '7. 建模输入：宽表，一行=一个样本，特征+目标，可直接导入训练。'),
+    ('', '8. 数据字典：各字段的类型、单位与口径说明。'),
     ('', ''),
     ('四、使用建议', '1. 建模时按"标签状态"筛选：实测样本用于训练/验证，无标签样本用于预测。'),
-    ('', '2. 新增原料请在"原料主数据"补充真实描述符（SDS/TDS），替换估算值。'),
-    ('', '3. 用配套 Windows 工作台可一键完成建模与预测。'),
+    ('', '2. 水煮指标：聚酯金黄 26 条实测全部为 2 级，该体系对水煮不提供判别信息，'
+         '评估须按体系拆分报告，避免常量层抬高综合准确率。'),
+    ('', '3. 聚酯金黄 29 条配方无烘烤工艺记录，固化机理量在该体系上取值为 0。'),
+    ('', '4. 标为「待确认」的原料（DMP、209-基料）需 SDS 核定；「专有估算」行需 TDS 替换。'),
+    ('', '5. 用配套 Windows 工作台可一键完成建模与预测。'),
 ]
 r = 1
 for text, _ in lines:
@@ -158,7 +174,13 @@ names = {'IR190':'9型环氧树脂36%固含','IR809':'环氧树脂55%固含','�
          'IA8000':'丙烯酸树脂','10%AC040':'AC040 10%'}
 for code, d in full_mat.items():
     is_new = code in new_mats
-    row = [code, names.get(code, code), '多体系', d['role'], d['rtype'], '', '专有估算' if is_new else '已计算']
+    if code in _PENDING:
+        status = '待确认'
+    elif d.get('数据来源', '').startswith('handbook:'):
+        status = '手册值'
+    else:
+        status = '专有估算' if is_new else '已计算'
+    row = [code, names.get(code, code), '多体系', d['role'], d['rtype'], '', status]
     for k in ['NV','density','Mw','EEW','AV','OHV','amine','func','Tg','bp','fp','dD','dP','dH','pol','evap',
               'C','H','O','N','S','Cl','fg_epoxy','fg_oh','fg_cooh','fg_ester','fg_amine','fg_amide','fg_arom','fg_ether','wax','pig']:
         row.append(d[k])
@@ -256,7 +278,29 @@ for i, w in enumerate([14,10,12,10,10,10,10] + [10]*len(desc_df.columns[2:]), 1)
     ws.column_dimensions[get_column_letter(i)].width = w
 ws.freeze_panes = 'H2'
 
-# ================= Sheet8 数据字典 =================
+# ================= Sheet8 配方级机理特征 =================
+# 由 workbench/mech_desc.py 现场计算（不依赖 pkl 中的历史 desc_df），
+# 羟基/羧基当量采用羟值/酸值标准换算口径（oh_source='ohv'，单位自洽）。
+ws = wb.create_sheet('配方级机理特征')
+from mech_desc import mech_features, MECH_FEATURES
+mech_headers = ['样本ID', '系列', '体系', '标签状态'] + MECH_FEATURES
+ws.append(mech_headers)
+n_mech = 0
+for s in all_samples:
+    d, _err = mech_features(s['组分'], full_mat, s.get('烘烤温度'), s.get('烘烤时间'),
+                            oh_source='ohv')
+    if d is None:
+        continue
+    status = '实测' if s['标签状态'] == '实测' else '无标签'
+    ws.append([s['样本ID'], s.get('系列', ''), s['体系'], status]
+              + [round(float(d.get(f, 0.0)), 6) for f in MECH_FEATURES])
+    n_mech += 1
+style_table(ws, 1, len(mech_headers), n_mech, kpi_cols=[5, 13, 19, 24, 30])
+for i, w in enumerate([14, 10, 12, 10] + [12] * len(MECH_FEATURES), 1):
+    ws.column_dimensions[get_column_letter(i)].width = w
+ws.freeze_panes = 'E2'
+
+# ================= Sheet9 数据字典 =================
 ws = wb.create_sheet('数据字典')
 dict_headers = ['字段名','所属工作表','类型','单位','口径说明','示例']
 ws.append(dict_headers)
@@ -286,6 +330,23 @@ dict_rows = [
     ('加权固含等','配方级描述符','数值','-','按质量分数加权的原料描述符','36.5'),
     ('环氧基密度等','配方级描述符','数值','mol/100g','每100g配方的官能团摩尔数','0.05'),
     ('烘烤温度/时间','工艺条件','数值','℃/min','固化工艺参数','205/17'),
+    ('描述符状态','原料主数据','枚举','-','已计算/手册值/专有估算/待确认；手册值=公开物性定值，待确认=需SDS或TDS核定','手册值'),
+    ('数据来源','原料主数据','文本','-','COMPO_RULES=送检组成覆盖；handbook:*=公开手册或名称自证修正；空=类别典型值估算','handbook:F3-公开手册'),
+    # ---- 机理特征（配方级机理特征表）----
+    ('solids_frac / binder_solids_frac','配方级机理特征','数值','-','全配方固体分与结合料（树脂+固化剂）固体分质量分数','0.36'),
+    ('eq_epoxy / eq_oh_phenol / eq_oh_ali / eq_oh_all','配方级机理特征','数值','mol/100g','环氧当量、酚羟基、脂肪族羟基、全部活性氢当量浓度；羟基按羟值标准换算（OHV/56.1）','0.034'),
+    ('eq_cooh / eq_nco / eq_amine / eq_cat','配方级机理特征','数值','mol/100g','羧基、异氰酸酯、氨基树脂活性氢、催化当量浓度','0.001'),
+    ('r_phenol_epoxy / r_oh_epoxy','配方级机理特征','数值','-','环氧当量对活性氢当量的化学计量比','0.56'),
+    ('r_nco_oh / r_amino_oh','配方级机理特征','数值','-','异氰酸酯/氨基对羟基化学计量比（无该机制时为0）','0.21'),
+    ('stoich_dev_epoxy / stoich_dev_nco','配方级机理特征','数值','-','|1−r| 当量偏离度，衡量配比是否接近化学计量点','0.44'),
+    ('f_bar','配方级机理特征','数值','-','按当量加权的平均官能度','2.3'),
+    ('ne_potential / ne_effective','配方级机理特征','数值','mol/100g结合料','Flory-Stockmayer 量级潜在/有效交联密度（有效值含固化度折扣）','0.016'),
+    ('tg_fox_solids','配方级机理特征','数值','℃','结合料固体分的 Fox 共混玻璃化转变（1/T 加权，非线性）','70.1'),
+    ('cure_margin / cure_margin_eff','配方级机理特征','数值','℃','烘烤温度与共混Tg/固化后Tg之差，为负表示玻璃化受限','90.7'),
+    ('t_eff_min','配方级机理特征','数值','min','以200℃为参考的Arrhenius等效固化时间（Ea=90kJ/mol）','21.6'),
+    ('h_d_resin_solvent / h_d_min_pair','配方级机理特征','数值','MPa^0.5','溶剂相与树脂相的Hansen距离（Ra）及最不利配对距离','5.4'),
+    ('pvc','配方级机理特征','数值','-','颜料体积浓度=颜料体积/(颜料+结合料体积)，按密度换算','0.18'),
+    ('cat_per_epoxy_eq','配方级机理特征','数值','-','催化当量/环氧当量，环氧-酚醛固化速率主变量','0.02'),
 ]
 for row in dict_rows:
     ws.append(list(row))
@@ -298,4 +359,6 @@ ws.freeze_panes = 'A2'
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '合并版数据集.xlsx')
 wb.save(out)
 print('saved:', out)
-print(f"原料 {n_mat} 种, 配方明细 {det_rows} 行, 性能 {perf_rows} 行, 描述符 {n_fd} 样本×{len(desc_df.columns)-2} 特征")
+print(f"原料 {n_mat} 种（手册值 {len(_fix_changed)} / 待确认 {len(_PENDING)} / 同物合并 {len(_MERGE)}）, "
+      f"配方明细 {det_rows} 行, 性能 {perf_rows} 行, 描述符 {n_fd} 样本×{len(desc_df.columns)-2} 特征, "
+      f"机理特征 {n_mech} 样本×{len(MECH_FEATURES)} 特征")
