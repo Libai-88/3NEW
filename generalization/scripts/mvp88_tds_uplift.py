@@ -349,42 +349,47 @@ for arm in ARMS:
 
     # ---------------- 诊断：化学计量分布 + 特征漂移 ----------------
     if arm == 'A0':
-        REF = {'Xb': Xb, 'Xm': Xm, 'ids': ids}
+        REF_BASE, REF_IDS = Xb, ids
     else:
-        common = [i for i, s in enumerate(ids) if s in REF['ids']]
-        jj = [REF['ids'].index(ids[i]) for i in common]
-        R['drift_base_mean_abs_rel'] = round(float(np.mean(np.abs(
-            Xb[common] - REF['Xb'][jj]) / (np.abs(REF['Xb'][jj]) + 1e-6)))), 4)
+        common = [i for i, s in enumerate(ids) if s in REF_IDS]
+        jj = [REF_IDS.index(ids[i]) for i in common]
+        arr = np.abs(Xb[common] - REF_BASE[jj]) / (np.abs(REF_BASE[jj]) + 1e-6)
+        R['drift_base_mean_abs_rel'] = round(float(np.mean(arr)), 4)
     RESULT[arm] = R
 
     # 计量诊断（对所有臂统一计算，便于横向比较）
-    ep = [mech_features(SAMPLES[s], mat, PROC.get(s, {}).get('烘烤温度'),
-                        PROC.get(s, {}).get('烘烤时间'), oh_source='ohv', nan_no_bake=True)[0]
-          ['r_phenol_epoxy'] for s in ids
-          if SAMPLES[s]['体系'] == '环氧酚醛']
-    ep = np.array([e for e in ep if e > 0])
-    i_ep = np.array([i for i, s in enumerate(ids) if s in row_of and SAMPLES[s]['体系'] == '环氧酚醛'])
-    rho = float('nan')
-    try:
-        vals, ys = [], []
-        for s in ids:
-            if SAMPLES[s]['体系'] != '环氧酚醛':
-                continue
-            v = PERF.get(s, {}).get('T弯')
-            if v is None or (isinstance(v, float) and np.isnan(v)):
-                continue
+    ep, vals, ys = [], [], []
+    for s in ids:
+        if SAMPLES[s]['体系'] != '环氧酚醛':
+            continue
+        try:
             d, _ = mech_features(SAMPLES[s], mat, PROC.get(s, {}).get('烘烤温度'),
                                  PROC.get(s, {}).get('烘烤时间'), oh_source='ohv', nan_no_bake=True)
-            vals.append(d['r_phenol_epoxy'])
+        except Exception:
+            continue
+        if d is None:
+            continue
+        rv = d.get('r_phenol_epoxy', 0.0) or 0.0
+        ep.append(rv)
+        v = PERF.get(s, {}).get('T弯')
+        if v is not None and not (isinstance(v, float) and np.isnan(v)):
+            vals.append(rv)
             ys.append(v)
-        rho = float(spearmanr(vals, ys).statistic)
-    except Exception:
-        pass
+    ep = np.asarray(ep, dtype=float)
+    epz = ep[ep > 0]
+    rho = float(spearmanr(vals, ys).statistic) if len(vals) >= 5 else None
     RESULT.setdefault('stoich', {})[arm] = dict(
-        r_median=round(float(np.median(ep)), 4), r_p10=round(float(np.percentile(ep, 10)), 4),
-        r_p90=round(float(np.percentile(ep, 90)), 4),
-        frac_near_1=round(float(np.mean(np.abs(ep - 1) <= 0.25)), 4),
-        spearman_r_vs_T弯=round(rho, 4) if rho == rho else None)
+        n_r=len(ep), n_r_gt0=int((ep > 0).sum()),
+        r_median=round(float(np.median(epz)), 4) if len(epz) else None,
+        r_p10=round(float(np.percentile(epz, 10)), 4) if len(epz) else None,
+        r_p90=round(float(np.percentile(epz, 90)), 4) if len(epz) else None,
+        frac_near_1=round(float(np.mean(np.abs(epz - 1) <= 0.25)), 4) if len(epz) else None,
+        frac_zero=round(float(np.mean(ep == 0)), 4) if len(ep) else None,
+        spearman_r_vs_T弯=round(rho, 4) if rho is not None else None)
+
+    # 增量落盘：任一臂完成后即保存，避免中途崩溃丢失已跑完的臂
+    json.dump(RESULT, open(os.environ.get('U_OUT', os.path.join(HERE, 'mvp88_result.json')), 'w'),
+              ensure_ascii=False, indent=1)
 
 print('\n========== 化学计量诊断（环氧酚醛 r_phenol_epoxy）==========')
 for k, v in RESULT.get('stoich', {}).items():
