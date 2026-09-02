@@ -145,10 +145,17 @@ PURE = {
              'SDS 自列分子量 149.00 与分子式 C7H16O3 折算值 148.20 不符，本层按分子式取 148.20'),
     'MIBK': dict(
         fml='C6H12O', nv=0.0, groups=dict(),
-        fields=dict(density=0.800, bp=116.5, fp=15.0, evap=2.7, func=0),
+        fields=dict(density=0.800, bp=116.5, fp=15.0, evap=2.7, Tg=-105.0, func=0),
         doc=['填料/色浆3010/苏州汉卓新材料_Nanos-3010B氧化铁红浆_MSDS.md', '助剂/消泡剂-BYK-018_TDS SDS.md'],
         依据='甲基异丁基甲酮 CAS108-10-1（色浆 MSDS 成分表：MIBK 约 10%、LD50 4300 mg/kg）；'
              '物性按 SDS 同 CAS 定值：C6H12O、100.16、沸点 116.5℃、闪点 15℃、密度 0.80'),
+    'TM024': dict(
+        fml='C8H18O3', nv=0.0, groups=dict(oh=1, ether=2),
+        fields=dict(density=0.955, bp=231.0, fp=100.0, evap=0.01, Tg=-68.0, func=0),
+        doc=['—（纯物质由分子式/档案族定值）'],
+        依据='二乙二醇单丁醚（丁基卡必醇/BDG）CAS112-34-5：分子式 C8H18O3、分子量 162.23、'
+             '相对密度 0.955、沸点 230-231℃、闪点 ~100℃（丙二醇醚乙二醇醚族档案；'
+             '国都 YD-019 起始配方亦以 Butyl Carbitol 为稀释剂）'),
     '10%磷酸': dict(
         fml='H3PO4', nv=10.0, groups=dict(cooh=3), water=True,
         els_wet=dict(H=11.19, O=88.81),
@@ -499,6 +506,149 @@ CARRIER = {
     'PHENODUR-PR309-63B': dict(density=1.030, bp=117.7, fp=35.0, evap=0.05),
 }
 
+# ================================================================== 族推断层（FAMILY）
+# 对档案内「牌号未识别」的原料：不套用通用典型值，而是用**同化学族在档案中的实测值**
+# 缩小范围近似（用户口径：间接推出组成后近似计算，向实际情况靠拢）。来源标 FAMILY 而非实测，
+# 保留可追溯依据；一旦按物料编码确认牌号即可升级为直接实测。
+# fields 一律为**到货状态**值（含稀释），EEW/OHV/AV 按到货基给出，fg_* 由 unify 派生。
+FAMILY = {
+    # ---- 丙烯酸多元醇（聚酯金黄/配比方案在用，牌号未识别）----
+    # 档案族：SU-4660(NV60±2/羟值70供应·116固体/酸值<6/比重1.03)、HYC-R926(NV60/羟值26固体/酸值5-9/密度1.05)、
+    #        SETALUX1187(NV60/OH 3.6%/酸值2.3-4.9/密度1.01)、RB819(NV55-59/酸值7-10)、NeoCrylB-725(Tg63)
+    'IA151': dict(role='树脂', rtype='丙烯酸', nv=60.0,
+                  fields=dict(OHV=70.0, AV=5.0, density=1.04, Mw=18000.0, Tg=38.0, func=2,
+                              bp=150.0, fp=40.0, evap=0.1, C=66, H=9, O=25, N=0, S=0, Cl=0),
+                  依据='丙烯酸多元醇 档案族 NV≈60：SU-4660 羟值70(供应)、酸值<6、比重1.03；'
+                      'HYC-R926 酸值5-9、密度1.05；牌号未识别 → 族内取中值'),
+    'IA800': dict(role='树脂', rtype='丙烯酸', nv=60.0, copy_from='IA151',
+                  依据='同 IA151（丙烯酸多元醇 族档案值）'),
+    'IA8000': dict(role='树脂', rtype='丙烯酸', nv=60.0, copy_from='IA151',
+                   依据='同 IA151（丙烯酸多元醇 族档案值）'),
+    'IA893': dict(role='树脂', rtype='丙烯酸', nv=60.0, copy_from='IA151',
+                  依据='同 IA151（丙烯酸多元醇 族档案值）'),
+    'AL800': dict(role='树脂', rtype='丙烯酸', nv=60.0, copy_from='IA151',
+                  依据='同 IA151（丙烯酸多元醇 族档案值）'),
+    # ---- 烯类/氯醋（聚酯金黄在用，牌号未识别）----
+    # 档案族：MVAH 氯醋(Tg79/Mn27000/比重1.39)、VMA(Tg70/Mn15000)、Vinnolit P70/PVC(密度1.4)
+    'TF100': dict(role='树脂', rtype='乙烯基', nv=25.0,
+                  fields=dict(density=1.00, Mw=20000.0, Tg=72.0, func=0, bp=160.0, fp=60.0,
+                              C=42, H=5, O=13, N=0, S=0, Cl=40),
+                  依据='氯醋/PVC 档案族（MVAH Tg79/Mn27000/比重1.39 氯乙烯~90%、VMA Tg70/Mn15000）；'
+                      'NV25 为溶液自证口径，固体密度1.39、Cl≈40%'),
+    'TF022': dict(role='树脂', rtype='乙烯基', nv=25.0, copy_from='TF100',
+                  依据='同 TF100（氯醋/PVC 族档案值）'),
+    # ---- 聚酯（1873 / CN7-18-60，档案缺失 → ETERKYD 聚酯族）----
+    'RJ183': dict(role='树脂', rtype='聚酯', nv=40.0,
+                  fields=dict(OHV=2.6, AV=2.4, density=0.98, Mw=18000.0, Tg=52.0, func=2,
+                              bp=158.0, fp=43.0, evap=0.35, C=66, H=8, O=26, N=0, S=0, Cl=0),
+                  依据='ETERKYD 聚酯族（50173-M-40 TDS：OH价4.5-8.5固体→到货≈2.6、酸价5-7固体→2.4、'
+                      'Tg56/Mn18000/密度0.98）；牌号 1873 无档案 → 族内取'),
+    'RJ362': dict(role='树脂', rtype='聚酯', nv=60.0,
+                  fields=dict(OHV=3.9, AV=5.4, density=0.98, Mw=18000.0, Tg=56.0, func=2,
+                              bp=159.0, fp=43.0, evap=0.34, C=66, H=8, O=26, N=0, S=0, Cl=0),
+                  依据='ETERKYD 聚酯族（50561-R-60 TDS：固含60/酸价6-12固体；50173-M-40 OH价/酸价同族）；'
+                      '牌号 CN7-18-60 无档案 → 族内取'),
+    # ---- 环氧（中分子量双酚A型，牌号未识别；旧库有同族多行同值退化）----
+    # 档案族：YD-011(EEW450-500/74-76%)、SM601R(450-510/75%)、YD-019(2500-3100固体)、HY-2801(5500-7500/40%)
+    'IR877': dict(role='树脂', rtype='环氧', nv=60.0,
+                  fields=dict(EEW=3900.0, OHV=26.0, density=1.07, Mw=2400.0, Tg=82.0, func=2,
+                              bp=138.0, fp=32.0, evap=0.62, C=73, H=7, O=19, N=0, S=0, Cl=0),
+                  依据='双酚A型环氧 中高分子量族（HY-2801 EEW5500-7500@40%、HY-5100 6000-8000@40%、'
+                      'YD-019 2500-3100固体）；NV60 溶液 → 到货 EEW≈3900、轻值26'),
+    'IR909': dict(role='树脂', rtype='环氧', nv=60.0, copy_from='IR877',
+                  依据='同 IR877（双酚A型环氧 族档案值；聚酯金黄主用环氧）'),
+    'IR557': dict(role='树脂', rtype='环氧', nv=60.0, copy_from='IR877',
+                  依据='同 IR877（双酚A型环氧 族档案值）'),
+    'IR868': dict(role='树脂', rtype='环氧', nv=60.0, copy_from='IR877',
+                  依据='同 IR877（双酚A型环氧 族档案值）'),
+    'IR842': dict(role='树脂', rtype='环氧', nv=60.0, copy_from='IR877',
+                  依据='同 IR877（双酚A型环氧 族档案值）'),
+    'IR170': dict(role='树脂', rtype='环氧', nv=50.0, copy_from='IR877',
+                  依据='同 IR877（双酚A型环氧 族档案值；NV50 代码自证）'),
+    'R170M': dict(role='树脂', rtype='环氧', nv=60.0, copy_from='IR877',
+                  依据='同 IR877（双酚A型环氧 族档案值）'),
+    '杜邦-FT960': dict(role='树脂', rtype='环氧', nv=55.0, copy_from='IR877',
+                       依据='同 IR877（双酚A型环氧 族档案值；杜邦牌号未匹配到档案，NV 取旧库）'),
+    '住友55754G': dict(role='树脂', rtype='环氧', nv=100.0,
+                       fields=dict(EEW=1050.0, OHV=30.0, density=1.16, Mw=1600.0, Tg=80.0, func=2,
+                                   bp=300.0, fp=249.0, evap=0.0, C=73, H=7, O=19, N=0, S=0, Cl=0),
+                       依据='库内登记为固体环氧（NV100）；若为住友 SUMILITERESIN 酚醛系列则角色应改固化剂，'
+                           '待物料编码核定（现按固含环氧/中分子量处理）'),
+    # ---- 蜡（送检类别已明，牌号无档案 → 蜡族）----
+    'AL525': dict(role='助剂', rtype='其他', nv=100.0,
+                  fields=dict(density=0.96, Mw=400.0, Tg=-10.0, func=0, bp=350.0, fp=200.0,
+                              C=72, H=11, O=17, N=0, S=0, Cl=0),
+                  依据='送检：单油酸甘油酯蜡 LHWAX2525A；蜡族档案 LANCO1510 微粉蜡 密度0.96/熔点106℃'),
+    'AL710': dict(role='助剂', rtype='其他', nv=35.0,
+                  fields=dict(density=0.90, Mw=500.0, Tg=-10.0, func=0, bp=160.0, fp=80.0,
+                              C=82, H=14, O=4, N=0, S=0, Cl=0),
+                  依据='送检：合成蜡分散体 TPG-710（固含35%）；蜡族档案（LANCO-WD420 固含19-21% 同属性）'),
+    # ---- 助剂/流平剂 AZ551 = BYK-3550（毕克 TDS/SDS 直接匹配，硅改性丙烯酸酯共聚物/PM溶剂）
+    'AZ551': dict(role='助剂', rtype='其他', nv=52.0,
+                  fields=dict(density=1.006, Mw=15000.0, Tg=5.0, func=0, bp=146.0, fp=45.0,
+                              evap=0.05, C=50, H=7, O=20, N=0, S=0, Cl=0),
+                  依据='毕克 BYK-3550 TDS/SDS：硅改性聚丙烯酸酯溶液，不挥发份 52%（10min/150℃）、'
+                      '密度 1.006 g/cm³（20℃）、溶剂为甲氧基丙酸甲酯(PMA)、初沸点 146℃、闪点 45℃'),
+    'FL208': dict(role='助剂', rtype='其他', nv=60.0, copy_from='AZ551',
+                  依据='通用流平剂（档案未收录 BYK/WEK 适配牌号），暂按硅改性丙烯酸酯流平剂族近似'),
+    'FL208S': dict(role='助剂', rtype='其他', nv=52.0, copy_from='AZ551',
+                   依据='通用流平剂（档案未收录对应牌号），暂按硅改性丙烯酸酯流平剂族近似'),
+    # ---- 颜料（牌号未识别的黄/黑/PVC 浆）----
+    'RY078': dict(role='颜料', rtype='其他', nv=100.0,
+                  fields=dict(density=1.80, Mw=200.0, func=0, DBP=50.0, C=50, H=5, O=20),
+                  依据='有机黄颜料族：华宝 PY110(密度1.7-1.9/吸油量40-80)、PY138(1.852/30-60)；取中值'),
+    '6#炭黑-阿克苏': dict(role='颜料', rtype='其他', nv=100.0,
+                           fields=dict(density=1.85, Mw=12.01, func=0, DBP=95.0, C=80, H=2, O=10),
+                           依据='色素炭黑物理常数：真密度~1.85、DBP~95、比表面积高（档案内无炭黑条，手册定值）'),
+    '14.28%炭黑浆料': dict(role='颜料', rtype='其他', nv=14.28,
+                           fields=dict(density=1.10, Mw=12.01, func=0, DBP=95.0, C=80, H=2, O=10),
+                           依据='炭黑浆料（干料同 6#炭黑；14.28% 固含为代码自证，浆料密度按分散体折算）'),
+    '日本151-PVC': dict(role='颜料', rtype='其他', nv=100.0,
+                        fields=dict(density=4.10, Mw=200.0, func=0, DBP=25.0, C=10, H=0, O=20),
+                        依据='PVC 颜料浆（候选氧化铁黄 TSY-1/拜耳乐3920 真比重4.1、吸油量25-35）；'
+                            '牌号不完全确定，按氧化铁黄族近似'),
+}
+# 颜料相对颜色密度（用于 mech_desc.LIT 的 DBP 实测替换）
+LIT_FAMILY = {
+    'RY078': dict(dbp=50.0, 依据='有机黄族 PY110/PY138 TDS 吸油量 30-80 → 50'),
+    '6#炭黑-阿克苏': dict(dbp=95.0, 依据='色素炭黑手册定值'),
+    '14.28%炭黑浆料': dict(dbp=95.0, 依据='同 6#炭黑'),
+    '日本151-PVC': dict(dbp=25.0, 依据='有机颜料浆（保留原口径）'),
+}
+# 补档清单：族推断仍无法覆盖的歧义/未定义原料
+FAMILY_PENDING = {
+    'DMP': '缩写歧义（丙二醇二甲醚/邻苯二甲酸二甲酯/二甲氨基丙醇），需物料编码确认',
+    '209-基料': '与「209-白浆」配对出现的基料，组成未记录',
+}
+
+
+def _family_fields(code):
+    """族推断：用同化学族档案值近似（到货状态字段，来源=family）。"""
+    f = FAMILY[code]
+    if f.get('copy_from'):
+        base = FAMILY[f['copy_from']]
+        f = {**base, **{k: v for k, v in f.items() if k in ('role', 'rtype', 'nv',
+                                                             '依据', 'fields', 'copy_from', 'wax', 'pig')}}
+        if 'fields' in base and f.get('fields') is None:
+            f['fields'] = base['fields']
+    fld = dict(f['fields'])
+    fld['NV'] = f['nv']
+    fld['role'] = f.get('role', '其他')
+    fld['rtype'] = f.get('rtype', '其他')
+    prov = {'NV': 'name', 'role': 'family', 'rtype': 'family'}
+    for k in fld:
+        if k in ('role', 'rtype'):
+            continue
+        prov[k] = 'family'
+    if f.get('wax'):
+        fld['wax'] = f['wax']
+    if f.get('pig'):
+        fld['pig'] = f['pig']
+    docs = []
+    q = f['依据']
+    return fld, prov, docs, q, {'chem': q, '来源': 'TDS族推（牌号未识别，按同化学族档案近似）'}
+
+
 # ================================================================== 原料代码 → 档案
 CODE_MAP = {
     # ---- 环氧 ----
@@ -595,8 +745,8 @@ CODE_MAP = {
     '正丁醇': dict(pure='正丁醇'), '二甲苯': dict(pure='二甲苯'),
     'TM004': dict(pure='TM004'), 'TM221': dict(pure='TM221'), 'TZ221': dict(pure='TZ221'),
     'TZ161': dict(pure='TZ161'), 'TZ240': dict(pure='TZ240'), 'TT444': dict(pure='TT444'),
-    'TT066': dict(pure='TT066'), 'TM982': dict(pure='TM982'), 'DPM': dict(pure='DPM'),
-    'MIBK': dict(pure='MIBK'), '10%磷酸': dict(pure='10%磷酸'),
+    'TT066': dict(pure='TT066'), 'TM982': dict(pure='TM982'), 'DPM': dict(pure='DPM'), 'MIBK': dict(pure='MIBK'), '10%磷酸': dict(pure='10%磷酸'),
+    'TM024': dict(pure='TM024'),                       # 二乙二醇单丁醚（丁基卡必醇）
     '补加混合液': dict(mixture='补加混合液'),
 }
 
@@ -646,8 +796,6 @@ PENDING = {
     'AZ551': '助剂，疑似 BYK-3550（不挥发份 52%、密度 1.01、载体 PMA），需确认',
     'FL208': '助剂/流平剂，档案缺失 → 需 TDS',
     'FL208S': '助剂/流平剂，档案缺失 → 需 TDS',
-    '日本151-PVC': '颜料浆（PVC 系），档案内住友代理氧化铁黄 TSY-1（Fe₂O₃ ≥86%、吸油量 25~35、真比重 4.1）'
-                   '为候选，需按到货单确认',
     '6#炭黑-阿克苏': '色素炭黑（配比方案体系质量占比 8.8%），档案缺失 → 需 TDS（吸油值/粒径/真密度）',
     '14.28%炭黑浆料': '炭黑浆料，档案缺失 → 需 TDS',
     'RY078': '黄色颜料，档案内有 PY110（密度 1.7~1.9、吸油量 40~80）、PY138（1.852、吸油量 30~60）、'
@@ -716,6 +864,8 @@ def tds_fields(code):
     if not mp:
         if code in PURE_ALIAS:
             return tds_fields(PURE_ALIAS[code])
+        if code in FAMILY:
+            return _family_fields(code)
         return {}, {}, [], '', {}
     q = {}
     if 'mixture' in mp or 'pure' in mp:
@@ -933,11 +1083,12 @@ def apply(mat, unify=True, use_tds=True, prefer='documented'):
                 continue
             m = mat[code]
             m.update(fld)
-            m['数据来源'] = 'TDS/SDS'
+            is_family = any(v == 'family' for v in prov.values())
+            m['数据来源'] = 'TDS族推' if is_family else 'TDS/SDS'
             m['TDS档案'] = docs
             m['TDS依据'] = basis
             m['TDS摘录'] = q
-            m['描述符状态'] = 'TDS实测'
+            m['描述符状态'] = '族推断' if is_family else 'TDS实测'
             prov_all[code] = prov
             changed.append(code)
     _label_prior_layers(prov_all, mat)
@@ -1043,7 +1194,8 @@ def _merge_lit():
         import mech_desc
     except Exception:
         return False
-    for code, ov in lit_overrides().items():
-        cur = mech_desc.LIT.setdefault(code, {})
-        cur.update(ov)
+    for src in (LIT_TDS, LIT_FAMILY):
+        for code, ov in src.items():
+            cur = mech_desc.LIT.setdefault(code, {})
+            cur.update({k: v for k, v in ov.items() if k != '依据'})
     return True

@@ -102,8 +102,8 @@ def _fg(mat, key):
 def eq_per_g(mat, code, oh_source='rec'):
     """单克（到货状态）各类当量 mol/g。
 
-    oh_source='rec' 用登记的 fg_oh；'ohv' 用标准换算 OHV/56.1/10（mol/100g→mol/g）。
-    两者在部分原料上相差约 3 倍，作为可切换选项交由诚实评估裁决。
+    oh_source='rec' 用登记的 fg_oh；'ohv' 用标准换算 OHV/56.1/1000（mg KOH/g → mol OH/g），
+    与 fg_oh=OHV/561（mol/100g）自洽。两者作为可切换选项交由诚实评估裁决。
     """
     e = {}
     e['epoxy'] = _fg(mat, 'fg_epoxy') / 100.0
@@ -111,11 +111,11 @@ def eq_per_g(mat, code, oh_source='rec'):
     if oh_source == 'ohv':
         ohv = _fg(mat, 'OHV')
         if ohv > 0:
-            oh = ohv / KOH_M / 10.0
+            oh = ohv / KOH_M / 1000.0
     e['oh'] = oh
     cooh = _fg(mat, 'fg_cooh') / 100.0
     if oh_source == 'ohv' and _fg(mat, 'AV') > 0:
-        cooh = max(cooh, _fg(mat, 'AV') / KOH_M / 10.0)
+        cooh = max(cooh, _fg(mat, 'AV') / KOH_M / 1000.0)
     e['cooh'] = cooh
     lit = LIT.get(code, {})
     e['nco'] = (1.0 / lit['nco_eq']) if lit.get('nco_eq') else 0.0

@@ -24,7 +24,8 @@ ALL_DESC = ['NV', 'density', 'Mw', 'EEW', 'AV', 'OHV', 'amine', 'func', 'Tg', 'b
             'fg_epoxy', 'fg_oh', 'fg_cooh', 'fg_ester', 'fg_amine', 'fg_amide',
             'fg_arom', 'fg_ether', 'wax', 'pig']
 DOC_SRC = ('tds', 'sds', 'formula', 'tds_carry', 'name')      # 供应商技术档案实测
-ANY_SRC = DOC_SRC + ('compo', 'handbook')                      # 含送检组成/公开手册的广义依据
+ANY_SRC = DOC_SRC + ('compo', 'handbook', 'family')            # 含送检/手册/档案族推断的广义依据
+FAMILY_SRC = ('family',)                                       # 档案族推断（牌号未识别，按同族档近似）
 
 
 def build_library(use_tds):
@@ -67,6 +68,8 @@ def ensure_prov(mat):
 def dominant(m):
     """原料主导来源。"""
     src = m.get('数据来源') or ''
+    if src == 'TDS族推':
+        return 'TDS族推'
     if src.startswith('TDS'):
         return 'TDS/SDS实测'
     if src == 'COMPO_RULES':
@@ -89,6 +92,7 @@ def coverage(mat):
     n = len(mat)
     by_src = {}
     field_doc = {k: 0 for k in ALL_DESC}
+    field_fam = {k: 0 for k in ALL_DESC}
     field_any = {k: 0 for k in ALL_DESC}
     key_doc = {k: 0 for k in KEY_CHEM}
     per_code = {}
@@ -99,15 +103,19 @@ def coverage(mat):
         for k in ALL_DESC:
             if fp[k] in DOC_SRC:
                 field_doc[k] += 1
+            if fp[k] in FAMILY_SRC:
+                field_fam[k] += 1
             if fp[k] in ANY_SRC:
                 field_any[k] += 1
         for k in KEY_CHEM:
             if fp[k] in DOC_SRC:
                 key_doc[k] += 1
+    nf = n * len(ALL_DESC)
     return dict(n_materials=n, by_material_source=by_src,
                 field_documented=field_doc, key_chem_documented=key_doc,
-                field_ratio_all=round(sum(field_doc.values()) / (n * len(ALL_DESC)), 4),
-                field_ratio_any=round(sum(field_any.values()) / (n * len(ALL_DESC)), 4),
+                field_ratio_doc=round(sum(field_doc.values()) / nf, 4),
+                field_ratio_family=round(sum(field_fam.values()) / nf, 4),
+                field_ratio_any=round(sum(field_any.values()) / nf, 4),
                 field_documented_any=field_any,
                 field_ratio_key=round(sum(key_doc.values()) / (n * len(KEY_CHEM)), 4),
                 per_code=per_code)
@@ -115,7 +123,7 @@ def coverage(mat):
 
 def mass_weighted(mat, D):
     """按配方用量质量加权的来源占比 + 样本级实测锚定权重。"""
-    tot = {k: 0.0 for k in ['TDS/SDS实测', '送检组成', '公开手册', '类别典型值', '待确认']}
+    tot = {k: 0.0 for k in ['TDS/SDS实测', 'TDS族推', '送检组成', '公开手册', '类别典型值', '待确认']}
     by_sys = {}
     sample_anchor = {}
     key_cov = {c: (sum(1 for k in KEY_CHEM if mat[c]['prov'].get(k, 'typical') in DOC_SRC) / len(KEY_CHEM))
@@ -171,14 +179,16 @@ def main():
     cov_old, cov_new = coverage(mat_old), coverage(mat_new)
     mw_old, mw_new = mass_weighted(mat_old, D), mass_weighted(mat_new, D)
     out = dict(materials=len(mat_new),
-               before=dict(material=cov_old['by_material_source'], field_ratio_all=cov_old['field_ratio_all'],
+               before=dict(material=cov_old['by_material_source'], field_ratio_doc=cov_old['field_ratio_doc'],
+                           field_ratio_family=cov_old['field_ratio_family'],
                            field_ratio_any=cov_old['field_ratio_any'],
                            field_ratio_key=cov_old['field_ratio_key'],
                            key_chem_documented=cov_old['key_chem_documented'],
                            mass_share=mw_old['mass_share_by_source'],
                            mass_share_by_system=mw_old['by_system'],
                            key_chem_mass_coverage=mw_old['key_chem_mass_coverage']),
-               after=dict(material=cov_new['by_material_source'], field_ratio_all=cov_new['field_ratio_all'],
+               after=dict(material=cov_new['by_material_source'], field_ratio_doc=cov_new['field_ratio_doc'],
+                          field_ratio_family=cov_new['field_ratio_family'],
                           field_ratio_any=cov_new['field_ratio_any'],
                           field_ratio_key=cov_new['field_ratio_key'],
                           key_chem_documented=cov_new['key_chem_documented'],
@@ -198,7 +208,8 @@ def main():
     print(f'原料 {out["materials"]} 种 | TDS/SDS 覆盖 {len(out["tds_codes"])} 种')
     print('主导来源（原料数）    前:', cov_old['by_material_source'], ' 后:', cov_new['by_material_source'])
     print(f'字段级有据可依占比（含送检组成/公开手册）：{cov_old["field_ratio_any"]:.3f} → {cov_new["field_ratio_any"]:.3f}')
-    print(f'字段级 TDS/SDS 实测占比：{cov_old["field_ratio_all"]:.3f} → {cov_new["field_ratio_all"]:.3f} | '
+    print(f'字段级 TDS/SDS 实测占比：{cov_old["field_ratio_doc"]:.3f} → {cov_new["field_ratio_doc"]:.3f} | '
+          f'家族推断 {cov_new["field_ratio_family"]:.3f} | '
           f'关键化学量 {cov_old["field_ratio_key"]:.3f} → {cov_new["field_ratio_key"]:.3f}')
     print('用量加权来源占比 前:', mw_old['mass_share_by_source'])
     print('                后:', mw_new['mass_share_by_source'])
