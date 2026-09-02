@@ -363,7 +363,7 @@ for arm in ARMS:
         if SAMPLES[s]['体系'] != '环氧酚醛':
             continue
         try:
-            d, _ = mech_features(SAMPLES[s], mat, PROC.get(s, {}).get('烘烤温度'),
+            d, _ = mech_features(SAMPLES[s]['组分'], mat, PROC.get(s, {}).get('烘烤温度'),
                                  PROC.get(s, {}).get('烘烤时间'), oh_source='ohv', nan_no_bake=True)
         except Exception:
             continue
