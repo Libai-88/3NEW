@@ -21,10 +21,11 @@ from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 from materials import CONT_DESC, ALIAS
 import handbook_fixes as HF
+import tds_sds
 
 D = pickle.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'merged_data.pkl'),'rb'))
 full_mat = D['full_mat']; new_mats = D['new_mats']
-all_samples = D['all_samples']; desc_df = D['desc_df']
+all_samples = D['all_samples']
 
 # 占位描述符修正：同物合并 + 名称自证固含 + 公开手册常数 + 族内一致
 _fix_changed, _MERGE, _PENDING = HF.apply(full_mat)
@@ -32,11 +33,92 @@ for _c in _MERGE:
     full_mat.pop(_c, None)
 new_mats = [c for c in new_mats if c not in _MERGE]
 
+# 供应商 TDS/SDS 实测层（最高优先级，逐字段替换类别典型值并登记来源）
+_tds_changed, _TDS_PROV = tds_sds.apply(full_mat)
+
+
 def clean_code(code):
     """原始代码 → 清洗代码（应用ALIAS映射与同物合并表）"""
     key = str(code).strip()
     key = ALIAS.get(key, key)
     return _MERGE.get(key, key)
+
+
+def _num(v):
+    v = _amount(v)
+    return 0.0 if v is None else v
+
+
+def _desc_row(comp, mat):
+    """配方级描述符（线性口径），与 scripts/descriptors.py 同式，但用当前原料库重算。"""
+    items, total = [], 0.0
+    for code, amt in comp.items():
+        a = _amount(amt)
+        if a is None or a <= 0:
+            continue
+        key = clean_code(code)
+        if key not in mat:
+            continue
+        items.append((key, a))
+        total += a
+    if total <= 0 or not items:
+        return None
+    w = [a / total for _, a in items]
+    roles = ['树脂', '固化剂', '溶剂', '助剂', '颜料']
+    rt = ['环氧', '酚醛', '聚酯', '乙烯基', '丙烯酸', '聚氨酯', '氨基', '其他']
+    role_frac = {r: 0.0 for r in roles}
+    rtype_frac = {r: 0.0 for r in rt}
+    for (k, _), wi in zip(items, w):
+        role_frac[mat[k]['role']] += wi
+        rtype_frac[mat[k]['rtype']] += wi
+    d = {}
+    for dk in CONT_DESC:
+        d['w_' + dk] = sum(_num(mat[k][dk]) * wi for (k, _), wi in zip(items, w))
+    for fg in ['fg_epoxy', 'fg_oh', 'fg_cooh', 'fg_ester', 'fg_amine', 'fg_amide', 'fg_arom', 'fg_ether']:
+        d['s_' + fg] = sum(_num(mat[k][fg]) * a for k, a in items)
+    resin = sum(a for (k, a) in items if mat[k]['role'] == '树脂')
+    xlink = sum(a for (k, a) in items if mat[k]['role'] == '固化剂')
+    ep = d['s_fg_epoxy']
+    oh = d['s_fg_oh']
+    d.update(resin_frac=role_frac['树脂'], xlink_frac=role_frac['固化剂'], solvent_frac=role_frac['溶剂'],
+             additive_frac=role_frac['助剂'], pigment_frac=role_frac['颜料'],
+             xlink_resin_ratio=xlink / resin if resin > 0 else 0,
+             oh_epoxy_eq_ratio=oh / ep if ep > 0 else 0,
+             epoxy_eq_100g=ep, oh_eq_100g=oh, n_components=len(items), avg_func=d['w_func'])
+    for r in rt:
+        d['rtype_' + r] = rtype_frac[r]
+    return d
+
+
+def _amount(v):
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if np.isnan(f) else f
+
+
+DESC_ORDER = (['resin_frac', 'xlink_frac', 'solvent_frac', 'additive_frac', 'pigment_frac',
+               'xlink_resin_ratio', 'oh_epoxy_eq_ratio', 'epoxy_eq_100g', 'oh_eq_100g',
+               'n_components', 'avg_func',
+               'rtype_环氧', 'rtype_酚醛', 'rtype_聚酯', 'rtype_乙烯基', 'rtype_丙烯酸',
+               'rtype_聚氨酯', 'rtype_氨基', 'rtype_其他']
+              + ['w_' + k for k in CONT_DESC]
+              + ['s_' + k for k in ['fg_epoxy', 'fg_oh', 'fg_cooh', 'fg_ester', 'fg_amine',
+                                    'fg_amide', 'fg_arom', 'fg_ether']])
+
+# 配方级描述符：按当前原料库（含 TDS/SDS 实测层）重算，保证与原料主数据一致
+_rows, _ids = [], []
+for s in all_samples:
+    d = _desc_row(s['组分'], full_mat)
+    if d is None:
+        continue
+    _rows.append([d.get(k, 0.0) for k in DESC_ORDER])
+    _ids.append(s['样本ID'])
+desc_df = pd.DataFrame(_rows, columns=DESC_ORDER)
+desc_df.insert(0, '样本ID', _ids)
+desc_df.insert(1, '体系', [next(x['体系'] for x in all_samples if x['样本ID'] == i) for i in _ids])
+
 
 # ---------- 样式 ----------
 HDR_FILL = PatternFill('solid', fgColor='1F2937')
@@ -83,14 +165,15 @@ lines = [
     ('一、数据构成', '本文件将现有全部数据源整理并填入终极版模板 v3：'),
     ('', '  · 有标签样本 371 条（环氧酚醛 345 + 聚酯金黄 26，含 T弯/MEK/水煮 实测值）'),
     ('', '  · 无标签配方 115 条（环氧配比方案 112 + 聚酯金黄 3）'),
-    ('', '  · 原料主数据 80 种（同物异名已合并；无 TDS 的占位行按公开手册值/名称自证修正）'),
+    ('', '  · 原料主数据 80 种（同物异名已合并；49 种描述符已按供应商 TDS/SDS 逐字段实测替换）'),
     ('', ''),
     ('二、数据来源', '1. 配料测试数据汇总V1.xlsx（有标签）'),
     ('', '2. AI研发26.7.22配比方案.xlsx（无标签-环氧）'),
     ('', '3. 聚酯金黄-AI(1).xlsx（无标签-聚酯）'),
     ('', '4. AI项目原料送检、部分实验数据.xlsx（原料信息）'),
+    ('', '5. TDS-SDS/ 供应商技术数据表与安全说明书 291 份（原料描述符实测值与档案出处）'),
     ('', ''),
-    ('三、工作表说明', '1. 原料主数据：80 种原料描述符；「描述符状态」区分 已计算/手册值/专有估算/待确认。'),
+    ('三、工作表说明', '1. 原料主数据：80 种原料描述符；「描述符状态」区分 TDS实测/送检组成/手册值/类别典型值/待确认，「数据来源」标注档案实测字段数，「备注」给出牌号对应依据与档案文件名。'),
     ('', '2. 配方明细：486 样本的配方长表（每行=一个组分）。'),
     ('', '3. 性能结果：实测样本（含聚酯金黄 26 条补全）的性能数据。'),
     ('', '4. 工艺条件：烘烤温度/时间等。'),
@@ -105,7 +188,7 @@ lines = [
          '评估须按体系拆分报告，避免常量层抬高综合准确率。'),
     ('', '3. 聚酯金黄 29 条配方无烘烤工艺记录，「配方级机理特征」表中固化类特征'
          '（烘烤依赖）对该部分样本留空，表示不可知而非零固化。'),
-    ('', '4. 标为「待确认」的原料（DMP、209-基料）需 SDS 核定；「专有估算」行需 TDS 替换。'),
+    ('', '4. 标为「类别典型值」的原料按 TDS-SDS/ 补档清单逐条替换（牌号未识别的树脂集中在聚酯金黄与配比方案）；「待确认」行（DMP、209-基料）需 SDS 核定。'),
     ('', '5. 用配套 Windows 工作台可一键完成建模与预测。'),
 ]
 r = 1
@@ -175,22 +258,36 @@ names = {'IR190':'9型环氧树脂36%固含','IR809':'环氧树脂55%固含','�
          'IA8000':'丙烯酸树脂','10%AC040':'AC040 10%'}
 for code, d in full_mat.items():
     is_new = code in new_mats
+    pv = d.get('prov') or {}
+    n_tds = sum(1 for k in CONT_DESC if pv.get(k) in ('tds', 'sds', 'formula', 'tds_carry', 'name'))
+    n_any = sum(1 for k in CONT_DESC if pv.get(k) in
+                ('tds', 'sds', 'formula', 'tds_carry', 'name', 'compo', 'handbook'))
+    src = d.get('数据来源', '')
     if code in _PENDING:
         status = '待确认'
-    elif d.get('数据来源', '').startswith('handbook:'):
+    elif src.startswith('TDS'):
+        status = 'TDS实测'
+    elif src.startswith('handbook'):
         status = '手册值'
+    elif src == 'COMPO_RULES':
+        status = '送检组成'
     else:
-        status = '专有估算' if is_new else '已计算'
+        status = '专有估算' if is_new else '类别典型值'
     row = [code, names.get(code, code), '多体系', d['role'], d['rtype'], '', status]
     for k in ['NV','density','Mw','EEW','AV','OHV','amine','func','Tg','bp','fp','dD','dP','dH','pol','evap',
               'C','H','O','N','S','Cl','fg_epoxy','fg_oh','fg_cooh','fg_ester','fg_amine','fg_amide','fg_arom','fg_ether','wax','pig']:
         row.append(d[k])
     row.append('估算' if is_new else '类别典型值/文件信息')
     row.append('')
-    # 已送检原料：用组成经验补全的实证来源/备注
-    if d.get('数据来源'):
-        row[-2] = d['数据来源']
-        row[-1] = d.get('备注', '')
+    if src:
+        row[-2] = src
+        row[-1] = d.get('TDS依据') or d.get('备注', '')
+    if n_tds:
+        row[-2] = f'{src}({n_tds}/{len(CONT_DESC)}字段档案实测)'
+    elif n_any:
+        row[-2] = f'{src or "类别典型值"}({n_any}/{len(CONT_DESC)}字段有据可依)'
+    if d.get('TDS档案'):
+        row[-1] = f"{row[-1]}｜档案：{'、'.join(d['TDS档案'][:3])}"
     ws.append(row)
 n_mat = len(full_mat)
 style_table(ws, 1, len(mat_headers), n_mat, kpi_cols=[8,11,12,13,14,15,30,31,32,33,34,35,36,37])
@@ -335,8 +432,8 @@ dict_rows = [
     ('加权固含等','配方级描述符','数值','-','按质量分数加权的原料描述符','36.5'),
     ('环氧基密度等','配方级描述符','数值','mol/100g','每100g配方的官能团摩尔数','0.05'),
     ('烘烤温度/时间','工艺条件','数值','℃/min','固化工艺参数','205/17'),
-    ('描述符状态','原料主数据','枚举','-','已计算/手册值/专有估算/待确认；手册值=公开物性定值，待确认=需SDS或TDS核定','手册值'),
-    ('数据来源','原料主数据','文本','-','COMPO_RULES=送检组成覆盖；handbook:*=公开手册或名称自证修正；空=类别典型值估算','handbook:F3-公开手册'),
+    ('描述符状态','原料主数据','枚举','-','TDS实测=供应商技术档案逐字段替换；送检组成/手册值/类别典型值/待确认 可信度依次降低','TDS实测'),
+    ('数据来源','原料主数据','文本','-','TDS/SDS(n/32字段档案实测)=供应商技术档案覆盖；COMPO_RULES=送检组成；handbook:*=公开手册或名称自证；空=类别典型值估算','TDS/SDS(11/32字段档案实测)'),
     # ---- 机理特征（配方级机理特征表）----
     ('solids_frac / binder_solids_frac','配方级机理特征','数值','-','全配方固体分与结合料（树脂+固化剂）固体分质量分数','0.36'),
     ('eq_epoxy / eq_oh_phenol / eq_oh_ali / eq_oh_all','配方级机理特征','数值','mol/100g','环氧当量、酚羟基、脂肪族羟基、全部活性氢当量浓度；羟基按羟值标准换算（OHV/56.1）','0.034'),
@@ -364,6 +461,10 @@ ws.freeze_panes = 'A2'
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '合并版数据集.xlsx')
 wb.save(out)
 print('saved:', out)
-print(f"原料 {n_mat} 种（手册值 {len(_fix_changed)} / 待确认 {len(_PENDING)} / 同物合并 {len(_MERGE)}）, "
+_st = {}
+for _c, _m in full_mat.items():
+    _src = _m.get('数据来源') or '类别典型值'
+    _st[_src] = _st.get(_src, 0) + 1
+print(f"原料 {n_mat} 种（来源分布 {_st} / 待确认 {len(_PENDING)} / 同物合并 {len(_MERGE)}）, "
       f"配方明细 {det_rows} 行, 性能 {perf_rows} 行, 描述符 {n_fd} 样本×{len(desc_df.columns)-2} 特征, "
       f"机理特征 {n_mech} 样本×{len(MECH_FEATURES)} 特征")

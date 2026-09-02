@@ -118,6 +118,12 @@ if _pth not in _sys.path:
 from compo_rules import apply as _compo_apply
 _compo_apply(MAT)
 
+# 供应商 TDS/SDS 实测层（优先级最高）：把「类别典型值」替换为该到货牌号的实测值。
+# 关闭：环境变量 MATERIALS_TDS=0（A/B 对照实验用）
+if _os.environ.get('MATERIALS_TDS', '1') != '0':
+    from tds_sds import apply as _tds_apply
+    _tds_apply(MAT)
+
 ALIAS = {
     'tf100': 'TF100', 'IR809 55%': 'IR809', 'IR809': 'IR809',
     'IR809 55%(PR309 稀释55%)': 'IR809',
