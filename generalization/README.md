@@ -13,7 +13,9 @@
     ├── experiment-rerun-report.html   # 实验复跑与修复验证（含分层水煮）
     ├── mechanism-optimization-report.html  # 机理特征工程与评估口径修正报告
     ├── generalization-hardening-report.html # 泛化压力测试与评估加固（实验 T）
+    ├── 模板工作原理与泛化原理.md     # 非化学人员友好的模板工作原理/跨体系泛化说明
     ├── assets/                        # 报告图表（A~I 共 9 张实验图）
+    │   └── 数据转换与泛化原理流程图.svg  # 数据转换链路 + 泛化原理（SVG 流程图）
     ├── _shared/                       # 报告依赖的字体与 JS 库（离线可用）
     ├── 通用型数据集模板.xlsx          # 通用型模板（8 工作表，5,185 条公式）
     ├── 终极版数据集模板.xlsx          # 终极版模板 v3（多体系配置驱动 + 数据验证）

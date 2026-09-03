@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1560" font-family="'PingFang SC','Microsoft YaHei',Arial,sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5B6472"/>
+    </marker>
+    <marker id="arrd" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#6B4FA0"/>
+    </marker>
+  </defs>
+
+  <!-- ================= 标题 ================= -->
+  <text x="560" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#1F2937">涂料配方-性能 数据集模板：工作原理与泛化原理</text>
+  <text x="560" y="66" text-anchor="middle" font-size="14" fill="#6B7280">同一套模板把"真实配方与测试结果"整理成一模一样的数字表 → 让模型能学习化学规律，并用在不同体系上</text>
+
+  <!-- ================= 左：数据转换链（模板工作原理） ================= -->
+  <text x="300" y="100" text-anchor="middle" font-size="16" font-weight="bold" fill="#1F2937">① 数据转换链路（模板工作原理）</text>
+
+  <!-- A0 数据源 -->
+  <rect x="90" y="118" width="420" height="130" rx="12" fill="#FFF3E0" stroke="#ED8936" stroke-width="1.5"/>
+  <text x="300" y="146" text-anchor="middle" font-size="16" font-weight="bold" fill="#B45F06">数据源输入（真实数据）</text>
+  <text x="110" y="174" font-size="12.5" fill="#3D2B00">· 配料测试汇总V1 —— 环氧酚醛，含实测性能</text>
+  <text x="110" y="194" font-size="12.5" fill="#3D2B00">· 配比方案 / 聚酯金黄 —— 配方 + 性能</text>
+  <text x="110" y="214" font-size="12.5" fill="#3D2B00">· 原料送检 + TDS/SDS 291 份 —— 原料实测出处</text>
+  <text x="110" y="234" font-size="11.5" fill="#A0651A">一句话：把所有"真实配方 + 测试结果 + 原料实测值"放进来</text>
+
+  <line x1="300" y1="248" x2="300" y2="270" stroke="#5B6472" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- A1 原料主数据 -->
+  <rect x="90" y="276" width="420" height="196" rx="12" fill="#EAF2FF" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="300" y="302" text-anchor="middle" font-size="16" font-weight="bold" fill="#1D4ED8">原料主数据：把"原料"翻译成"一组数字（描述符）"</text>
+  <text x="110" y="330" font-size="12.5" fill="#17305E">每个原料一行，登记：角色（树脂/固化剂/溶剂/助剂/颜料）与</text>
+  <text x="110" y="350" font-size="12.5" fill="#17305E">分子描述符（固含/分子量/当量 EEW·AV·OHV/Tg/元素/官能团密度…）</text>
+  <text x="110" y="382" font-size="12.5" font-weight="bold" fill="#1D4ED8">描述符可信度从高到低：</text>
+  <text x="120" y="402" font-size="12" fill="#17305E">TDS/SDS 实测 → 送检组成 → 公开手册值 → 同族推断 → 类别典型值</text>
+  <text x="110" y="432" font-size="11.5" fill="#5B80B0">一句话：把每个原料变成一个"化学身份证"，而不是一个没含义的代号</text>
+  <text x="110" y="452" font-size="11" fill="#8AA3C8">（当量/羟值等统一到"到货状态"，否则不同人记的会差好几倍）</text>
+
+  <line x1="300" y1="472" x2="300" y2="494" stroke="#5B6472" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- A2 配方明细 -->
+  <rect x="90" y="500" width="420" height="140" rx="12" fill="#EAF2FF" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="300" y="526" text-anchor="middle" font-size="16" font-weight="bold" fill="#1D4ED8">配方明细：一份配方 = 哪些原料、各用多少</text>
+  <text x="110" y="556" font-size="12.5" fill="#17305E">一行 = “样本ID × 原料代码 × 用量(g)”，同一样本可有多行</text>
+  <text x="110" y="578" font-size="12.5" fill="#17305E">自动按原料代码去「原料主数据」取该原料的描述符</text>
+  <text x="110" y="600" font-size="12.5" fill="#17305E">并对每个描述符算"贡献" = 用量 × 该原料的描述符</text>
+  <text x="110" y="624" font-size="11.5" fill="#5B80B0">一句话：把"配方长条"展开成一张能逐行相乘、再求和的表格</text>
+
+  <line x1="300" y1="640" x2="300" y2="662" stroke="#5B6472" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- A3 配方级描述符 -->
+  <rect x="90" y="668" width="420" height="140" rx="12" fill="#E7F8EE" stroke="#22A06B" stroke-width="1.5"/>
+  <text x="300" y="694" text-anchor="middle" font-size="16" font-weight="bold" fill="#15803D">配方级描述符：把整套配方合成"一行特征"</text>
+  <text x="110" y="724" font-size="12.5" fill="#0F3A28">· 质量分数加权 w_*：树脂占比、固化剂占比、加权Tg/固含…</text>
+  <text x="110" y="746" font-size="12.5" fill="#0F3A28">· 官能团密度 s_*：每100g配方含多少 环氧基/羟基/羧基…</text>
+  <text x="110" y="778" font-size="11.5" fill="#3D7A5A">一句话：把十个调料的配方，浓缩成"这一锅的总体味道"的数字</text>
+
+  <line x1="300" y1="808" x2="300" y2="830" stroke="#5B6472" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- A4 机理特征 -->
+  <rect x="90" y="836" width="420" height="176" rx="12" fill="#E7F8EE" stroke="#22A06B" stroke-width="1.5"/>
+  <text x="300" y="862" text-anchor="middle" font-size="16" font-weight="bold" fill="#15803D">配方级机理特征：用化学规律算出的"配方性格"</text>
+  <text x="110" y="892" font-size="12.5" fill="#0F3A28">· 当量 / 计量比：环氧对羟基的配比是否接近反应完美点</text>
+  <text x="110" y="913" font-size="12.5" fill="#0F3A28">· 交联密度 νe：固化后网络的致密程度（越密通常越脆）</text>
+  <text x="110" y="934" font-size="12.5" fill="#0F3A28">· Fox 共混 Tg、固化度与烘烤工艺的裕量、Hansen 相容性、PVC 颜料浓度</text>
+  <text x="110" y="964" font-size="11.5" fill="#3D7A5A">一句话：线性平均会丢掉关键信息，这里用化学公式补回来</text>
+  <text x="110" y="988" font-size="11" fill="#6AA984">（无烘烤记录的样本，固化类特征记"不可知NaN"，不强行算成0）</text>
+
+  <line x1="300" y1="1012" x2="300" y2="1034" stroke="#5B6472" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- A5 建模输入 -->
+  <rect x="90" y="1040" width="420" height="130" rx="12" fill="#EFEAF9" stroke="#6B4FA0" stroke-width="1.5"/>
+  <text x="300" y="1066" text-anchor="middle" font-size="16" font-weight="bold" fill="#5B3BA8">建模输入：直接喂给模型的"一张表"</text>
+  <text x="110" y="1096" font-size="12.5" fill="#2B2048">一行 = 一个样本；列 = 描述符 + 机理特征 + 目标值 + 标签状态</text>
+  <text x="110" y="1118" font-size="12.5" fill="#2B2048">目标值按「体系配置」生成：环氧酚醛 → T弯/MEK/水煮</text>
+  <text x="110" y="1148" font-size="11.5" fill="#7B6BA8">一句话：这是存在于线模型用的"标准答卷"，机器只看数字</text>
+
+  <!-- ================= 右：泛化原理 ================= -->
+  <text x="810" y="100" text-anchor="middle" font-size="16" font-weight="bold" fill="#1F2937">② 泛化原理（模型怎么用到不同体系上）</text>
+
+  <rect x="620" y="118" width="380" height="150" rx="12" fill="#FDF2D8" stroke="#D9A62C" stroke-width="1.5"/>
+  <text x="810" y="146" text-anchor="middle" font-size="15" font-weight="bold" fill="#8A6D1A">体系配置驱动：结构永远够用</text>
+  <text x="640" y="174" font-size="12.5" fill="#4D3D12">每个体系在「体系配置」登记自己的目标属性</text>
+  <text x="640" y="194" font-size="12.5" fill="#4D3D12">（T弯/MEK/水煮/附着力/硬度…）+ 单位 + 方向 + 数据类型</text>
+  <text x="640" y="220" font-size="12" fill="#A08A3C">新增体系 = 加一行配置，模板结构完全不用改</text>
+  <text x="640" y="242" font-size="11.5" fill="#B39C4F">关键：配方永远按"原料描述符"而不是"原料代号"来建模</text>
+
+  <rect x="620" y="300" width="380" height="130" rx="12" fill="#FEF2F2" stroke="#E05B5B" stroke-width="1.5"/>
+  <text x="810" y="326" text-anchor="middle" font-size="15" font-weight="bold" fill="#B23B3B">为什么能跨体系 / 跨新原料</text>
+  <text x="640" y="356" font-size="12.5" fill="#5C1E1E">不加进训练集的新原料，也能用它的描述符换算成</text>
+  <text x="640" y="378" font-size="12.5" fill="#5C1E1E">同一套数字，模型照样能用（不像代号那样查无此人）</text>
+  <text x="640" y="406" font-size="12" fill="#C77B7B">但要注意：这只是"可表达"，不是"保证准"——</text>
+  <text x="640" y="424" font-size="12" fill="#C77B7B">真实准度要靠下面的验证来确认</text>
+
+  <rect x="620" y="462" width="380" height="150" rx="12" fill="#EAF2FF" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="810" y="488" text-anchor="middle" font-size="15" font-weight="bold" fill="#1D4ED8">怎样训练才可信（诚实评估）</text>
+  <text x="640" y="518" font-size="12.5" fill="#17305E">· 留一体系外验证(LOSO)：拿走整个体系，看还剩多少可用</text>
+  <text x="640" y="540" font-size="12.5" fill="#17305E">· 按体系分组(GroupKFold)：同一体系的样本不会同时横跨训练/测试</text>
+  <text x="640" y="562" font-size="12.5" fill="#17305E">· 特征选择在"折叠内"做 + 公共噪声掩码，防止偷偷用到答案</text>
+  <text x="640" y="590" font-size="12" fill="#5B80B0">否则报出来的数字会虚高，上线就翻车</text>
+
+  <rect x="620" y="644" width="380" height="170" rx="12" fill="#E7F8EE" stroke="#22A06B" stroke-width="1.5"/>
+  <text x="810" y="670" text-anchor="middle" font-size="15" font-weight="bold" fill="#15803D">标签不够就"闭环补标签"</text>
+  <text x="640" y="700" font-size="12.5" fill="#0F3A28">· 高置信(带不确定度小) → 自动伪标签，回填重训</text>
+  <text x="640" y="722" font-size="12.5" fill="#0F3A28">· 中置信 → 推荐测试（主动学习挑最有价值的去做实验）</text>
+  <text x="640" y="744" font-size="12.5" fill="#0F3A28">· 低置信 → 人工复核；迁移学习(源域→目标域微调)实测最优</text>
+  <text x="640" y="778" font-size="11.5" fill="#3D7A5A">循环：预测 → 推荐测试 → 回填实测 → 重训 → 再看跨体系准度</text>
+
+  <!-- ================= 底部：训练与目标 ================= -->
+  <line x1="300" y1="1170" x2="630" y2="1350" stroke="#5B6472" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="620" y="1290" width="380" height="120" rx="12" fill="#EFEAF9" stroke="#6B4FA0" stroke-width="1.5"/>
+  <text x="810" y="1320" text-anchor="middle" font-size="15" font-weight="bold" fill="#5B3BA8">模型训练与验证</text>
+  <text x="640" y="1350" font-size="12.5" fill="#2B2048">拿「建模输入」的实测样本训练（每个体系目标独立建模）</text>
+  <text x="640" y="1372" font-size="12.5" fill="#2B2048">在无标签体系上预测 + 给出不确定度</text>
+  <text x="640" y="1394" font-size="12" fill="#7B6BA8">指标必须按体系拆分报告，综合值只作参考</text>
+
+  <text x="560" y="1460" text-anchor="middle" font-size="12.5" fill="#8A94A6">发布结果：跨体系可行的子集 + 明确标注不可靠的体系 → 指导"下一轮做哪些实验"</text>
+</svg>
