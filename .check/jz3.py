@@ -15,7 +15,7 @@ for s in D['all_samples']:
     tail = s['样本ID'].split('聚酯金黄-', 1)[1]
     merged[tail[:tail.rfind('-')]].append(s)
 
-NON_ING = re.compile(r'^(合计|粘度|固含|外观|粉末|佳仪滑度|50KG|T弯|MEK|电腐蚀|附着力|硬度|刮伤|BOX|百分比|500克|序号|备注|121|126|度系数|PVC|产品|工艺|基材|单涂|双涂|低价)')
+NON_ING = re.compile(r'^(合计|粘度|固含|外观|粉末|佳仪滑度|50KG|T弯|MEK|电腐蚀|附着力|硬度|刮伤|BOX|百分比|500克|序号|备注|121|126|度系数|PVC|产品|工艺|基材|单涂|双涂|低价)$')
 
 
 def isnum(v):
