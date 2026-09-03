@@ -36,13 +36,17 @@ def build_library(use_tds):
     import handbook_fixes as HF
     import tds_sds
     D = pickle.load(open(os.path.join(HERE, '..', 'data', 'merged_data.pkl'), 'rb'))
-    mat = {k: copy.deepcopy(v) for k, v in D['full_mat'].items()}   # 已含送检组成层
+    import materials
+    from DataPrepWorkbench import est_material
+    used = sorted({c for s in D['all_samples'] for c in s['组分']})
+    mat = {c: copy.deepcopy(materials.MAT[c]) if c in materials.MAT else est_material(c)
+           for c in used}
+    for c, m in mat.items():
+        m.setdefault('数据来源', '类别典型值(工作台估算登记)')
     _ch, merge, _pd = HF.apply(mat)
     for c in merge:
         mat.pop(c, None)
     tds_sds.apply(mat, use_tds=use_tds)
-    for c in merge:
-        D['new_mats'] = [x for x in D['new_mats'] if x != c]
     return mat, D
 
 

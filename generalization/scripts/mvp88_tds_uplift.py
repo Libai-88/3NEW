@@ -39,6 +39,7 @@ from mech_desc import mech_features, MECH_FEATURES        # noqa: E402
 from CoatingModelWorkbench import (load_dataset, ENH_FEATURES, explicit_ratios,   # noqa: E402
                                    smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors,
                                    _bake_feat)
+from DataPrepWorkbench import est_material
 
 S_IN = int(sys.argv[sys.argv.index('--s1') + 1]) if '--s1' in sys.argv else 20
 S_EX = int(sys.argv[sys.argv.index('--s2') + 1]) if '--s2' in sys.argv else 8
@@ -65,7 +66,11 @@ def build_library(arm):
     import pickle
     cfg = ARM_CFG[arm]
     D = pickle.load(open(os.path.join(HERE, '..', 'data', 'merged_data.pkl'), 'rb'))
-    mat = {k: copy.deepcopy(v) for k, v in D['full_mat'].items()}
+    used = sorted({c for s in D['all_samples'] for c in s['组分']})
+    mat = {c: copy.deepcopy(_M.MAT[c]) if c in _M.MAT else est_material(c)
+           for c in used}
+    for c, m in mat.items():
+        m.setdefault('数据来源', '类别典型值(工作台估算登记)')
     _ch, merge, _pd = HF.apply(mat)
     for c in merge:
         mat.pop(c, None)
