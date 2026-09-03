@@ -1045,7 +1045,17 @@ DICT_ROWS = [
     ('方向', '体系配置', '枚举', '-', '越低越好/越高越好，决定建模目标方向', '越低越好'),
     ('数据类型', '体系配置', '枚举', '-', '连续/计数/等级/分类，决定回归或分类建模', '连续'),
     ('原料代码', '原料主数据/配方明细', '文本', '-', '原料唯一编码，与原料主数据一致；未登记代码标红', 'IR190'),
-    ('用量', '配方明细', '数值', 'g', '该组分在样本中的质量份（原始记录口径）', '66.0'),
+def as_date(v):
+    """'YYYY-MM-DD' → 日期单元格（避免日期以文本形式存储）。"""
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})$', txt(v))
+    if not m:
+        return v or None
+    import datetime
+    return datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+
+
+# 上方占位：as_date 供性能结果「测试日期」写入真日期
+
     ('角色', '原料主数据/配方明细', '枚举', '-', '树脂/固化剂/溶剂/助剂/颜料', '树脂'),
     ('树脂类型', '原料主数据/配方明细', '枚举', '-', '环氧/酚醛/聚酯/乙烯基/丙烯酸/聚氨酯/氨基/其他', '环氧'),
     ('SMILES', '原料主数据', '文本', '-', '结构明确的原料给出结构式，支撑分子描述符计算', 'CCCCO'),
@@ -1060,16 +1070,43 @@ DICT_ROWS = [
     ('树脂占比等', '配方级描述符', '数值', '-', '各角色质量分数；固化剂/树脂比 = 固化剂占比/树脂占比', '0.88'),
     ('加权固含等', '配方级描述符', '数值', '-', 'Σ(用量×描述符)/总用量', '40.2'),
     ('环氧基密度等', '配方级描述符', '数值', 'mol/100g', 'Σ(用量×官能团密度)/100', '0.035'),
-    ('测试值', '性能结果/建模输入', '数值', '-', '性能测试结果数值（原始写法见备注）', '17.415'),
+    ('测试值', '性能结果', '数值', '-', '性能测试结果数值（原始写法见备注）', '17.415'),
+    ('T弯/MEK/水煮实测', '建模输入', '数值', '-', '一行=一个样本，三个目标实测值并列；无实测记为空', '17.415'),
+    ('T弯/MEK/水煮预测', '建模输入', '数值', '-', '工作台回写的预测值与对应不确定性（录入时为空）', '18.6'),
     ('标签状态', '性能结果/建模输入', '枚举', '-', '实测/伪标签/推荐测试/人工复核；无对应测试值即无标签', '实测'),
     ('标签来源', '性能结果', '文本', '-', '实验室/模型预测/主动学习/人工复核', '实验室'),
     ('不确定性', '性能结果/建模输入', '数值', '-', '模型预测的树间标准差（实测记录留空）', '0.42'),
     ('测试条件', '性能结果', '文本', '-', '烘烤制度；同配方多线棒/多批次时在此标注', '205℃/17min｜10#线棒'),
-    ('测试日期', '性能结果', '文本', 'YYYY-MM-DD', '该条性能记录的测试日期', '2025-08-14'),
+    ('测试日期', '性能结果', '日期', 'yyyy-mm-dd', '该条性能记录的测试日期，按日期格式存储', '2025-08-14'),
     ('烘烤温度/时间', '工艺条件', '数值', '℃/min', '固化工艺参数；原始记录未给出的按 NaN 处理', '205/17'),
     ('基材/膜厚/批次/线棒号', '工艺条件', '文本', '-', '试涂基材、膜厚、配料批次、涂布线棒', '镀铬铁/8.14/14#'),
     ('备注', '性能结果/工艺条件', '文本', '-', '性能原始写法（区间、截尾、腐蚀档位等）与工艺原文', '原始记录 >15mm腐蚀'),
 ]
+
+
+PKL = os.path.join(HERE, '..', 'data', 'merged_data.pkl')
+
+
+def write_payload(samples, mat, path):
+    """同步 data/merged_data.pkl（合并版数据集与实验脚本共用的中间产物，沿用既有 schema）。"""
+    all_samples, lab, unlab = [], [], []
+    for s in samples.values():
+        prim = {}
+        for pr in s['性能']:
+            if not isinstance(pr['测试值'], str):
+                prim.setdefault(pr['目标'], pr['测试值'])
+        row = {'样本ID': s['样本ID'], '体系': s['体系'], '系列': s['系列'], '组分': dict(s['组分']),
+               '烘烤温度': s['工艺']['烘烤温度'], '烘烤时间': s['工艺']['烘烤时间'],
+               'T弯': prim.get('T弯'), 'MEK': prim.get('MEK擦拭'), '水煮': prim.get('水煮等级'),
+               '标签状态': '实测' if prim else '无标签', '来源': f"{s['体系']}·{s['工艺']['批次']}"}
+        all_samples.append(row)
+        (lab if prim else unlab).append(row)
+    import pandas as pd
+    D = {'full_mat': mat, 'new_mats': [c for c in mat if c not in MAT],
+         'lab_samples': lab, 'unlab_samples': unlab, 'all_samples': all_samples,
+         'desc_df': pd.DataFrame([{'样本ID': r['样本ID'], '体系': r['体系']} for r in all_samples])}
+    pickle.dump(D, open(path, 'wb'))
+    return len(all_samples), len(lab), len(unlab)
 
 
 def write_workbook(samples, mat, used, out_path, stats):
@@ -1144,8 +1181,7 @@ def write_workbook(samples, mat, used, out_path, stats):
         '三、数据来源',
         '1. 7.26配料测试汇总：R01–R7 系列 106 个配方，烘烤 200℃/10min。',
         '2. 8.6配料测试汇总（含换算明细、测试原始数据）：C7 系列 8 个配方，烘烤 205℃/17min。',
-        '3. 8.14配料测试汇总（含测试原始数据）：D1–D7/C4–C6 系列 175 个配方，与 8.6 同一批配方，',
-        '   以更晚的 8.14 为准（补齐了 8.6 尚未出结果的水煮等级），T弯取两份记录中更细的写法。',
+        '3. 8.14配料测试汇总（含测试原始数据）：D1–D7/C4–C6 系列 175 个配方，与 8.6 同一批配方，以更晚的 8.14 为准（补齐 8.6 尚未出结果的水煮等级），T弯取两份记录中更细的写法。',
         '4. 3NX240913-6C--AI研发26.7.22配比方案：环氧配比方案体系配方，性能项取 T弯G 冲击-5%硫酸铜'
         '腐蚀判定；该表的水煮/杀菌项为定性记录（泛白、合格、-），未定级。',
         '5. 聚酯金黄-AI(1)：聚酯金黄体系配方，性能项取 T弯 / MEK / 121℃*60min 水煮。',
@@ -1158,13 +1194,12 @@ def write_workbook(samples, mat, used, out_path, stats):
         '4. 性能结果：每条测试记录一行，含测试条件/测试日期，原始写法记在备注。',
         '5. 工艺条件：烘烤温度/时间/膜厚/基材/批次/线棒号。',
         '6. 配方级描述符：由配方明细 + 原料主数据聚合的样本级特征矩阵。',
-        '7. 建模输入：宽表，一行 = 一个样本×目标，特征 + 目标值 + 标签状态。',
+        '7. 建模输入：宽表，一行 = 一个样本，三个目标的实测值与特征并列（预测值/不确定性由工作台回写）。',
         '8. 数据字典：全部字段的口径说明。',
         '',
         '五、录入与口径规则',
         '1. 原料代码必须与「原料主数据」一致且唯一；样本ID全局唯一；未登记的原料代码在配方明细中标红。',
-        '2. 用量统一为质量份(g)，按原始记录口径；矩阵表的百分比/1000KG/500克等折算列不另立样本，',
-        '   其上的性能记录归入对应配方。',
+        '2. 用量统一为质量份(g)，按原始记录口径；矩阵表的百分比/1000KG/500克等折算列不另立样本，其上的性能记录归入对应配方。',
         '3. 同一配方的 10#/14#/18# 线棒试涂：组成分一条样本，各线棒的测试值分别成行，'
         '在「测试条件」标注线棒号。',
         '4. 性能取值沿用实验室口径：字段带 MEK/T弯/水煮 即视为同一种测试；T弯G 冲击-5%硫酸铜腐蚀判定'
@@ -1214,11 +1249,11 @@ def write_workbook(samples, mat, used, out_path, stats):
         smi = SMILES.get(code, '')
         status = d.get('描述符状态') or ('已计算' if smi else '专有估算')
         row = [code, mat_name(code), systems_of(used.get(code, {'通用'})), d['role'], d['rtype'],
-               smi, status]
+               smi or None, status]
         for k in CONT_DESC:
             v = num(d.get(k))
-            row.append(round(v, 6) if v is not None else '')
-        note = ''
+            row.append(round(v, 6) if v is not None else None)
+        note = None
         if d.get('TDS档案'):
             note = f"TDS档案:{d['TDS档案']}" if isinstance(d['TDS档案'], str) else 'TDS/SDS 档案实测'
         elif d.get('prov'):
@@ -1272,7 +1307,8 @@ def write_workbook(samples, mat, used, out_path, stats):
             if isinstance(v, str):
                 continue
             ws.append([s['样本ID'], s['体系'], p['目标'], round(float(v), 4), UNIT[p['目标']],
-                       p['标签状态'], p['标签来源'], '', p['测试条件'], p['测试日期'], p.get('备注', '')])
+                       p['标签状态'], p['标签来源'], None, p['测试条件'], as_date(p['测试日期']),
+                       p.get('备注') or None])
             n_perf += 1
     style_table(ws, len(PERF_HEADERS), n_perf, kpi_cols=[4], status_col=6)
     for i, w in enumerate([16, 12, 12, 10, 8, 10, 10, 10, 26, 12, 46], 1):
@@ -1289,8 +1325,8 @@ def write_workbook(samples, mat, used, out_path, stats):
     ws.append(PROC_HEADERS)
     for s in samples.values():
         p = s['工艺']
-        ws.append([s['样本ID'], s['体系'], p['烘烤温度'], p['烘烤时间'], p.get('膜厚') or '',
-                   p.get('基材') or '', p['批次'], p.get('线棒号') or '', p.get('备注') or ''])
+        ws.append([s['样本ID'], s['体系'], p['烘烤温度'], p['烘烤时间'], p.get('膜厚') or None,
+                   p.get('基材') or None, p['批次'], p.get('线棒号') or None, p.get('备注') or None])
     style_table(ws, len(PROC_HEADERS), len(samples))
     for i, w in enumerate([16, 12, 12, 12, 10, 10, 12, 9, 60], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
@@ -1317,9 +1353,12 @@ def write_workbook(samples, mat, used, out_path, stats):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = 'A2'
 
-    # 建模输入
+    # 建模输入（宽表：一行 = 一个样本，三个目标的实测/预测/不确定性并列）
     ws = wb.create_sheet('建模输入')
-    mi_headers = ['样本ID', '系列', '体系', '标签状态', '目标属性', '目标值', '预测值', '不确定性'] + fd_headers[3:]
+    short = {'T弯': 'T弯', 'MEK擦拭': 'MEK', '水煮等级': '水煮'}
+    mi_headers = (['样本ID', '系列', '体系', '标签状态']
+                  + [f'{short[t]}实测' for t in TARGETS] + [f'{short[t]}预测' for t in TARGETS]
+                  + [f'{short[t]}不确定性' for t in TARGETS] + fd_headers[3:])
     ws.append(mi_headers)
     n_mi = 0
     for s in samples.values():
@@ -1327,19 +1366,18 @@ def write_workbook(samples, mat, used, out_path, stats):
         if d is None:
             continue
         have = {}
-        for p in s['性能']:                        # 同目标多条记录（不同线棒/批次）取首条（14#线棒）
-            if not isinstance(p['测试值'], str):
-                have.setdefault(p['目标'], p['测试值'])
-        for t in TARGETS:
-            v = have.get(t)
-            ws.append([s['样本ID'], s['系列'], s['体系'], '实测' if v is not None else '无标签', t,
-                       round(float(v), 4) if v is not None else '', '', ''] +
-                      [round(x, 6) if isinstance(x, float) else x for x in d.values()])
-            n_mi += 1
-    style_table(ws, len(mi_headers), n_mi, kpi_cols=[6], status_col=4)
-    for i, w in enumerate([16, 12, 12, 10, 12, 10, 10, 10] + [11] * (len(mi_headers) - 8), 1):
+        for pr in s['性能']:                       # 同目标多条记录（不同线棒/批次）取首条（14#线棒）
+            if not isinstance(pr['测试值'], str):
+                have.setdefault(pr['目标'], pr['测试值'])
+        ws.append([s['样本ID'], s['系列'], s['体系'], '实测' if have else '无标签']
+                  + [round(float(have[t]), 4) if t in have else None for t in TARGETS]
+                  + [None] * (len(TARGETS) * 2)   # 预测值/不确定性由工作台回写
+                  + [round(x, 6) if isinstance(x, float) else x for x in d.values()])
+        n_mi += 1
+    style_table(ws, len(mi_headers), n_mi, kpi_cols=[5, 6, 7], status_col=4)
+    for i, w in enumerate([16, 12, 12, 10] + [11] * (len(mi_headers) - 4), 1):
         ws.column_dimensions[get_column_letter(i)].width = w
-    ws.freeze_panes = 'A2'
+    ws.freeze_panes = 'E2'
 
     # 数据字典
     ws = wb.create_sheet('数据字典')
@@ -1351,6 +1389,31 @@ def write_workbook(samples, mat, used, out_path, stats):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = 'A2'
 
+    # 统一显示格式：文本列按文本、计数列整数、数值列最多 6 位小数（不截断有效位）
+    TEXT_COLS = {'原料主数据': [1, 2, 3, 4, 5, 6, 7, 40, 41],
+                 '配方明细': [1, 2, 3, 4, 6, 7],
+                 '性能结果': [1, 2, 3, 5, 6, 7, 9, 11],
+                 '工艺条件': [1, 2, 6, 7, 8, 9],
+                 '配方级描述符': [1, 2, 3],
+                 '建模输入': [1, 2, 3, 4],
+                 '体系配置': [1, 2, 3, 4, 5, 6, 7, 8],
+                 '数据字典': [1, 2, 3, 4, 5, 6]}
+    INT_COLS = {'配方级描述符': [5], '建模输入': [13]}
+    for name, tcols in TEXT_COLS.items():
+        sh = wb[name]
+        for r in range(2, sh.max_row + 1):
+            for c in range(1, sh.max_column + 1):
+                cell = sh.cell(r, c)
+                if cell.value is None:
+                    continue
+                if c in tcols:
+                    cell.number_format = '@'
+                elif c in INT_COLS.get(name, []):
+                    cell.number_format = '0'
+                elif name == '性能结果' and c == 10:
+                    cell.number_format = 'yyyy-mm-dd'
+                else:
+                    cell.number_format = '0.######'
     wb.save(out_path)
     return {'配方明细': det_rows, '性能结果': n_perf, '工艺条件': len(samples),
             '配方级描述符': len(samples), '建模输入': n_mi, '原料主数据': n_mat}
@@ -1436,6 +1499,8 @@ def main():
     written = write_workbook(samples, mat, used, OUT, stats)
     print('已写出', OUT)
     print('  各表行数:', written)
+    ns, nl, nu = write_payload(samples, mat, PKL)
+    print(f'已写出 {os.path.relpath(PKL, ROOT)}（样本 {ns}｜实测 {nl}｜无标签 {nu}）')
 
 
 if __name__ == '__main__':
