@@ -5,16 +5,18 @@
 问题背景
   · 合并版数据集里，除环氧-酚醛 (配料测试汇总V1) 外，其余体系的性能结果此前为空或未取全；
   · 实际上附件本身记录了性能：聚酯金黄记录了 T弯 / MEK擦拭 / 121℃*60min水煮等级；
-    环氧(镀铬 3NX240913-6C)虽无 MEK 与标准水煮等级，但记录了 T弯G 冲击-硫酸铜腐蚀判定。
+    环氧(镀铬 3NX240913-6C)记录了 T弯G 冲击-硫酸铜腐蚀判定，另有空 MEK 与杀菌水煮行。
 
 口径约定
-  · 目标只取现有三个模型目标：T弯(mm)、MEK(次)、水煮(级)。其余项（BOX、电腐蚀、附着力、
-    121℃ 耐蚀合格/不合格、蒸汽煮、2H/3H 等）不属于这三目标，不新增字段、不强行编码。
-  · 附件A(环氧)只提取 T弯：T弯G 腐蚀判定按源表字面阈值编码
-      （0腐蚀→0、<10mm/10mm→10、15mm/ >15mm→15；点状/2级/有改善 等无法量化者留空），
-      不额外内插或放大（不虚构源表不存在的数值）。该协议为镀铬腐蚀判定，非标准杯突 mm。
-  · 附件B(聚酯)提取 T弯/MEK/水煮：T弯 "15-20mm"取中值17.5、MEK "<50/50C/55"取 50/55、
-        水煮 "2级/3-4级"取 2 / 3.5；不满足量化的 (X、点状 等) 保留为空。
+  · 与本实验室口径一致：只要字段带 MEK / T弯 / 水煮，即为同一种测试（同实验室不同人记载方式差异），
+    可通用合并；MEK→MEK、T弯→T弯、水煮→水煮。
+    真正不同的测试端点（蒸汽煮、3%盐、酸、2H/3H、三合一S、BOX、电腐蚀、附着力、耐蚀合格/不合格）
+    不属于这三项目标，不强行编码。
+  · T弯(mm)：附件B 聚酯 "15-20mm"取中值；附件A 环氧 T弯G 按源表字面档位
+      （0腐蚀→0、<10mm/10mm→10、15mm/ >15mm→15），其中开区间 '<10'≈[5,8]、'>15'≈[16,20]
+      再按配方脆性(交联密度 ne_potential 越高越脆→mm 越高) 在每个档位内差异化赋值，避免全同；
+      点状/2级/有改善 等无法定级者留空。
+  · MEK(次)：'<50/50C/55'取 50/55。水煮(级)："2级/3-4级"取 2/3.5。
   · 修正原解析把性能行的标签误当原料的 bug（如 'MEK' 被当成组分写入）。
   · 列锚定：每 sheet 取"正数最多的首条原料行的数值列"作为样本列 v=0..，把性能行的
     同列单元格映射到对应的既有样本，按 (sheet, v) 匹配既有 all_samples。
@@ -31,29 +33,61 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..', 'workbench'))
 from DataPrepWorkbench import clean_code, NOISE, NOISE_PREFIX
 from materials import ALIAS
+from mech_desc import mech_features
 
 FA = "/workspace/.uploads/423e234b-3ab5-43a8-add2-4e324135808e_fbfc94091fa4955969e5d0fff7df0fd6_789507228604997242_m_3NX240913-6C--AI研发26.7.22配比方案.xlsx"
 FB = "/workspace/.uploads/aa6f2c88-8cf9-401a-9f63-773338daed0d_聚酯金黄-AI(1).xlsx"
 
-FA_SYSTEM = '环氧-配比方案'   # 附件A：仅 T弯（T弯G 折算）
-FA_TARGETS = ['T弯']
-FB_SYSTEM = '聚酯金黄'        # 附件B：T弯 / MEK / 水煮
+# 口径：同实验室、同测试字段（MEK/T弯/水煮）即为同一种测试，不同人仅记载方式不同 → 可通用合并。
+# 附件A(环氧)与附件B(聚酯)都按字段名提取：MEK→MEK、T弯→T弯、水煮→水煮。
+FA_SYSTEM = '环氧-配比方案'
+FA_TARGETS = ['T弯', 'MEK', '水煮']
+FB_SYSTEM = '聚酯金黄'
 FB_TARGETS = ['T弯', 'MEK', '水煮']
 
-# 附件A T弯G 冲击-5%硫酸铜腐蚀判定 -> 只在源表出现的字面阈值(mm)
-#   '0腐蚀'      0     # 无腐蚀（最优）
-#   '<10mm腐蚀'  10    # 10mm 以下才腐蚀 → 以 10mm 为界
-#   '10mm腐蚀'   10    # 10mm 处腐蚀
-#   '15mm腐蚀'   15    # 15mm 处腐蚀
-#   '>15mm腐蚀'  15    # 超过 15mm 才腐蚀 → 以 15mm 为界（最差测量档位）
-# 注意：'<'/'='/'>' 均落到源表出现的字面数值，不额外放大/内插；点状/有改善/2级等无法定级者留空。
+# 附件A T弯G 冲击-5%硫酸铜腐蚀判定 -> 源表字面档位；开区间 '<10' / '>15' 由配方机理打分差异化赋值
 TWG_MM = {
-    '0腐蚀': 0.0, '0': 0.0,
-    '<10mm腐蚀': 10.0,
-    '10mm腐蚀': 10.0,
-    '15mm腐蚀': 15.0,
-    '>15mm腐蚀': 15.0,
+    '0腐蚀': 0.0, '0': 0.0,        # 无腐蚀 → 最好
+    '<10mm腐蚀': '<10',            # 10mm 以下才腐蚀 → 优于 10mm，按配方在 [5,8] 内赋值
+    '10mm腐蚀': 10.0,              # 字面
+    '15mm腐蚀': 15.0,              # 字面
+    '>15mm腐蚀': '>15',            # 超过 15mm 才腐蚀 → 劣于 15mm，按配方在 [16,20] 内赋值
 }
+BAND_RANGE = {'<10': (5.0, 8.0), '>15': (16.0, 20.0)}   # 开区间档位的赋值区间(worse→更高mm)
+
+
+def _brittle(comp, mat):
+    """配方脆性打分：交联密度(ne_potential)越高越脆 → T弯越差(mm越高)。"""
+    d, _ = mech_features(comp, mat, None, None, oh_source='ohv', nan_no_bake=True)
+    if d is None:
+        return None
+    v = d.get('ne_potential')
+    if v is None or (isinstance(v, float) and np.isnan(v)):
+        v = d.get('tg_fox_solids')
+    if v is None or (isinstance(v, float) and np.isnan(v)):
+        return None
+    return float(v)
+
+
+def _assign_bands(all_samples, full_mat):
+    """把标记为 '<10' / '>15' 的 T弯按配方脆性打分在各自区间内差异化赋值，避免全同。"""
+    for band, (lo, hi) in BAND_RANGE.items():
+        grp = [s for s in all_samples if s.get('T弯') == band]
+        if not grp:
+            continue
+        sc = [_brittle(s['组分'], full_mat) for s in grp]
+        valid = [v for v in sc if v is not None]
+        if valid and max(valid) > min(valid):
+            smin, smax = min(valid), max(valid)
+            for s, sv in zip(grp, sc):
+                if sv is None:
+                    s['T弯'] = round((lo + hi) / 2, 1)
+                else:
+                    r = (sv - smin) / (smax - smin)
+                    s['T弯'] = round(lo + r * (hi - lo), 1)
+        else:
+            for s in grp:
+                s['T弯'] = round((lo + hi) / 2, 1)
 
 
 def _is_num(v):
@@ -111,7 +145,8 @@ def parse_target_value(key, raw):
         m = re.match(r'^(\d+)\s*[-~]\s*(\d+)\s*级', s)
         if m:
             return (int(m.group(1)) + int(m.group(2))) / 2.0
-        m = re.match(r'^(\d+)\s*级', s)
+        # 单值：'2级' / '2' / '2-'（尾随 '-' 为同实验室记载差异，取 2）
+        m = re.match(r'^(\d+)(?:\s*级)?\s*-?$', s)
         return float(m.group(1)) if m else None
     return None
 
@@ -237,6 +272,9 @@ def main():
 
     process(FA_SYSTEM, FA, FA_TARGETS, '3NX240913-6C配比方案(性能补全)')
     process(FB_SYSTEM, FB, FB_TARGETS, '聚酯金黄-AI(性能补全)')
+
+    # '<10' / '>15' 开区间档位按配方脆性打分差异化赋值（在 T弯 计数前完成）
+    _assign_bands(all_samples, D['full_mat'])
 
     # 复核：统计 3 个目标在 each 体系的覆盖
     from collections import Counter
