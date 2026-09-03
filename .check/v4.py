@@ -1,28 +1,36 @@
 # -*- coding: utf-8 -*-
-import pickle, collections
-import numpy as np
+"""列出三个配料测试汇总文件的所有 sheet + 各 sheet 内 样本ID 前缀分布"""
+import openpyxl, collections
 
-D = pickle.load(open('/workspace/generalization/data/merged_data.pkl', 'rb'))
-ms = {s['样本ID']: s for s in D['all_samples']}
-for sid in ['D2-3', 'D2-4', 'D4-1', 'D5-1', 'D6-1', 'C4-1', 'D7-4', 'D7-21', 'D7-26', 'D7-32', 'D7-1', 'D1-5', 'D3-10', 'R01-01']:
-    s = ms[sid]
-    print(sid, 'T=', s['T弯'], 'M=', s['MEK'], 'W=', s['水煮'], '| 来源', s['来源'], '| 标签', s['标签状态'])
-print()
-lab = collections.Counter()
-for s in D['all_samples']:
-    if s['体系'] != '环氧酚醛':
-        continue
-    for t in ('T弯', 'MEK', '水煮'):
-        v = s[t]
-        if v is None:
-            lab[(t, 'None')] += 1
-        elif isinstance(v, float) and np.isnan(v):
-            lab[(t, 'NaN')] += 1
-        else:
-            lab[(t, 'val')] += 1
-print('环氧酚醛 345 条目标覆盖:', dict(lab))
-# 非整数值检查（应无 4.333 之类？）
-for t in ('T弯', 'MEK', '水煮'):
-    vals = [s[t] for s in D['all_samples'] if s['体系'] == '环氧酚醛' and isinstance(s[t], float)]
-    frac = [v for v in vals if abs(v - round(v)) > 1e-9]
-    print(t, '值带小数(非整数)条数:', len(frac), sorted(set(round(v, 4) for v in frac))[:12])
+U = '/workspace/.uploads/'
+FILES = {
+    '7.26': U + 'cb7988e8-dc53-4617-9e33-71aa45000fcf_7.26配料测试汇总.xlsx',
+    '8.6': U + 'a7f5f7b0-69c6-4226-bd58-0d02c928336b_8.6配料测试汇总.xlsx',
+    '8.14': U + '05ddeff0-8071-4cc7-8e93-5df104d14162_8.14配料测试汇总.xlsx',
+}
+for k, f in FILES.items():
+    wb = openpyxl.load_workbook(f, data_only=True)
+    print('=' * 70)
+    print(k, wb.sheetnames)
+    for ws in wb.worksheets:
+        pids = []
+        for r in range(2, ws.max_row + 1):
+            v = ws.cell(r, 2).value
+            if v is not None and not isinstance(v, (int, float)):
+                pids.append(str(v).strip())
+            elif isinstance(v, (int, float)) and not isinstance(v, bool):
+                pids.append(str(v))
+        pref = collections.Counter()
+        for p in pids:
+            m = p
+            pref[m.split('-')[0]] += 1
+        # 也扫描第1列
+        pids1 = []
+        for r in range(2, ws.max_row + 1):
+            v = ws.cell(r, 1).value
+            if v is not None:
+                pids1.append(str(v).strip())
+        pref1 = collections.Counter(p.split('-')[0] for p in pids1)
+        print('   sheet=%-16s 行数=%-4d 前缀(col2)=%s' % (ws.title, ws.max_row, dict(pref)))
+        if pref1 and any(x != 'None' for x in pids1):
+            print('     前缀(col1)=%s' % dict(pref1))
