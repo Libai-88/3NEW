@@ -7,9 +7,9 @@
 | 阶段 | 目录 | 内容 |
 | --- | --- | --- |
 | 第一阶段 · 优化与泛化验证 | `report/` `code/` `models/` `data/` | 特征工程、数据增强、模型集成、诚实复盘（本 README 主体） |
-| 第二阶段 · 跨体系数据集（终极版模板 + 合并版数据集） | [`generalization/`](generalization/README.md) | 跨体系通用描述符、终极版数据集模板、合并版数据集、配套 Windows 工作台、最终验证（T弯 R²≈0.79 / MEK 未截尾 R²≈0.50 / 水煮 acc≈0.80） |
+| 第二阶段 · 跨体系数据集（终极版模板 + 合并版数据集） | [`generalization/`](generalization/README.md) | 跨体系通用描述符、终极版数据集模板、合并版数据集、配套 Windows 工作台、最终验证（T弯 R²≈0.79 / MEK 未截尾 R²≈0.51 / 水煮 acc≈0.77） |
 
-> 第二阶段交付：终极版模板 + 自动化工作台 + 合并版数据集。数据集已按 5 份原始实验记录（见 [`generalization/raw/`](generalization/raw/)）重新录入：456 条配方样本 = 环氧酚醛 345 + 环氧配比方案 92 + 聚酯金黄 19，三个体系均含实测标签（环氧配比方案自矩阵表 T弯G 判定补齐）。三个体系均可表达进同一特征空间，但跨体系泛化仍为开放缺口，详见 [`generalization/README.md`](generalization/README.md) 与「数据局限」一节。
+> 第二阶段交付：终极版模板 + 自动化工作台 + 合并版数据集。数据集已按 5 份原始实验记录重录（原始文件见 [`generalization/raw/`](generalization/raw/)）：456 条配方样本，环氧酚醛 345、环氧配比方案 92、聚酯金黄 19，三体系均含实测标签（其中环氧配比方案 T弯 63 条由矩阵表 T弯G 判定补齐）。三体系共用同一特征空间，跨体系泛化仍为开放缺口，详见 [`generalization/README.md`](generalization/README.md) 与「数据局限」一节。
 
 ## 目标
 
