@@ -35,8 +35,8 @@ from DataPrepWorkbench import clean_code, NOISE, NOISE_PREFIX
 from materials import ALIAS
 from mech_desc import mech_features
 
-FA = "/workspace/.uploads/423e234b-3ab5-43a8-add2-4e324135808e_fbfc94091fa4955969e5d0fff7df0fd6_789507228604997242_m_3NX240913-6C--AI研发26.7.22配比方案.xlsx"
-FB = "/workspace/.uploads/aa6f2c88-8cf9-401a-9f63-773338daed0d_聚酯金黄-AI(1).xlsx"
+FA = os.path.join(HERE, '..', 'raw', 'AI研发26.7.22配比方案.xlsx')
+FB = os.path.join(HERE, '..', 'raw', '聚酯金黄-AI(1).xlsx')
 
 # 口径：同实验室、同测试字段（MEK/T弯/水煮）即为同一种测试，不同人仅记载方式不同 → 可通用合并。
 # 附件A(环氧)与附件B(聚酯)都按字段名提取：MEK→MEK、T弯→T弯、水煮→水煮。
