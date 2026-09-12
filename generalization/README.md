@@ -14,6 +14,7 @@
     ├── mechanism-optimization-report.html  # 机理特征工程与评估口径修正报告
     ├── generalization-hardening-report.html # 泛化压力测试与评估加固（实验 T）
     ├── 模板工作原理与泛化原理.md     # 非化学人员友好的模板工作原理/跨体系泛化说明
+    ├── 达标分类验证实验V.md         # 实验 V：把"预测是多少"转为"预测能不能"（达标二值判定，方案+结果）
     ├── assets/                        # 报告图表（A~I 共 9 张实验图）
     │   └── 数据转换与泛化原理流程图.svg  # 数据转换链路 + 泛化原理（SVG 流程图）
     ├── _shared/                       # 报告依赖的字体与 JS 库（离线可用）
@@ -62,6 +63,10 @@
         ├── mvp85_final_ab.py          # 实验 S：20 种子终验（MEK 两阶段 + 水煮 r 分箱分层）
         ├── mvp86_generalization_hardening.py  # 实验 T：折叠内选择修复 + GroupKFold/LSO 泛化压力测试 + 阈值诚实化
         ├── mvp87_budget_honest.py     # 实验 T-2：诚实口径下的选择预算复核（60/72/84/96）
+        ├── mvp88_tds_uplift.py        # 实验 U：TDS/SDS 实测层增益对照（A0旧库/A1口径统一/A2档案库/A3当量优先）
+        ├── tds_coverage_audit.py      # TDS/SDS 覆盖度审计（实测锚定 vs 典型值填充占比）
+        ├── mvp90_qualify_classification.py # 实验 V：达标分类验证（"是多少"→"能不能"，CLF vs REG→THR，水煮口径修正，LSO）
+        ├── mvp90_result.json          # 实验 V 结果（20 种子域内 + LSO 逐系列明细）
         ├── extend_smiles.py           # 为结构明确的小分子补 SMILES 并计算分子描述符
         ├── stratified_water.py        # 水煮分层建模（按体系分而治之，权重汇总）
         ├── run_pipeline.py            # 通用型流水线 CLI（模板→描述符→建模CSV→标签补充）
@@ -98,6 +103,7 @@
 | 数据困境专项（实验 E/S/A，见 `data_dilemma/`） | 外部公开数据 OOD 1887× 不兼容（合并 ΔR²=-0.009）；半监督伪标签回放 ΔR²=+0.153（w=0.5）；主动学习 30 样本仅 +0.008——瓶颈在测量噪声，重复测量 4 次取均值可将 R² 上限 0.791→0.948                          |
 | 机理特征工程与泛化加固（实验 P\~T）               | 诚实协议（折叠内选择+公共掩码）下：机理列使 **MEK 未截尾 R² +0.033、水煮 AUC +0.015**；T弯与基线统计持平（keep=60 两者 0.7432；keep=72 单调先验 +0.0018，p=0.015）。序回归/r 分层/体系加权/工艺缺失指示/每系列调阈值均无公平增益，全部不采纳 |
 | 跨系列外推（实验 T：LSO/GroupKFold）         | GroupKFold-by-系列 R²≈0.13（带系列编码）\~0.17（不带）——域内 0.74 的大部分依赖系列批次信息；**留一系列外推不可用**（加权 R²≈−0.30，最好系列 +0.64、最差 −6.5）——新系列必须 1\~2 个试点实测回入系列编码，工作台输出带「新系列/越界特征」警告             |
+| 达标分类验证（实验 V，见 `达标分类验证实验V.md`） | 把"预测是多少"转为"预测能不能"：域内 AUC 0.80\~0.90（T15 0.903 / T20 0.870 / M70 0.869 / M100 0.877 / 水煮 0.805）；**直接分类不优于回归转阈值**（REG→THR 四任务全胜 +0.011\~0.032）；**LSO 外推从 R²≈−0.30 不可用转为 AUC 0.72\~0.88 大体可用**；MEK 右截尾在 >70/>100 口径下自动豁免（43 条恰 300 为确定正例）；水煮按新口径（1-2 级达标、≥3 不合格）检出率 0.679→0.835 且 AUC 无损 |
 | 最终验证（合并版数据集，20 种子）                 | 见下方「最终验证」                                                                                                                                           |
 
 ### 最终验证（当前诚实协议：折叠内选择 + 公共掩码，实验 T）
@@ -277,6 +283,7 @@ python scripts/mvp86_generalization_hardening.py --s1 20 --s2 8  # 实验 T：�
 python scripts/mvp87_budget_honest.py --seeds 20                 # 实验 T-2：诚实口径选择预算复核
 python scripts/mvp88_tds_uplift.py --s1 20 --s2 8 --arms A0,A1,A2,A3  # 实验 U：TDS/SDS 实测层增益对照（A0旧库/A1口径统一/A2档案库/A3当量优先）
 python scripts/tds_coverage_audit.py    # TDS/SDS 覆盖度审计：实测锚定 vs 典型值填充占比
+python scripts/mvp90_qualify_classification.py --s1 20 --s2 5  # 实验 V：达标分类验证（"是多少"→"能不能"，CLF vs REG→THR，水煮口径修正，LSO；结果写 scripts/mvp90_result.json）
 python scripts/stratified_water.py       # 水煮分层建模（按体系分而治之，20 种子）
 python scripts/reingest_template.py   # 从 raw/ 下 5 份原始文件重录并重生成终极版模板（--report 仅打印解析审计）
 python scripts/build_merged_excel.py     # 重新生成合并版数据集（读取 ../data/merged_data.pkl 中间产物）
@@ -295,4 +302,3 @@ python data_dilemma/scripts/active_learning_exp.py    # 实验 A：主动学习�
 * 根目录 `report/coating-model-optimization.html`、`code/`、`models/`、`data/` 为**第一阶段**（优化与泛化验证，清洁同工艺池 200℃/10min）。
 
 * 本目录为**第二阶段**（跨体系泛化方案 + 终极模板 + 自动化工作台 + 合并版数据集），面向更多涂料体系，二者互补不重复。
-
