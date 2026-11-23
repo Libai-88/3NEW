@@ -1,0 +1,32 @@
+name: merge-to-main
+
+on:
+  push:
+    branches:
+      - refactor/repo-restructure
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    if: github.repository == 'Libai-88/3NEW' && contains(github.event.head_commit.message, '[merge-to-main]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout refactor branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/repo-restructure
+          fetch-depth: 0
+
+      - name: Remove temporary workflow and push main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -f .github/workflows/merge-to-main.yml .github/trigger-merge.txt
+          git add -A
+          git commit -m 'chore: remove temporary merge workflow [skip ci]'
+          git push origin HEAD:refactor/repo-restructure
+          git push origin HEAD:main
