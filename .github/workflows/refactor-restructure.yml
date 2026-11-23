@@ -1,0 +1,56 @@
+name: repo-restructure
+
+on:
+  push:
+    branches:
+      - refactor/repo-restructure
+
+permissions:
+  contents: write
+
+jobs:
+  restructure:
+    if: github.repository == 'Libai-88/3NEW' && contains(github.event.head_commit.message, '[run-restructure]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout refactor branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/repo-restructure
+          fetch-depth: 0
+
+      - name: Apply repository restructure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 1. Apply the prepared content patch to the old paths.
+          git apply --check --whitespace=nowarn .github/restructure.patch
+          git apply --whitespace=nowarn .github/restructure.patch
+
+          # 2. Remove the Phase 1 tree. Root README stays (patch already updated it).
+          git rm -r -q code data models report || true
+
+          # 3. Remove the Web workbench and its launchers.
+          git rm -r -q generalization/workbench/webapp || true
+          git rm -q generalization/workbench/start_webapp.sh generalization/workbench/start_webapp.bat || true
+
+          # 4. Remove the old generalized README so the move cannot collide.
+          git rm -q generalization/README.md || true
+
+          # 5. Promote the remaining generalization tree to the repository root.
+          shopt -s dotglob nullglob
+          for p in generalization/*; do
+            git mv "$p" .
+          done
+          rmdir generalization 2>/dev/null || true
+
+          # 6. Remove the temporary workflow, patch, and trigger file.
+          git rm -f .github/restructure.patch .github/workflows/refactor-restructure.yml .github/trigger.txt || true
+
+          # 7. Commit and push the final tree.
+          git add -A
+          git commit -m "refactor: promote generalization to repo root and remove web workbench [skip ci]"
+          git push origin HEAD:refactor/repo-restructure
