@@ -40,7 +40,7 @@ data_dilemma/            # 本目录：数据困境专项实验
 pip install numpy pandas openpyxl xgboost lightgbm scikit-learn scipy
 ```
 
-脚本使用**相对路径**（基于脚本所在目录定位 `../../workbench/` 与 `../../合并版数据集.xlsx`），克隆仓库后即可直接运行，无绝对路径依赖。
+脚本使用**相对路径**（基于脚本所在目录定位 `../../core/` 与 `../../合并版数据集.xlsx`），克隆仓库后即可直接运行，无绝对路径依赖。
 
 ## 复现命令
 
@@ -55,7 +55,7 @@ python scripts/semi_sup_experiment.py
 python scripts/active_learning_exp.py
 ```
 
-> 注：脚本通过 `../../workbench/CoatingModelWorkbench.py` 读取数据与构建特征，该模块依赖 `tkinter`（Windows 桌面环境自带；无头 Linux 环境需自行处理）。所有脚本固定随机种子，结果可复现。
+> 注：脚本通过 `../../core/modeling.py` 读取数据与构建特征，该模块为纯 Python 核心库，不依赖 GUI 或桌面环境。所有脚本固定随机种子，结果可复现。
 
 ## 实验要点
 

@@ -4,9 +4,9 @@ import sys, os, warnings
 warnings.filterwarnings('ignore')
 import numpy as np
 from sklearn.metrics import r2_score
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from CoatingModelWorkbench import load_dataset, ENH_FEATURES, explicit_ratios, smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors
+from modeling import load_dataset, ENH_FEATURES, explicit_ratios, smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors
 
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '合并版数据集.xlsx')
 mat_lib, samples, perf, proc = load_dataset(path)

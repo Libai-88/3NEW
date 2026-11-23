@@ -1,33 +1,24 @@
-# -*- coding: utf-8 -*-
-"""
-数据整理与特征转换工作台 (Data Prep Workbench) v1.0
-===================================================
-配套「终极版数据集模板 v3」使用的前置自动化工具，聚焦固定且机械的流程自动化，
-减少人工误差。当前阶段包含两大功能（不含模型训练）：
+"""数据整理与特征转换核心库 (Data Prep Core) v2.0
+=====================================================
+纯 Python 数据整理内核，不提供 GUI 入口，也不依赖桌面环境。
 
-  1. 数据整理：导入多种数据源（模板Excel / 配料测试汇总 / 配比方案 / 聚酯金黄 / 原料数据）
-     → 自动识别格式、清洗原料代码（别名映射+大小写统一）、重复测量取均值
-     → 导出为终极版模板结构 Excel（原料主数据/配方明细/性能结果/工艺条件）
-  2. 特征一键转换：从模板结构数据自动计算特征矩阵
-     （组分用量 + 增强描述符 + 显式比例 + SMILES 分子描述符加权聚合）
-     → 导出「配方级描述符」与「建模输入」工作表
+职责：
+  1. 识别模板 / 有标签汇总 / 配比方案 / 聚酯金黄 / 原料数据等输入格式；
+  2. 清洗原料代码、去重、组织为终极版模板结构；
+  3. 从模板结构计算配方级特征矩阵。
 
-打包：python -m PyInstaller --onefile --windowed --name 数据整理与特征转换工作台 DataPrepWorkbench.py
+由 scripts/reingest_template.py、scripts/extract_perf_labels.py 等脚本调用。
 """
 import os
 import sys
 import re
-import traceback
-import threading
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
 
 import numpy as np
 import pandas as pd
 
-# 复用工作台核心特征函数（smi_desc 内嵌，避免运行时依赖 RDKit）
+# 复用核心库特征函数（smi_desc 内嵌，避免运行时依赖 RDKit）
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from CoatingModelWorkbench import (
+from modeling import (
     load_dataset, build_sample_features, build_feature_matrix,
     enhanced_descriptors, explicit_ratios, smi_aggregate,
     canon, ENH_FEATURES, SMI_AGG_KEYS, CONT_DESC, ROLES, RTYPES, MECH_FEATURES,
@@ -414,7 +405,7 @@ def export_template(mat_lib, samples, perf, proc, out_path):
     lines = [
         ('整理后涂料配方-性能数据集（终极版模板 v3 结构）', ''),
         ('', ''),
-        ('一、数据构成', '本文件由「数据整理与特征转换工作台」自动生成：'),
+        ('一、数据构成', '本文件由「数据整理与特征转换核心库」自动生成：'),
         ('', f'  · 原料主数据 {len(mat_lib)} 种'),
         ('', f'  · 配方样本 {len(samples)} 个'),
         ('', f'  · 性能记录 {sum(len(v) for v in perf.values())} 条'),
@@ -594,151 +585,3 @@ def export_features(mat_lib, samples, perf, proc, out_path):
 
     wb.save(out_path)
     return out_path, X.shape
-
-
-# ---------- GUI ----------
-class DataPrepApp:
-    def __init__(self, root):
-        self.root = root
-        root.title('数据整理与特征转换工作台 v1.0')
-        root.geometry('980x680')
-        root.minsize(820, 560)
-
-        self.files = []
-        self.mat_lib = None
-        self.samples = None
-        self.perf = None
-        self.proc = None
-
-        nb = ttk.Notebook(root)
-        nb.pack(fill='both', expand=True, padx=8, pady=8)
-
-        # ===== Tab1 数据整理 =====
-        tab1 = ttk.Frame(nb)
-        nb.add(tab1, text='数据整理')
-        top1 = ttk.Frame(tab1); top1.pack(fill='x', padx=8, pady=8)
-        ttk.Label(top1, text='数据源文件（支持：模板Excel / 配料测试汇总 / 配比方案 / 聚酯金黄 / 原料数据）').pack(anchor='w')
-        btns1 = ttk.Frame(tab1); btns1.pack(fill='x', padx=8)
-        ttk.Button(btns1, text='添加文件', command=self.add_files).pack(side='left', padx=4)
-        ttk.Button(btns1, text='移除选中', command=self.remove_selected).pack(side='left', padx=4)
-        ttk.Button(btns1, text='清空', command=self.clear_files).pack(side='left', padx=4)
-        ttk.Button(btns1, text='一键整理并导出模板', command=self.organize).pack(side='right', padx=4)
-        self.file_list = tk.Listbox(tab1, height=7)
-        self.file_list.pack(fill='x', padx=8, pady=8)
-        self.log1 = scrolledtext.ScrolledText(tab1, height=16, state='disabled')
-        self.log1.pack(fill='both', expand=True, padx=8, pady=8)
-
-        # ===== Tab2 特征一键转换 =====
-        tab2 = ttk.Frame(nb)
-        nb.add(tab2, text='特征一键转换')
-        top2 = ttk.Frame(tab2); top2.pack(fill='x', padx=8, pady=8)
-        ttk.Label(top2, text='数据文件（终极版模板结构 Excel，可先用「数据整理」生成）').pack(anchor='w')
-        btns2 = ttk.Frame(tab2); btns2.pack(fill='x', padx=8)
-        ttk.Button(btns2, text='选择数据文件', command=self.load_data_file).pack(side='left', padx=4)
-        ttk.Button(btns2, text='一键计算特征并导出', command=self.convert).pack(side='right', padx=4)
-        self.data_lbl = ttk.Label(tab2, text='未加载数据文件')
-        self.data_lbl.pack(anchor='w', padx=8, pady=4)
-        self.log2 = scrolledtext.ScrolledText(tab2, height=20, state='disabled')
-        self.log2.pack(fill='both', expand=True, padx=8, pady=8)
-
-    def log(self, box, text):
-        box.configure(state='normal')
-        box.insert('end', text + '\n')
-        box.see('end')
-        box.configure(state='disabled')
-        self.root.update_idletasks()
-
-    # ---- Tab1 ----
-    def add_files(self):
-        paths = filedialog.askopenfilenames(title='选择数据源文件', filetypes=[('Excel文件', '*.xlsx'), ('所有文件', '*.*')])
-        for p in paths:
-            if p not in self.files:
-                self.files.append(p)
-                self.file_list.insert('end', os.path.basename(p))
-
-    def remove_selected(self):
-        sel = self.file_list.curselection()
-        for i in reversed(sel):
-            self.files.pop(i)
-            self.file_list.delete(i)
-
-    def clear_files(self):
-        self.files = []
-        self.file_list.delete(0, 'end')
-
-    def organize(self):
-        if not self.files:
-            messagebox.showwarning('提示', '请先添加数据源文件')
-            return
-        self.log1.delete('1.0', 'end')
-        threading.Thread(target=self._organize_worker, daemon=True).start()
-
-    def _organize_worker(self):
-        try:
-            self.log(self.log1, '开始整理数据...')
-            mat_lib, samples, perf, proc, report = organize_files(self.files)
-            self.mat_lib, self.samples, self.perf, self.proc = mat_lib, samples, perf, proc
-            for line in report:
-                self.log(self.log1, line)
-            n_lab = sum(1 for s in samples.values() if s.get('标签状态') == '实测')
-            n_unlab = len(samples) - n_lab
-            self.log(self.log1, f'整理完成：原料{len(mat_lib)}种，样本{len(samples)}个（实测{n_lab}，无标签{n_unlab}），性能{sum(len(v) for v in perf.values())}条')
-            # 未登记原料检查
-            unreg = sorted(set(c for s in samples.values() for c in s['组分']) - set(mat_lib.keys()))
-            if unreg:
-                self.log(self.log1, f'警告：{len(unreg)} 种原料未在原料主数据登记：{unreg}')
-            else:
-                self.log(self.log1, '原料代码全部已登记 ✓')
-            save = filedialog.asksaveasfilename(defaultextension='.xlsx', initialfile='整理后数据集.xlsx',
-                                                filetypes=[('Excel文件', '*.xlsx')])
-            if save:
-                export_template(mat_lib, samples, perf, proc, save)
-                self.log(self.log1, f'已导出模板结构数据: {save}')
-        except Exception as e:
-            self.log(self.log1, '整理失败: ' + traceback.format_exc())
-            self.root.after(0, lambda: messagebox.showerror('整理失败', str(e)))
-
-    # ---- Tab2 ----
-    def load_data_file(self):
-        path = filedialog.askopenfilename(title='选择数据文件', filetypes=[('Excel文件', '*.xlsx'), ('所有文件', '*.*')])
-        if not path:
-            return
-        try:
-            self.mat_lib, self.samples, self.perf, self.proc = load_dataset(path)
-            self.data_lbl.config(text=os.path.basename(path))
-            self.log(self.log2, f'数据加载成功：原料{len(self.mat_lib)}种，样本{len(self.samples)}个')
-        except Exception as e:
-            messagebox.showerror('加载失败', str(e))
-            self.log(self.log2, '加载失败: ' + traceback.format_exc())
-
-    def convert(self):
-        if self.mat_lib is None or self.samples is None:
-            messagebox.showwarning('提示', '请先加载数据文件')
-            return
-        self.log2.delete('1.0', 'end')
-        threading.Thread(target=self._convert_worker, daemon=True).start()
-
-    def _convert_worker(self):
-        try:
-            self.log(self.log2, '开始计算特征矩阵...')
-            X, ids, series, feat_names = convert_features(self.mat_lib, self.samples, self.perf, self.proc)
-            self.log(self.log2, f'特征矩阵：{X.shape[0]} 样本 × {X.shape[1]} 特征')
-            self.log(self.log2, f'特征构成：组分用量{len([c for c in feat_names if not c.startswith(("w_","s_","r_")) and c not in ("烘烤温度","烘烤时间")])} + 增强描述符{len(ENH_FEATURES)} + 比例22 + SMILES聚合{len(SMI_AGG_KEYS)}')
-            save = filedialog.asksaveasfilename(defaultextension='.xlsx', initialfile='特征矩阵.xlsx',
-                                                filetypes=[('Excel文件', '*.xlsx')])
-            if save:
-                out, shape = export_features(self.mat_lib, self.samples, self.perf, self.proc, save)
-                self.log(self.log2, f'已导出特征矩阵: {out} ({shape[0]}×{shape[1]})')
-        except Exception as e:
-            self.log(self.log2, '特征计算失败: ' + traceback.format_exc())
-            self.root.after(0, lambda: messagebox.showerror('特征计算失败', str(e)))
-
-
-def main():
-    root = tk.Tk()
-    app = DataPrepApp(root)
-    root.mainloop()
-
-
-if __name__ == '__main__':
-    main()

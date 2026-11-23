@@ -44,16 +44,16 @@ import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..'))
-WORKBENCH = os.path.join(HERE, '..', 'workbench')
+CORE = os.path.join(HERE, '..', 'core')
 UPLOADS = os.path.join(HERE, '..', 'raw')
 OUT = os.path.join(HERE, '..', '终极版数据集模板.xlsx')
 LEGACY_PKL = os.path.join(HERE, '..', 'data', 'merged_data.pkl')
 sys.path.insert(0, HERE)
-sys.path.insert(0, WORKBENCH)
+sys.path.insert(0, CORE)
 
 from materials import MAT, ALIAS, CONT_DESC                                    # noqa: E402
 from compo_rules import COMPO                                                   # noqa: E402
-from DataPrepWorkbench import est_material                                     # noqa: E402
+from data_prep import est_material                                     # noqa: E402
 import handbook_fixes as HF                                                    # noqa: E402
 import tds_sds                                                                 # noqa: E402
 from extract_perf_labels import classify, parse_target_value, _assign_bands    # noqa: E402
@@ -996,7 +996,7 @@ def build_materials(samples):
     for c in sorted(used):
         d = dict(MAT[c]) if c in MAT else est_material(c)
         if '数据来源' not in d:
-            d['数据来源'] = '类别典型值(工作台估算登记)'
+            d['数据来源'] = '类别典型值(核心库估算登记)'
         if c in SELF_EVIDENT:                    # 代码名已指明类别与到货状态
             d.update(SELF_EVIDENT[c])
             d['数据来源'] = 'handbook:名称自证'
@@ -1020,7 +1020,7 @@ def build_materials(samples):
             used2[c].add(s['体系'])
     for c in sorted(set(used2) - set(full)):
         full[c] = est_material(c)
-        full[c]['数据来源'] = '类别典型值(工作台估算登记)'
+        full[c]['数据来源'] = '类别典型值(核心库估算登记)'
     return full, used2, pending
 
 
@@ -1128,7 +1128,7 @@ DICT_ROWS = [
     ('环氧基密度等', '配方级描述符', '数值', 'mol/100g', 'Σ(用量×官能团密度)/100', '0.035'),
     ('测试值', '性能结果', '数值', '-', '性能测试结果数值（原始写法见备注）', '17.415'),
     ('T弯/MEK/水煮实测', '建模输入', '数值', '-', '一行=一个样本，三个目标实测值并列；无实测记为空', '17.415'),
-    ('T弯/MEK/水煮预测', '建模输入', '数值', '-', '工作台回写的预测值与对应不确定性（录入时为空）', '18.6'),
+    ('T弯/MEK/水煮预测', '建模输入', '数值', '-', '核心库回写的预测值与对应不确定性（录入时为空）', '18.6'),
     ('标签状态', '性能结果/建模输入', '枚举', '-', '实测/伪标签/推荐测试/人工复核；无对应测试值即无标签', '实测'),
     ('标签来源', '性能结果', '文本', '-', '实验室/模型预测/主动学习/人工复核', '实验室'),
     ('不确定性', '性能结果/建模输入', '数值', '-', '模型预测的树间标准差（实测记录留空）', '0.42'),
@@ -1250,7 +1250,7 @@ def write_workbook(samples, mat, used, out_path, stats):
         '4. 性能结果：每条测试记录一行，含测试条件/测试日期，原始写法记在备注。',
         '5. 工艺条件：烘烤温度/时间/膜厚/基材/批次/线棒号。',
         '6. 配方级描述符：由配方明细 + 原料主数据聚合的样本级特征矩阵。',
-        '7. 建模输入：宽表，一行 = 一个样本，三个目标的实测值与特征并列（预测值/不确定性由工作台回写）。',
+        '7. 建模输入：宽表，一行 = 一个样本，三个目标的实测值与特征并列（预测值/不确定性由核心库回写）。',
         '8. 数据字典：全部字段的口径说明。',
         '',
         '五、录入与口径规则',
@@ -1313,7 +1313,7 @@ def write_workbook(samples, mat, used, out_path, stats):
         if d.get('TDS档案'):
             note = f"TDS档案:{d['TDS档案']}" if isinstance(d['TDS档案'], str) else 'TDS/SDS 档案实测'
         elif d.get('prov'):
-            note = '描述符出处见工作台 tds_sds/compo_rules'
+            note = '描述符出处见核心库 tds_sds/compo_rules'
         row += [d.get('数据来源', '类别典型值'), note]
         ws.append(row)
     n_mat = len(codes)
@@ -1427,7 +1427,7 @@ def write_workbook(samples, mat, used, out_path, stats):
                 have.setdefault(pr['目标'], pr['测试值'])
         ws.append([s['样本ID'], s['系列'], s['体系'], '实测' if have else '无标签']
                   + [round(float(have[t]), 4) if t in have else None for t in TARGETS]
-                  + [None] * (len(TARGETS) * 2)   # 预测值/不确定性由工作台回写
+                  + [None] * (len(TARGETS) * 2)   # 预测值/不确定性由核心库回写
                   + [round(x, 6) if isinstance(x, float) else x for x in d.values()])
         n_mi += 1
     style_table(ws, len(mi_headers), n_mi, kpi_cols=[5, 6, 7], status_col=4)

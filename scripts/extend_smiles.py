@@ -2,7 +2,7 @@
 """
 扩充 SMILES 分子描述符覆盖
 ==========================
-`workbench/smi_desc.py` 预存了 31 种原料的 RDKit 描述符；库内还有若干**结构明确的
+`core/smi_desc.py` 预存了 31 种原料的 RDKit 描述符；库内还有若干**结构明确的
 小分子**（溶剂、载体、单体、无机酸）没有登记，导致这些原料的分子描述符通道恒为 0。
 
 本脚本只为「结构唯一确定的纯化合物」补充 SMILES 并计算描述符，与既有 41 维键完全一致：
@@ -16,7 +16,7 @@
 import os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-WB = os.path.abspath(os.path.join(HERE, '..', 'workbench'))
+WB = os.path.abspath(os.path.join(HERE, '..', 'core'))
 sys.path.insert(0, WB)
 
 from rdkit import Chem, RDLogger

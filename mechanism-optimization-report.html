@@ -105,7 +105,7 @@
 
   <h2>二、改动一：配方级机理特征层</h2>
   <div class="card">
-    <p style="font-size:13.5px">原特征层对原料描述符做<b>质量分数线性加权</b>（<code>w_*</code>），丢失了三类化学上最关键的信息：反应当量与化学计量比、共混玻璃化转变（按 1/T 加权而非线性）、工艺-化学耦合。新增 <span class="path">workbench/mech_desc.py</span> 输出 40 维机理量，只用已登记描述符与公开化学常数，不依赖 TDS。</p>
+    <p style="font-size:13.5px">原特征层对原料描述符做<b>质量分数线性加权</b>（<code>w_*</code>），丢失了三类化学上最关键的信息：反应当量与化学计量比、共混玻璃化转变（按 1/T 加权而非线性）、工艺-化学耦合。新增 <span class="path">core/mech_desc.py</span> 输出 40 维机理量，只用已登记描述符与公开化学常数，不依赖 TDS。</p>
     <table>
       <tr><th>组</th><th>特征</th><th>依据</th></tr>
       <tr><td>当量浓度</td><td><code>eq_epoxy / eq_oh_phenol / eq_oh_ali / eq_oh_all / eq_cooh / eq_nco / eq_amine / eq_cat</code></td><td>mol/100g；环氧按 EEW、羟/羧按羟值/酸值标准换算；封闭异氰酸酯与醚化氨基树脂按 NCO/活性氢当量（公开典型值 × 送检组成活性占比）</td></tr>

@@ -30,8 +30,8 @@ import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, '..', 'workbench'))
-from DataPrepWorkbench import clean_code, NOISE, NOISE_PREFIX
+sys.path.insert(0, os.path.join(HERE, '..', 'core'))
+from data_prep import clean_code, NOISE, NOISE_PREFIX
 from materials import ALIAS
 from mech_desc import mech_features
 

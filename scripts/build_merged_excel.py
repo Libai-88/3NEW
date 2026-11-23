@@ -8,7 +8,7 @@
 - 性能结果：有标签样本的 T弯/MEK/水煮
 - 工艺条件：烘烤参数
 - 配方级描述符：数值填充（不依赖公式）
-- 配方级机理特征：workbench/mech_desc.py 计算的当量/计量比/νe/Fox Tg/固化度等
+- 配方级机理特征：core/mech_desc.py 计算的当量/计量比/νe/Fox Tg/固化度等
 - 建模输入：ML-ready 宽表
 """
 import pickle, warnings, os
@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 warnings.filterwarnings('ignore')
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core'))
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
@@ -204,7 +204,7 @@ lines = [
     '4. 工艺条件：烘烤温度/时间/膜厚/基材/批次/线棒号。',
     '5. 配方级描述符：按质量分数加权的原料描述符（线性口径）。',
     '6. 配方级机理特征：当量浓度、化学计量比、交联密度、Fox Tg、固化度、Hansen 距离、PVC 等'
-    '非线性机理量（由 workbench/mech_desc.py 计算）。',
+    '非线性机理量（由 core/mech_desc.py 计算）。',
     '7. 建模输入：宽表，一行=一个样本，三个目标实测值与特征并列，可直接导入训练。',
     '8. 数据字典：各字段的类型、单位与口径说明。',
     '',
@@ -220,7 +220,7 @@ lines = [
     '表示不可知而非零固化。',
     '5. 标为「类别典型值」的原料按 TDS-SDS/ 补档清单逐条替换（牌号未识别的树脂集中在聚酯金黄与配比方案）；'
     '「待确认」行（DMP、209-基料）需 SDS 核定。',
-    '6. 用配套 Windows 工作台可一键完成建模与预测。',
+    '6. 用核心库脚本可一键完成建模与预测。',
 ]
 r = 1
 for text in lines:
@@ -405,7 +405,7 @@ for i, w in enumerate([14,10,12,10,10,10,10] + [10]*len(desc_df.columns[2:]), 1)
 ws.freeze_panes = 'H2'
 
 # ================= Sheet8 配方级机理特征 =================
-# 由 workbench/mech_desc.py 现场计算（不依赖 pkl 中的历史 desc_df），
+# 由 core/mech_desc.py 现场计算（不依赖 pkl 中的历史 desc_df），
 # 羟基/羧基当量采用羟值/酸值标准换算口径（oh_source='ohv'，单位自洽）。
 # 无烘烤记录样本的固化类机理量输出为空单元格（NaN 口径：未记录≠零固化，实验 T）。
 ws = wb.create_sheet('配方级机理特征')

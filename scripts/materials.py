@@ -142,7 +142,7 @@ RTYPES = ['环氧','酚醛','聚酯','乙烯基','丙烯酸','聚氨酯','氨基
 # 组成经验补全：对已送检原料，用 compo_rules 的组成证据覆盖类别典型值基线
 import os as _os, sys as _sys
 _this = _os.path.dirname(_os.path.abspath(__file__))
-for _p in (_this, _os.path.dirname(_this), _os.path.join(_os.path.dirname(_this), 'workbench')):
+for _p in (_this, _os.path.dirname(_this), _os.path.join(_os.path.dirname(_this), 'core')):
     if _p not in _sys.path:
         _sys.path.insert(0, _p)
 from compo_rules import apply as _compo_apply

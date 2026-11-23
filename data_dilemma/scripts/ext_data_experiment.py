@@ -23,9 +23,9 @@ from lightgbm import LGBMRegressor
 # 相对路径：脚本位于 data_dilemma/scripts/
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _GEN_DIR = os.path.abspath(os.path.join(_SCRIPT_DIR, '..', '..'))
-sys.path.insert(0, os.path.join(_GEN_DIR, 'workbench'))
+sys.path.insert(0, os.path.join(_GEN_DIR, 'core'))
 sys.path.insert(0, os.path.join(_GEN_DIR, 'scripts'))
-from CoatingModelWorkbench import (load_dataset, ENH_FEATURES, explicit_ratios,
+from modeling import (load_dataset, ENH_FEATURES, explicit_ratios,
                                    smi_aggregate, SMI_AGG_KEYS, canon,
                                    enhanced_descriptors, ROLES, RTYPES, CONT_DESC)
 

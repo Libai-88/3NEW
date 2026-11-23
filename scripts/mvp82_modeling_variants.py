@@ -27,9 +27,9 @@ from xgboost import XGBRegressor, XGBClassifier
 from lightgbm import LGBMRegressor, LGBMClassifier
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'workbench'))
+sys.path.insert(0, os.path.join(HERE, '..', 'core'))
 sys.path.insert(0, HERE)
-from CoatingModelWorkbench import (load_dataset, ENH_FEATURES, explicit_ratios,
+from modeling import (load_dataset, ENH_FEATURES, explicit_ratios,
                                    smi_aggregate, SMI_AGG_KEYS, canon,
                                    enhanced_descriptors, _bake_feat)
 from mech_desc import mech_features, MECH_FEATURES

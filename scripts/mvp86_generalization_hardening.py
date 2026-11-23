@@ -18,7 +18,7 @@
   P5 MEK 审计：折叠内选择重跑 mvp85 两阶段臂，量化 (1) 的影响。
 
 判定口径：域内数字预期略降——降了才对。采纳标准是 LSO/GroupKFold 外推指标不劣化或改善，
-单调约束只有在外推臂上稳定为正收益时才并入工作台默认配置。
+单调约束只有在外推臂上稳定为正收益时才并入核心库默认配置。
 """
 import sys, os, json, warnings
 warnings.filterwarnings('ignore')
@@ -29,9 +29,9 @@ from xgboost import XGBRegressor, XGBClassifier
 from lightgbm import LGBMRegressor, LGBMClassifier
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'workbench'))
+sys.path.insert(0, os.path.join(HERE, '..', 'core'))
 sys.path.insert(0, HERE)
-from CoatingModelWorkbench import (load_dataset, ENH_FEATURES, explicit_ratios,
+from modeling import (load_dataset, ENH_FEATURES, explicit_ratios,
                                    smi_aggregate, SMI_AGG_KEYS, canon,
                                    enhanced_descriptors, _bake_feat)
 from mech_desc import mech_features, MECH_FEATURES

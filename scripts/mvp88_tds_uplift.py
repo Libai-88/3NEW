@@ -27,7 +27,7 @@ from lightgbm import LGBMRegressor, LGBMClassifier
 from scipy.stats import wilcoxon, spearmanr
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '..', 'workbench'))
+sys.path.insert(0, os.path.join(HERE, '..', 'core'))
 sys.path.insert(0, HERE)
 os.environ['MATERIALS_TDS'] = '0'          # 由本脚本按臂切换，不让 materials 自动叠加
 import materials as _M                     # noqa: E402
@@ -36,10 +36,10 @@ import handbook_fixes as HF                # noqa: E402
 import compo_rules                         # noqa: E402
 import mech_desc                           # noqa: E402
 from mech_desc import mech_features, MECH_FEATURES        # noqa: E402
-from CoatingModelWorkbench import (load_dataset, ENH_FEATURES, explicit_ratios,   # noqa: E402
+from modeling import (load_dataset, ENH_FEATURES, explicit_ratios,   # noqa: E402
                                    smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors,
                                    _bake_feat)
-from DataPrepWorkbench import est_material
+from data_prep import est_material
 
 S_IN = int(sys.argv[sys.argv.index('--s1') + 1]) if '--s1' in sys.argv else 20
 S_EX = int(sys.argv[sys.argv.index('--s2') + 1]) if '--s2' in sys.argv else 8
@@ -70,7 +70,7 @@ def build_library(arm):
     mat = {c: copy.deepcopy(_M.MAT[c]) if c in _M.MAT else est_material(c)
            for c in used}
     for c, m in mat.items():
-        m.setdefault('数据来源', '类别典型值(工作台估算登记)')
+        m.setdefault('数据来源', '类别典型值(核心库估算登记)')
     _ch, merge, _pd = HF.apply(mat)
     for c in merge:
         mat.pop(c, None)

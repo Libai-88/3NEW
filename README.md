@@ -2,7 +2,7 @@
 
 **涂料配方性能预测与跨体系泛化。** 本仓库以「原料描述符 + 配方级机理特征 + SMILES 分子描述符」替代原料编码，让环氧酚醛、环氧-配比方案、聚酯金黄三个体系共用同一套特征空间，并对 T弯、MEK 擦拭、水煮等级三项目标做建模、验证与预测。
 
-> 2026-11-23 完成仓库重构：原 `generalization/` 提升为根目录，Phase 1 旧结构和 Web 数据工作台已移出主树。当前主树只保留跨体系泛化这一条开发主线。
+> 2026-11-23 完成仓库重构：原 `generalization/` 提升为根目录，Phase 1 旧结构、旧 Web 整理界面和桌面 GUI 均已移出主树。当前主树只保留跨体系泛化这一条开发主线，以及无界面的数据/建模核心。
 
 ## 当前数据快照
 
@@ -43,9 +43,9 @@
 ├── data/
 │   └── merged_data.pkl                 # 中间产物：456 样本配方 + 描述符
 ├── TDS-SDS/                            # 供应商 TDS/SDS 档案 291 份（描述符实测出处）
-├── workbench/                          # 共享数据/建模内核 + 两个桌面工作台
-│   ├── DataPrepWorkbench.py            # 数据整理与特征转换（Tkinter 桌面版）
-│   ├── CoatingModelWorkbench.py        # 建模与预测（含当前最优配置）
+├── core/                               # 无 GUI 的数据/建模核心
+│   ├── modeling.py                     # 特征构建 + 三目标训练/预测（含当前最优配置）
+│   ├── data_prep.py                    # 数据整理与特征转换
 │   ├── materials.py                    # 原料描述符库（85 条登记 / 在用 73 种）
 │   ├── tds_sds.py                      # TDS/SDS 实测层（最高优先级，带 prov 出处）
 │   ├── compo_rules.py                  # 送检组成补全规则
@@ -74,20 +74,11 @@
 pip install numpy pandas openpyxl scipy scikit-learn xgboost lightgbm
 ```
 
-Python 建议 3.10+。桌面工作台需要 Tkinter；无头 Linux/云主机只能跑脚本，不能开 GUI。
+Python 建议 3.10+。本仓库不提供 GUI 入口，所有功能都通过 Python 脚本或 CLI 调用，可在 Windows、Linux 和云主机上运行。
 
 ### 看报告
 
 直接用浏览器打开 `coating-model-generalization.html`，字体和图表已本地化，可离线查看。其余四份根目录 HTML 是专题报告。
-
-### 跑桌面工作台（Windows / 有图形界面的环境）
-
-```bash
-python workbench/DataPrepWorkbench.py      # 数据整理、特征转换
-python workbench/CoatingModelWorkbench.py  # 训练三目标、预测新配方
-```
-
-`CoatingModelWorkbench.py` 内置当前最优配置（见下表），可以直接训练；训练结果不落盘为独立模型文件，下次启动需重新训练。
 
 ### 重建数据集
 
@@ -109,11 +100,26 @@ python scripts/run_pipeline.py desc \
 
 `desc` 完成“模板 → 配方级描述符 → 建模 CSV”；另有 `label`（半监督伪标签 + 主动学习）和 `all`（全流程）。
 
+### 直接调用核心库
+
+```python
+import sys
+sys.path.insert(0, 'core')
+
+from modeling import load_dataset, build_feature_matrix
+
+mat_lib, samples, perf, proc = load_dataset('合并版数据集.xlsx')
+X, ids, series = build_feature_matrix(samples, mat_lib, perf, proc)
+print(X.shape)  # (456, 313)
+```
+
+`core/` 只提供函数，不启动窗口、不写 GUI 状态；训练与评估通过 `scripts/mvp*.py` 运行。
+
 ## 特征与模型
 
 ### 313 维特征契约
 
-`CoatingModelWorkbench.build_feature_matrix()` 固定输出 313 维，顺序由 `feature_names` 固化：
+`modeling.build_feature_matrix()` 固定输出 313 维，顺序由 `feature_names` 固化：
 
 | 组成 | 维度 |
 | --- | --- |
@@ -141,7 +147,7 @@ python scripts/run_pipeline.py desc \
 
 - **水煮主模型标签是 `≥4` 为不合格**；实验 V 验证的是 `≥3` 为不合格的二值口径。两者方向一致但阈值不同，实验 V 的脚本尚未并入主模型，不能把 V 的 AUC 直接当主模型指标。
 - **MEK 右截尾**：仅“恰为 300”视为右截尾（真实值 ≥300 未知）；350/400/550 是真实观测值。主模型用“未截尾 R² + 边界 acc/AUC”双指标，不报含截尾代理值的全样本 R²。
-- **新系列外推不可直接用**：留一系列外推加权 R²≈−0.30；新系列先测 1~2 个配方回入系列编码，再依赖数值预测。工作台会对未登记系列和越界特征给出警告。
+- **新系列外推不可直接用**：留一系列外推加权 R²≈−0.30；新系列先测 1~2 个配方回入系列编码，再依赖数值预测。`domain_check` 会对未登记系列和越界特征给出警告。
 
 ## 实验索引
 
@@ -159,9 +165,9 @@ python scripts/run_pipeline.py desc \
 
 ## 已知限制
 
-1. **没有持久化模型产物**：主模型配置在 `workbench/CoatingModelWorkbench.py` 内，训练在 GUI 中完成，仓库不附带可直接加载的模型文件。
+1. **没有持久化模型产物**：主模型配置在 `core/modeling.py` 内，训练通过脚本执行，仓库不附带可直接加载的模型文件。
 2. **pkl 版本兼容**：`data/merged_data.pkl` 与当前 pandas 2.2.3 不兼容；重建链可以重新生成，但旧 pkl 不能直接读。
-3. **Web 数据工作台已移除**：原 `workbench/webapp/` 的整理链把测试列当原料列，与实际配料表 schema 脱节，且“175 条实测”实际没有性能记录；现在统一走 `scripts/reingest_template.py`，不再维护第二套整理逻辑。
+3. **历史 Web 整理链已移除**：旧整理链把测试列当原料列，与实际配料表 schema 脱节，且“175 条实测”实际没有性能记录；现在统一走 `scripts/reingest_template.py`，不再维护第二套整理逻辑。
 4. **TDS/SDS 覆盖是“原料级高、字段级低”**：73 种原料中 69 种有实测或同族推断锚定，但全 32 字段的逐字段实测覆盖只有 13.7%（关键化学量 20.6%）；其余靠送检组成、公开手册和族推断，引用时要看出处。
 5. **小样本体系不能池化解读**：聚酯金黄 19 条（实测 16）、环氧-配比方案 92 条（实测 63），水煮正类率很低；所有指标应按体系拆分报告，综合值只作参考。
 6. **无标签样本的标签仍是补测候选**：伪标签/主动学习结果只用于排程，不是实测标签；补齐后跨体系泛化才能验证。
@@ -169,11 +175,12 @@ python scripts/run_pipeline.py desc \
 
 ## 重构说明
 
-本次重构做了四件事：
+本次重构做了五件事：
 
-1. **移除 Web 工作台**：删除 `workbench/webapp/`（`server.py`、`flow.py`、`index.html`）与 `start_webapp.sh/.bat`，并清理 `.gitignore` 与 `mvp80_experiments.py` 中的 webapp 引用。
-2. **提升主开发目录**：把原 `generalization/` 下的 `TDS-SDS/`、`raw/`、`data/`、`workbench/`、`scripts/`、`data_dilemma/`、模板、报告和文档整体移到仓库根目录，删除空壳目录。
-3. **清理 Phase 1 旧结构**：删除根目录 `code/`、`data/`、`models/`、`report/` 与旧根 README；Phase 1 内容仍保留在 git 历史（`ef9dc50` 及之前）中，需要时可按提交找回。
-4. **修复路径与文档**：把 `generalization/...` 引用改成根目录相对路径；更新 `模板工作原理与泛化原理.md` 的旧数据（486/440/80/77 → 456/421/73/69）；重写本 README。
+1. **移除旧 Web 整理界面**：删除旧 Web 服务、启动脚本与相关引用。
+2. **移除桌面 GUI 层**：删除两个桌面入口和所有界面代码；原目录更名为 `core/`，原建模模块改为 `core/modeling.py`，原数据整理模块改为 `core/data_prep.py`。仓库不再提供任何 GUI 入口，只保留无界面的数据/特征/模型函数。
+3. **提升主开发目录**：把原 `generalization/` 下的 `TDS-SDS/`、`raw/`、`data/`、`core/`、`scripts/`、`data_dilemma/`、模板、报告和文档整体移到仓库根目录，删除空壳目录。
+4. **清理 Phase 1 旧结构**：删除根目录 `code/`、`data/`、`models/`、`report/` 与旧根 README；Phase 1 内容仍保留在 git 历史（`ef9dc50` 及之前）中，需要时可按提交找回。
+5. **修复路径与文档**：把 `generalization/...` 引用改成根目录相对路径；更新 `模板工作原理与泛化原理.md` 的旧数据（486/440/80/77 → 456/421/73/69）；重写本 README。
 
-重构后，仓库只有一条主开发线：**数据重录 → 合并数据集 → 共享特征/机理层 → 桌面工作台/实验脚本**。新增代码按这个边界放：数据与特征内核进 `workbench/`，可复现实验进 `scripts/`，专题报告放根目录，专项数据实验放 `data_dilemma/`。
+重构后，仓库只有一条主开发线：**数据重录 → 合并数据集 → 共享特征/机理核心 → 实验脚本/CLI**。新增代码按这个边界放：数据与特征内核进 `core/`，可复现实验进 `scripts/`，专题报告放根目录，专项数据实验放 `data_dilemma/`。

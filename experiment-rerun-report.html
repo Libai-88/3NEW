@@ -66,7 +66,7 @@
         <td><span class="tag ok">核实/无需删</span></td>
       </tr>
     </table>
-    <p class="note">修复内容：<code>workbench/CoatingModelWorkbench.py</code> 新增 <code>_clean_num/_bake_feat</code>，将 None/空串/NaN 统一归一为 0，并接入 <code>load_dataset</code>（工艺条件解析）与 <code>build_sample_features</code>；<code>scripts/mvp74_final_verify.py</code> 的 <code>build_compact</code> 同步使用。修复后特征矩阵 <b>NaN 列 = 0</b>。另增设 <code>sitecustomize.py</code>（注入 tkinter 桩）使全部脚本可在无头环境直接运行。</p>
+    <p class="note">修复内容：<code>core/modeling.py</code> 新增 <code>_clean_num/_bake_feat</code>，将 None/空串/NaN 统一归一为 0，并接入 <code>load_dataset</code>（工艺条件解析）与 <code>build_sample_features</code>；<code>scripts/mvp74_final_verify.py</code> 的 <code>build_compact</code> 同步使用。修复后特征矩阵 <b>NaN 列 = 0</b>。</p>
   </div>
 
   <h2>二、实验流程复跑</h2>
@@ -76,7 +76,7 @@
       <tr><td>最终验证 <code class="path">scripts/mvp74_final_verify.py</code></td><td>合并版数据集.xlsx</td><td>3 目标最优配置 / 20 种子，全部输出正常</td></tr>
       <tr><td>通用流水线 <code class="path">scripts/run_pipeline.py desc</code></td><td>合并版数据集.xlsx</td><td>485 样本 × 59 特征 成功导出（auto_desc 缺失时回退 materials.py 库为已知降级）</td></tr>
     </table>
-    <p class="note">无头运行依赖：<code>PYTHONPATH=/data/user/work</code>（tkinter 桩自动注入）。</p>
+    <p class="note">核心库无 GUI 依赖，脚本可在无头环境直接运行。</p>
   </div>
 
   <h2>三、最佳性能 vs 历史基线</h2>

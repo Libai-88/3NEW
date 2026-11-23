@@ -24,8 +24,8 @@ import sys, os, warnings
 warnings.filterwarnings('ignore')
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
-from CoatingModelWorkbench import (
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core'))
+from modeling import (
     load_dataset, build_feature_matrix, add_series_features, select_features,
     _cv_reg, _cv_reg_extra, _clf_oof, _cv_aft, REG_PARAMS, CLF_N_KEEP,
 )
@@ -63,7 +63,7 @@ if len(lab_sys) < 2:
     missing = sorted(set(systems) - lab_sys)
     print(f'需为以下体系补测标签：{missing}')
     print('补测后（≥2 体系有标签）本脚本将自动执行完整 LOSO。')
-    print('补测排程：Web 工作台「补标签排程」按系列分层随机推荐（实验 M 结论）。')
+    print('补测排程：核心库「补标签排程」按系列分层随机推荐（实验 M 结论）。')
     print('跨体系泛化当前证据：实验 D（PCA 同空间）、实验 G（伪标签）、实验 H（迁移学习），')
     print('但均非合并版数据集上的直接 LOSO 验证——此为诚实缺口，需补标签后闭合。')
     sys.exit(0)

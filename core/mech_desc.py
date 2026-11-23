@@ -138,7 +138,7 @@ def mech_features(comp, mat_lib, bake_temp=None, bake_time=None,
     nan_no_bake=True 时，依赖烘烤记录的固化类特征在无记录时取 NaN（而非 0），
     避免「未记录工艺」与「真实低固化」混成同一伪域（泛化加固，实验 T）。
     """
-    from CoatingModelWorkbench import canon
+    from modeling import canon
     items = []
     for code, amt in comp.items():
         try:

@@ -14,7 +14,7 @@ import os, sys, json, pickle, copy, importlib
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-WB = os.path.join(HERE, '..', 'workbench')
+WB = os.path.join(HERE, '..', 'core')
 sys.path.insert(0, WB)
 sys.path.insert(0, HERE)
 
@@ -37,12 +37,12 @@ def build_library(use_tds):
     import tds_sds
     D = pickle.load(open(os.path.join(HERE, '..', 'data', 'merged_data.pkl'), 'rb'))
     import materials
-    from DataPrepWorkbench import est_material
+    from data_prep import est_material
     used = sorted({c for s in D['all_samples'] for c in s['组分']})
     mat = {c: copy.deepcopy(materials.MAT[c]) if c in materials.MAT else est_material(c)
            for c in used}
     for c, m in mat.items():
-        m.setdefault('数据来源', '类别典型值(工作台估算登记)')
+        m.setdefault('数据来源', '类别典型值(核心库估算登记)')
     _ch, merge, _pd = HF.apply(mat)
     for c in merge:
         mat.pop(c, None)
@@ -144,7 +144,7 @@ def mass_weighted(mat, D):
         for c, a in w.items():
             code = c
             if code not in mat:
-                from CoatingModelWorkbench import canon
+                from modeling import canon
                 code = canon(str(c).strip())
             if code not in mat:
                 continue
@@ -167,7 +167,7 @@ def mass_weighted(mat, D):
 
 
 def _code_mass(D, mat):
-    from CoatingModelWorkbench import canon
+    from modeling import canon
     m = {}
     for s in D['all_samples']:
         for c, a in s['组分'].items():

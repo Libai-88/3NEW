@@ -3,7 +3,7 @@
 实验 K：MEK 截尾处理改进（诚实评估 + 两阶段模型 + Tobit 式目标）
 ================================================================
 背景：实验 J 显示 MEK 噪声地板 R²=0.966，当前 0.701 的差距主要来自截尾
-（43 个样本 MEK 恰为 300，真实值 ≥300 未知）。当前工作台用「分类器代理目标」
+（43 个样本 MEK 恰为 300，真实值 ≥300 未知）。当前核心库用「分类器代理目标」
 （截尾样本赋 300+extra×P(≥300)）并在代理目标上评估 R²，可能虚高。
 
 本实验目标：
@@ -20,9 +20,9 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import r2_score, accuracy_score, roc_auc_score
 from xgboost import XGBRegressor, XGBClassifier
 from lightgbm import LGBMRegressor, LGBMClassifier
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from CoatingModelWorkbench import load_dataset, ENH_FEATURES, explicit_ratios, smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors
+from modeling import load_dataset, ENH_FEATURES, explicit_ratios, smi_aggregate, SMI_AGG_KEYS, canon, enhanced_descriptors
 
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '合并版数据集.xlsx')
 mat_lib, samples, perf, proc = load_dataset(path)
