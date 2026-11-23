@@ -1,6 +1,8 @@
 # 数据困境解决方案 · 实验验证
 
-本目录是「3NEW 三新项目研发」第二阶段（`../generalization/`）的**数据困境专项实验**：针对「R²>0.9 目标受数据质量制约」的问题，通过公开数据检索、噪声地板分析与多路径对照实验，给出突破性能上限的最优方案。
+本目录是「3NEW 三新项目研发」主仓库中的**数据困境专项实验**：针对「R²>0.9 目标受数据质量制约」的问题，通过公开数据检索、噪声地板分析与多路径对照实验，给出突破性能上限的最优方案。
+
+> 口径说明：本目录实验基于重录前的 486 样本快照；当前主数据集为 456 样本 / 421 条实测标签，最新主表指标见根 `README.md`。实验结论（瓶颈在测量噪声）不受影响，但引用绝对 R² 时需区分快照。
 
 ## 核心结论
 
@@ -18,7 +20,7 @@
 ## 目录结构
 
 ```text
-generalization/data_dilemma/            # 本目录：数据困境专项实验
+data_dilemma/            # 本目录：数据困境专项实验
 ├── README.md                           # 本文件：实验说明与复现
 ├── report/                             # 验证报告（浏览器直接打开）
 │   ├── data-dilemma-solution.html      # 主报告（含 ECharts 图表 + Mermaid 流程图）
@@ -38,7 +40,7 @@ generalization/data_dilemma/            # 本目录：数据困境专项实验
 pip install numpy pandas openpyxl xgboost lightgbm scikit-learn scipy
 ```
 
-脚本使用**相对路径**（基于脚本所在目录定位 `../workbench/` 与 `../合并版数据集.xlsx`），克隆仓库后即可直接运行，无绝对路径依赖。
+脚本使用**相对路径**（基于脚本所在目录定位 `../../workbench/` 与 `../../合并版数据集.xlsx`），克隆仓库后即可直接运行，无绝对路径依赖。
 
 ## 复现命令
 
@@ -53,7 +55,7 @@ python scripts/semi_sup_experiment.py
 python scripts/active_learning_exp.py
 ```
 
-> 注：脚本通过 `../workbench/CoatingModelWorkbench.py` 读取数据与构建特征，该模块依赖 `tkinter`（Windows 桌面环境自带；无头 Linux 环境需自行处理）。所有脚本固定随机种子，结果可复现。
+> 注：脚本通过 `../../workbench/CoatingModelWorkbench.py` 读取数据与构建特征，该模块依赖 `tkinter`（Windows 桌面环境自带；无头 Linux 环境需自行处理）。所有脚本固定随机种子，结果可复现。
 
 ## 实验要点
 

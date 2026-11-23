@@ -25,7 +25,6 @@ warnings.filterwarnings('ignore')
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench'))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'workbench', 'webapp'))
 from CoatingModelWorkbench import (
     load_dataset, build_feature_matrix, add_series_features, select_features,
     _cv_reg, _cv_reg_extra, _clf_oof, _cv_aft, REG_PARAMS, CLF_N_KEEP,

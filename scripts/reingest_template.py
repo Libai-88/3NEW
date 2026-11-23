@@ -2,7 +2,7 @@
 """
 终极版数据集模板 · 原始数据重录入
 ==========================================
-把 5 份原始实验记录解析为「配方-性能-工艺」记录，写入 generalization/终极版数据集模板.xlsx：
+把 5 份原始实验记录解析为「配方-性能-工艺」记录，写入 终极版数据集模板.xlsx：
 
   1. 7.26配料测试汇总.xlsx         宽表（列=原料，行=配方×线棒号）    烘烤 200℃/10min
   2. 8.6配料测试汇总.xlsx          宽表 + 换算明细 + 测试原始数据     烘烤 205℃/17min
@@ -40,9 +40,10 @@ import unicodedata
 from collections import OrderedDict, defaultdict
 
 import openpyxl
+import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
+ROOT = os.path.abspath(os.path.join(HERE, '..'))
 WORKBENCH = os.path.join(HERE, '..', 'workbench')
 UPLOADS = os.path.join(HERE, '..', 'raw')
 OUT = os.path.join(HERE, '..', '终极版数据集模板.xlsx')
@@ -839,11 +840,67 @@ def blend_provenance(path):
     return {k: '复配自 ' + ' + '.join(v) for k, v in out.items()}
 
 
+def _carryover_from_merged_xlsx():
+    """从当前 合并版数据集.xlsx 读取 R8/R9/R10（旧 pkl 不可读时的兜底）。
+
+    R8/R9/R10 是 200℃/10min 批次，原始 5 份文件未含；旧逻辑从 merged_data.pkl
+    继承。pkl 由更早版本的 pandas 生成，当前环境无法 unpickle 时，直接读主数据集
+    的「配方明细 / 性能结果 / 工艺条件」三张表重建同样结构。
+    """
+    path = os.path.join(HERE, '..', '合并版数据集.xlsx')
+    if not os.path.exists(path):
+        return OrderedDict()
+    det = pd.read_excel(path, sheet_name='配方明细')
+    perf_df = pd.read_excel(path, sheet_name='性能结果')
+    proc_df = pd.read_excel(path, sheet_name='工艺条件')
+    det['样本ID'] = det['样本ID'].astype(str).str.strip()
+    perf_df['样本ID'] = perf_df['样本ID'].astype(str).str.strip()
+    proc_df['样本ID'] = proc_df['样本ID'].astype(str).str.strip()
+    ids = sorted({sid for sid in det['样本ID'] if re.match(r'^R(8|9|10)-', sid)})
+    out = OrderedDict()
+    for sid in ids:
+        rows = det[det['样本ID'] == sid]
+        comp = OrderedDict()
+        for _, row in rows.iterrows():
+            code = canon(CODE_FIX.get(txt(row.get('原料代码')), txt(row.get('原料代码'))))
+            q = num(row.get('用量(g)'))
+            if code and q and q > 0:
+                comp[code] = round(comp.get(code, 0.0) + float(q), 4)
+        if not comp:
+            continue
+        prow = proc_df[proc_df['样本ID'] == sid]
+        bt = num(prow.iloc[0].get('烘烤温度(℃)')) if len(prow) else None
+        btm = num(prow.iloc[0].get('烘烤时间(min)')) if len(prow) else None
+        s = {'样本ID': sid, '系列': txt(rows.iloc[0].get('系列')), '体系': SYS_EPOXY,
+             '组分': comp,
+             '工艺': {'烘烤温度': bt or 200, '烘烤时间': btm or 10,
+                      '基材': '镀铬铁', '批次': '7.26', '线棒号': '14#', '备注': ''},
+             '性能': []}
+        cond = f"{s['工艺']['烘烤温度']}℃/{s['工艺']['烘烤时间']}min"
+        for _, row in perf_df[perf_df['样本ID'] == sid].iterrows():
+            tgt = txt(row.get('目标属性'))
+            val = num(row.get('测试值'))
+            if not tgt or val is None:
+                continue
+            s['性能'].append({'目标': tgt, '测试值': float(val),
+                              '测试条件': txt(row.get('测试条件')) or cond,
+                              '测试日期': '2025-07-26', '备注': '',
+                              '标签状态': '实测',
+                              '标签来源': txt(row.get('标签来源')) or '实验室'})
+        out[sid] = s
+    print(f'[回退] 从 合并版数据集.xlsx 读取 R8/R9/R10：{len(out)} 条')
+    return out
+
+
 def carryover_series():
     """R8/R9/R10（200℃/10min 批次）：本次原始文件无出处，沿用数据集既有登记。"""
     if not os.path.exists(LEGACY_PKL):
         return OrderedDict()
-    D = pickle.load(open(LEGACY_PKL, 'rb'))
+    try:
+        D = pickle.load(open(LEGACY_PKL, 'rb'))
+    except Exception as e:
+        print(f'[警告] 旧 pkl 不可读（{type(e).__name__}: {e}），改用合并版数据集读取 R8/R9/R10')
+        return _carryover_from_merged_xlsx()
     out = OrderedDict()
     for x in D['all_samples']:
         sid = x['样本ID']

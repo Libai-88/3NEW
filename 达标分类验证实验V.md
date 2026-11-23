@@ -78,8 +78,8 @@
 
 ## 5. 交付物
 
-- 实验脚本：`generalization/scripts/mvp90_qualify_classification.py`
-- 结果：`generalization/scripts/mvp90_result.json`
+- 实验脚本：`scripts/mvp90_qualify_classification.py`
+- 结果：`scripts/mvp90_result.json`
 - 本报告 + 结果解读
 
 ---

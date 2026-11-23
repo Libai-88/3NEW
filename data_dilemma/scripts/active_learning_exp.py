@@ -20,7 +20,7 @@ from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import RandomForestRegressor
 
-# 相对路径：脚本位于 generalization/data_dilemma/scripts/
+# 相对路径：脚本位于 data_dilemma/scripts/
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _GEN_DIR = os.path.abspath(os.path.join(_SCRIPT_DIR, '..', '..'))
 sys.path.insert(0, os.path.join(_GEN_DIR, 'workbench'))

@@ -93,8 +93,8 @@
   <section>
     <h2>三、落盘位置</h2>
     <div class="pipeline">
-      组成经验规则代码：<b>generalization/workbench/compo_rules.py</b>（COMPO 组成档案 + OVERRIDES 字段覆盖 + SOURCE_TEXT 依据）。<br>
-      描述符库（补全后）：<b>generalization/workbench/materials.py</b> 与 <b>generalization/scripts/materials.py</b>（模块加载时由 compo_rules 覆盖基线）。<br>
+      组成经验规则代码：<b>workbench/compo_rules.py</b>（COMPO 组成档案 + OVERRIDES 字段覆盖 + SOURCE_TEXT 依据）。<br>
+      描述符库（补全后）：<b>workbench/materials.py</b> 与 <b>scripts/materials.py</b>（模块加载时由 compo_rules 覆盖基线）。<br>
       数据集（补全后）：<b>合并版数据集.xlsx · 原料主数据</b>，被覆盖原料 <b>数据来源</b> 标注为 <b>COMPO_RULES</b>、<b>备注</b> 记录送检组成原文。<br>
       下游一致性（重算）：<b>merged_data.pkl · full_mat / desc_df</b> 按补全后原料重算，<b>合并版数据集.xlsx</b> 的 配方明细/配方级描述符/建模输入 与其一致（486 样本 × 59 特征）。
       树脂类型枚举新增 <b>氨基</b>，<b>rtype_氨基</b> 特征生效，建模可区分氨基（三聚氰胺）交联剂。

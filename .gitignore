@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
-generalization/workbench/webapp/_tmp/
 .uploads/
 .trae-html-share-packages/
+
+_tmp/
