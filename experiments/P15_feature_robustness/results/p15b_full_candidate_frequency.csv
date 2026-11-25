@@ -1,0 +1,7 @@
+candidate,n_folds,share
+full8,18,0.36
+core4,10,0.2
+drop_oh_epox_aroc,10,0.2
+drop_oh_epox,7,0.14
+base183,4,0.08
+core5,1,0.02
