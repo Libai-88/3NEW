@@ -4,7 +4,7 @@
 
 > 2026-11-23 完成仓库重构：原 `generalization/` 提升为根目录，Phase 1 旧结构、旧 Web 整理界面和桌面 GUI 均已移出主树。当前主树只保留跨体系泛化这一条开发主线，以及无界面的数据/建模核心。
 
-> **`experiment/p14-best` 远程归档边界**：该分支完整保存 P14（P10–P14 中当前最优）的代码、证据汇总表、最终表、模型配置、数据审计与特征名；P10/P11/P12 完整目录、P13 大矩阵和 P14 日志留在本地完整归档。远程分支可复现 P14 的代码与证据链，运行前需按 `experiments/P14_evidence_chain/REMOTE_DATA.md` 补齐两个特征矩阵。
+> **`experiment/p14-best` 远程归档边界**：该分支完整保存 P14（P10–P14 中当前最优）的代码、证据汇总表、最终表、模型配置、数据审计与特征名；P10/P11/P12 完整目录、P13 大矩阵和 P14 日志留在本地完整归档。远程分支可复现 P14 的代码与证据链，运行前需按 `experiments/P14_evidence_chain/REMOTE_DATA.md` 补齐两个特征矩阵。P15/P16 的结论与归档范围见 `experiments/P15_P16_REMOTE_ARCHIVE.md`。
 
 ## 当前数据快照
 
@@ -50,7 +50,9 @@
 │   ├── P11_feature_search/             # 219 公式搜索
 │   ├── P12_optimization/               # 模型/决策层优化
 │   ├── P13_feature_opt/                # 特征层优化（初筛）
-│   └── P14_evidence_chain/             # 最优实验：T 190 维证据链
+│   ├── P14_evidence_chain/             # 最优实验：T 190 维证据链
+│   ├── P15_feature_robustness/          # FTIR 特征稳健性：残差化试点 + 嵌套子集选择
+│   └── P16_ftir_block_weight/           # FTIR 块权重 + row-shuffled placebo
 ├── tooling/                            # 依赖锁 + 统一启动器，不放进实验目录
 ├── TDS-SDS/                            # 供应商 TDS/SDS 档案 291 份（描述符实测出处）
 ├── core/                               # 无 GUI 的数据/建模核心
@@ -212,9 +214,11 @@ print(X.shape)  # (456, 313)
 | P11 | 语义池 + 219 公式搜索 | `experiments/P11_feature_search/` | 无公式组块过门槛；P11-C5 仅诊断，不入模 |
 | P12 | 模型/决策层优化 | `experiments/P12_optimization/` | 三目标平均 QWK 0.5327→0.5485；未改特征层 |
 | P13 | 特征层优化（初筛） | `experiments/P13_feature_opt/` | 增广/全谱/样条多退化；FTIR8 3-seed 初筛 +0.0349 |
-| **P14** | **T 190 维证据链（当前最优）** | `experiments/P14_evidence_chain/` | **10 seeds nested QWK 0.5707，+0.0256（p=0.0046）；三目标平均 0.5609** |
+| **P14** | **T 190 维证据链（固定集条件最优）** | `experiments/P14_evidence_chain/` | **10 seeds nested QWK 0.5707，+0.0256（p=0.0046）；三目标平均 0.5609** |
+| **P15** | **FTIR 特征稳健性** | `experiments/P15_feature_robustness/` | **嵌套子集+C 选择 QWK 0.5717±0.0231；P14 190 fixed 高 0.0080（p=0.090，3/10 seeds 正）；子集选择分散，190 仅 14%，不能称稳定最优** |
+| **P16** | **FTIR 块权重 + 安慰剂对照** | `experiments/P16_ftir_block_weight/` | **C1 PASS：FTIR8 有真实样品信号（full8−placebo +0.0357，Holm p=0.0072）；C2 FAIL：整块权重不能替代子集选择（ftir8_w−full8 −0.0092，p=0.1035）；core4_w 0.5715 仅探索性** |
 
-每个实验目录固定包含 `README.md`、`scripts/`、`data/`、`results/`、`logs/`；共享依赖只在 `tooling/`，不复制进实验目录。P14 的最优方案与证据链见 [`experiments/P14_evidence_chain/README.md`](experiments/P14_evidence_chain/README.md)。
+每个实验目录固定包含 `README.md`、`scripts/`、`data/`、`results/`、`logs/`；共享依赖只在 `tooling/`，不复制进实验目录。P14 的固定 190 维方案与证据链见 [`experiments/P14_evidence_chain/README.md`](experiments/P14_evidence_chain/README.md)；P15 的稳健性结论见 [`experiments/P15_feature_robustness/results/P15_实验报告.md`](experiments/P15_feature_robustness/results/P15_实验报告.md)；P16 的安慰剂/权重结论见 [`experiments/P16_ftir_block_weight/results/P16_实验报告.md`](experiments/P16_ftir_block_weight/results/P16_实验报告.md)；远程归档边界见 [`experiments/P15_P16_REMOTE_ARCHIVE.md`](experiments/P15_P16_REMOTE_ARCHIVE.md)。
 
 每个脚本都固定随机种子；大多数实验支持 `--s1/--s2/--seeds/--arms` 等参数，具体以 `--help` 为准。P0~P9 的结果 JSON 在 `scripts/*_result.json`，P10 以后在 `experiments/<批次>/results/`。
 
