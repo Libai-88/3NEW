@@ -1,0 +1,10 @@
+# P10 FTIR v3 experiment dependency lock (verified on this VM, 2026-11-25)
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.17.1
+scikit-learn==1.4.0
+xgboost==3.4.1
+lightgbm==4.7.0
+openpyxl==3.1.5
+matplotlib==3.11.0
+joblib==1.6.0

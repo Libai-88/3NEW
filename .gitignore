@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
 .uploads/
 .trae-html-share-packages/
+tooling/.venv/
 
 _tmp/
