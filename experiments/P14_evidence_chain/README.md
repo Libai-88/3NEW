@@ -10,6 +10,10 @@ P14 是对 P13 的 T=191（183+FTIR8，C=1，3 seeds）证据链的补强与修�
 
 P13 的 3-seed 数字作为初筛保留；P14 是最终证据，也是当前最优实验。
 
+## 远程归档边界
+
+本分支保存 P14 的全部脚本、7 张证据汇总表、最终三目标表、模型配置、数据审计和 190 个入选特征名。两个特征矩阵（`feature_matrix_v2_fix_reduced.csv`、`feature_matrix_p13_t_ftir7.csv`）和 `ftir_sample_features_v3.csv` 体积较大，未进入 Git；其本地 SHA256 和绝对路径见 `REMOTE_DATA.md` 与 `data/local_artifact_manifest.json`。克隆本分支后，先按 `REMOTE_DATA.md` 把矩阵放回协议中的相对路径，再运行复现命令。
+
 ## 协议
 
 - 数据：`../P10_ftir_v3/data/feature_matrix_v2_fix_reduced.csv`（345×183，主体系）与 `../P13_feature_opt/data/feature_matrix_p13_t_ftir7.csv`（345×190）。
@@ -52,8 +56,10 @@ P13 的 3-seed 数字作为初筛保留；P14 是最终证据，也是当前最�
 
 ## 复现
 
+以下命令假定仓库根目录为当前目录，且 `../P10_ftir_v3/data/feature_matrix_v2_fix_reduced.csv` 与 `../P13_feature_opt/data/feature_matrix_p13_t_ftir7.csv` 已按 `REMOTE_DATA.md` 补齐；远程分支不含这两个矩阵。
+
 ```bash
-cd /home/user/3new-refactor
+cd <repo-root>
 tooling/run.sh python3 experiments/P14_evidence_chain/scripts/p14_t_evidence.py --mode fixed --seeds 42 202 777 1234 2026 31415 2718 1618 5678 9999
 tooling/run.sh python3 experiments/P14_evidence_chain/scripts/p14_t_evidence.py --mode nested --seeds 42 202 777 1234 2026 31415 2718 1618 5678 9999
 tooling/run.sh python3 experiments/P14_evidence_chain/scripts/p14_t_models.py
@@ -66,7 +72,7 @@ tooling/run.sh python3 experiments/P14_evidence_chain/scripts/p14_t_bootstrap.py
 ## 产物
 
 - `data/p14_data_audit.json`
-- `data/p14_t_target.csv`
+- `data/p14_t_target.csv`（301 行；本地生成，远程分支未提交，可由 `p14_t_evidence.py` 重建）
 - `data/p14_t_selected_features.csv`
 - `results/p14_final_summary.csv`
 - `results/p14_final_model.json`

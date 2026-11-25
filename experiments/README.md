@@ -10,6 +10,8 @@ One folder per experiment. Every folder must contain:
 Shared tooling and dependency pins live in `../tooling/`, never inside an
 experiment folder.
 
+> **远程分支 `experiment/p14-best` 的归档边界**：完整保存 P14 的代码、证据汇总表、最终表、模型配置、数据审计和 190 特征名；同时保留 P13 的 `feature_dictionary_p13_ftir7.csv`/`data/README.md` 和 P10 的 P14 兼容子集 `p10c_bench.py`。P10/P11/P12 的完整目录、P13 大矩阵及 P14 运行日志留在本地完整归档，未进入该远程分支。缺失数据的 SHA256 与补齐路径见 `P14_evidence_chain/REMOTE_DATA.md`。
+
 ## Experiment index
 
 - `P10_ftir_v3/` — 原料 FTIR 特征构建与增量基准；结论：FTIR8 未过 +0.03，主基准维持 v2-fix。
