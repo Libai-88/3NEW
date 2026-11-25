@@ -1,0 +1,12 @@
+{
+  "note": "Large/generated matrices remain in the local workspace; these hashes verify local copies.",
+  "files": [
+    {"path": "experiments/P13_feature_opt/data/feature_matrix_p13_t_ftir7.csv", "bytes": 561697, "sha256": "5855a8e678f7345511c2606efb1d0519cd1b9675f31cdd8e6ba07001dec539cd"},
+    {"path": "experiments/P13_feature_opt/data/feature_dictionary_p13_ftir7.csv", "bytes": 920, "sha256": "2df650ee2b6229ba6ba1e52f74f20805dc16bd28769a207770523b37a8d7df6d"},
+    {"path": "experiments/P10_ftir_v3/data/feature_matrix_v2_fix_reduced.csv", "bytes": 705353, "sha256": "2ff16efb81a94234114dcb6e043335a0810f75d7e8fa6c48c719a30f654ec654"},
+    {"path": "experiments/P10_ftir_v3/data/ftir_sample_features_v3.csv", "bytes": 78148, "sha256": "a8c1f1d866df88e7a2f1317ac95a25e084a46b3713dad991eff6e46cf9d535ca"},
+    {"path": "experiments/P14_evidence_chain/results/p14_final_summary.csv", "bytes": 454, "sha256": "0459fe11bede60921d78ca1dea525f84c714fccd0a3e75793a80559887bcfce0"},
+    {"path": "experiments/P14_evidence_chain/results/p14_final_model.json", "bytes": 799, "sha256": "3ecb0816c8b7096f322014f9782c5f9732756dc68c107fa0a2686878680d1f8c"},
+    {"path": "experiments/P14_evidence_chain/data/p14_data_audit.json", "bytes": 660, "sha256": "ef85223cd38044d46207e61f13a687276d65bcba8a6613a9e692a347791d53c5"}
+  ]
+}

@@ -1,0 +1,8 @@
+feature,block,source,n_samples,n_nonzero,n_unique,missing
+ftir_oh_phen,ftir_raw8,"P10 FTIR_RAW8, 93C vacuum 7d, pure solid, no solvent, OMNIC 10-100 %T per spectrum",338,338,302,7
+ftir_meoh_phen,ftir_raw8,"P10 FTIR_RAW8, 93C vacuum 7d, pure solid, no solvent, OMNIC 10-100 %T per spectrum",311,311,233,34
+ftir_aroc_phen,ftir_raw8,"P10 FTIR_RAW8, 93C vacuum 7d, pure solid, no solvent, OMNIC 10-100 %T per spectrum",338,338,302,7
+ftir_coc_all,ftir_raw8,"P10 FTIR_RAW8, 93C vacuum 7d, pure solid, no solvent, OMNIC 10-100 %T per spectrum",345,345,345,0
+ftir_arsub_all,ftir_raw8,"P10 FTIR_RAW8, 93C vacuum 7d, pure solid, no solvent, OMNIC 10-100 %T per spectrum",345,345,345,0
+ftir_ch_all,ftir_raw8,"P10 FTIR_RAW8, 93C vacuum 7d, pure solid, no solvent, OMNIC 10-100 %T per spectrum",345,345,345,0
+ftir_co_all,ftir_raw8,"P10 FTIR_RAW8, 93C vacuum 7d, pure solid, no solvent, OMNIC 10-100 %T per spectrum",345,345,345,0
