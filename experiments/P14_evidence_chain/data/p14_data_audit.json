@@ -1,0 +1,34 @@
+{
+  "main_dataset_sha256": "753afe8e97a77d1f39d4f852857da5cc204f28c445d3fbfcb3ddf7ff2d67f3f9",
+  "main_samples": 345,
+  "t_samples": 301,
+  "t_class_counts": {
+    "0": 33,
+    "1": 197,
+    "2": 71
+  },
+  "feature_matrix_shape": [
+    301,
+    190
+  ],
+  "ftir7_missing": {
+    "ftir_oh_phen": 7,
+    "ftir_meoh_phen": 31,
+    "ftir_aroc_phen": 7,
+    "ftir_coc_all": 0,
+    "ftir_arsub_all": 0,
+    "ftir_ch_all": 0,
+    "ftir_co_all": 0
+  },
+  "ftir7_columns": [
+    "ftir_oh_phen",
+    "ftir_meoh_phen",
+    "ftir_aroc_phen",
+    "ftir_coc_all",
+    "ftir_arsub_all",
+    "ftir_ch_all",
+    "ftir_co_all"
+  ],
+  "base_features": 183,
+  "group_count": 301
+}

@@ -1,0 +1,34 @@
+{
+  "target": "T",
+  "feature_matrix": "experiments/P13_feature_opt/data/feature_matrix_p13_t_ftir7.csv",
+  "n_features": 190,
+  "base_features": 183,
+  "ftir_features": [
+    "ftir_oh_phen",
+    "ftir_meoh_phen",
+    "ftir_aroc_phen",
+    "ftir_coc_all",
+    "ftir_arsub_all",
+    "ftir_ch_all",
+    "ftir_co_all"
+  ],
+  "model": "sklearn LogisticRegression ordinal cumulative",
+  "C": 2.0,
+  "penalty": "l2",
+  "class_weight": "balanced",
+  "solver": "lbfgs",
+  "max_iter": 3000,
+  "imputer": "median + missing indicator",
+  "scaler": "StandardScaler",
+  "decision": "argmax cumulative probability",
+  "cv": "StratifiedGroupKFold(5) by formula_id, 10 seeds",
+  "nested_C_grid": [
+    0.5,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "expected_qwk_nested": 0.5707,
+  "expected_qwk_fixed": 0.5797,
+  "n": 301
+}

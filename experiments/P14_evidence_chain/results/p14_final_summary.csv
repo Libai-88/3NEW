@@ -1,0 +1,4 @@
+target,feature_set,dim,model,decision,qwk_nested,qwk_nested_sd,qwk_fixed_C2,qwk_fixed_sd,high,cost_nested,cost_fixed,n
+T,183 base + 7 FTIR (drop ftir_oh_epox),190,ordinal logistic,"C=2, argmax cumulative proba",0.5707,0.0252,0.5797,0.0225,0.7901,0.6781,0.6645,301
+MEK,base183,183,ordinal logistic + cost-anchor,"C=1, cost-anchor bias",0.6424,0.0225,,,0.7697,0.9164,,339
+WATER,base183,183,ExtraTrees multiclass,argmax,0.4695,0.0234,,,0.679,0.9476,,261
