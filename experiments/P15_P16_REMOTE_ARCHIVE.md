@@ -13,7 +13,7 @@
 - `experiments/P14_evidence_chain/`：P14 证据链与 190 维固定集归档。
 - `experiments/P15_feature_robustness/`：P15-A 残差化探索（1 seed）+ P15-B 嵌套子集/C 选择（10 seeds）。
 - `experiments/P16_ftir_block_weight/`：P16 FTIR 块权重 + row-shuffled placebo（10 seeds）。
-- `experiments/AUDIT_2026-11-25/`：P0–P14 证据审计报告（5 PASS / 6 WARN / 0 FAIL，PROVISIONAL_LOCAL_AUDIT）。
+- `experiments/AUDIT_2026-11-25/`：P0–P14 证据审计报告 + claim 表（5 PASS / 6 WARN / 0 FAIL）；机器 JSON、审计脚本和逐项日志留在本地。
 - `refine-logs/`：P15/P16 计划与 tracker。
 - `README.md`、`experiments/README.md`：实验索引与结论摘要。
 
@@ -36,13 +36,15 @@
 | `experiments/P13_feature_opt/data/feature_matrix_p13_t_ftir8.csv` | 556K | 见 `experiments/P16_ftir_block_weight/results/p16_full_config.json` |
 | `experiments/P14_evidence_chain/data/p14_t_target.csv` | 8K | 见 P14 README |
 
+此外，`experiments/AUDIT_2026-11-25/EXPERIMENT_AUDIT.json`、`scripts/audit_claims.py` 与 P15/P16 的完整逐折日志留在本地；远程只保留报告、claim 表与结论。
+
 复现时优先使用本地完整仓库；远程归档负责审阅、diff 和结果核对。
 
 ## 可复现入口
 
 - P15：`experiments/P15_feature_robustness/scripts/run_p15.sh`
 - P16：`experiments/P16_ftir_block_weight/scripts/run_p16.sh`
-- 审计：`experiments/AUDIT_2026-11-25/scripts/audit_claims.py`
+- 审计：`experiments/AUDIT_2026-11-25/EXPERIMENT_AUDIT.md` 与 `CLAIMS_FROM_RESULTS.md`；`scripts/audit_claims.py` 与 JSON 在本地
 
 ## 审批边界
 
