@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-25",
+  "experiment": "P16 FTIR block weighting + row-shuffled placebo",
+  "target": "T three-grade, cuts [15,20]",
+  "n": 301,
+  "base_n": 183,
+  "seeds": [42, 202, 777, 1234, 2026, 31415, 2718, 1618, 5678, 9999],
+  "cs": [0.5, 1.0, 1.5, 2.0],
+  "weights": [0.5, 1.0, 1.5, 2.0, 3.0, 4.0],
+  "sets": ["base183", "full8", "placebo8", "ftir8_w", "core4_w"],
+  "placebo": "seed-fixed global row permutation of FTIR8; base unchanged; covariance preserved; y never used",
+  "weighting": "impute -> StandardScaler -> multiply trailing FTIR block (values + missing indicators) by w",
+  "selection": "inner 3-fold grouped QWK selects (w,C); outer test untouched",
+  "model": "ordinal cumulative logistic, balanced, L2, max_iter=3000",
+  "external_reviewer": "unavailable; local deterministic only"
+}
