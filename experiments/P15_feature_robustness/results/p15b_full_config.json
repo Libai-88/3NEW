@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-25",
+  "experiment": "P15-B nested FTIR subset + C selection",
+  "target": "T three-grade, cuts [15,20]",
+  "n": 301,
+  "seeds": [42, 202, 777, 1234, 2026, 31415, 2718, 1618, 5678, 9999],
+  "cs": [0.5, 1.0, 1.5, 2.0],
+  "candidates": ["base183", "full8", "drop_oh_epox", "drop_oh_epox_aroc", "core4", "core5"],
+  "outer_cv": "StratifiedGroupKFold(5) by formula_id",
+  "inner_cv": "StratifiedGroupKFold(3) by formula_id",
+  "model": "ordinal cumulative logistic, class_weight=balanced, L2, max_iter=3000"
+}
