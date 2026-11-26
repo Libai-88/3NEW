@@ -1,0 +1,45 @@
+{
+  "audit_date": "2026-11-26",
+  "experiment": "P17_decision_metrics",
+  "auditor": "local deterministic checks; external reviewer unavailable",
+  "overall": "WARN",
+  "integrity_status": "warn",
+  "external_reviewer": "REVIEW_UNAVAILABLE",
+  "checks": {
+    "A_ground_truth": {"status": "PASS", "evidence": ["scripts/p17_decision_metrics.py:78-92"], "note": "y from p09.build_targets + grade_from_cuts; not model output"},
+    "B_score_normalization": {"status": "PASS", "evidence": ["scripts/p17_decision_metrics.py:186-224"], "note": "raw QWK/MAE/cost; no prediction-max normalization"},
+    "C_result_existence": {"status": "PASS", "evidence": ["results/p17_claim_check_full.json:3-64", "results/p17_policy_summary_full.csv:2-13"], "note": "C1/C2 numbers match summary; all result files exist"},
+    "D_dead_code": {"status": "PASS", "evidence": ["scripts/p17_decision_metrics.py:229-320"], "note": "policy_table/risk_curves/claim_check are called in main; accepted-high metrics used"},
+    "E_scope": {"status": "WARN", "evidence": ["refine-logs/P17_EXPERIMENT_PLAN.md:23-27"], "note": "301 T samples, 10 seeds, one endpoint; no comprehensive claim"},
+    "F_evaluation_type": {"status": "PASS", "evidence": ["scripts/p17_decision_metrics.py:78-92"], "note": "real_gt: dataset labels; no synthetic reference"}
+  },
+  "data_checks": {
+    "n_rows": 6020,
+    "n_system_seed_cells": 20,
+    "rows_per_cell_min": 301,
+    "rows_per_cell_max": 301,
+    "y_distribution": [33, 197, 71],
+    "max_prob_sum_abs_dev": 1.0000011929633956e-10,
+    "qwk_argmax_full8_mean": 0.5667784775407572,
+    "qwk_argmax_full8_sd": 0.026882952665904562,
+    "qwk_argmax_p14_mean": 0.5796898984413759,
+    "qwk_argmax_p14_sd": 0.022514048693305585,
+    "summary_argmax": {"full8": {"qwk_mean": 0.5667784775, "qwk_sd": 0.02688295267, "false_release": 0.214084507}, "p14_190": {"qwk_mean": 0.5796898984, "qwk_sd": 0.02251404869, "false_release": 0.2098591549}},
+    "claim_crosscheck": {"C2_selective_high_recall": [0.7070422535211268, 0.7070422535], "C2_selective_qwk": [0.6296744763746378, 0.6296744764], "C2_selective_false_release": [0.14929577464788732, 0.1492957746]}
+  },
+  "files": {
+    "scripts/p17_decision_metrics.py": {"exists": true, "bytes": 20735, "sha256": "ab1d9da73bad28ecdfd91aefaabcc284f081bc89705b75303e3a168e932bd2a8"},
+    "results/p17_oof_proba_full.csv": {"exists": true, "bytes": 363126, "sha256": "dfd94624c269fc2fee0b60e09cbb67ceb718ee615dac3c0468552e8e14efce80"},
+    "results/p17_policy_per_seed_full.csv": {"exists": true, "bytes": 25676, "sha256": "eb11f021ba22069015016c60bd1a17903aabbdf2ca3ed3b11a99b359e1aa7f29"},
+    "results/p17_policy_summary_full.csv": {"exists": true, "bytes": 5566, "sha256": "40ad1028779c4a4a2adddf8b8699bc7c8c303530fb5da20935b2e47f58fef935"},
+    "results/p17_policy_delta_full.csv": {"exists": true, "bytes": 11886, "sha256": "e9169c125c1888ec3c065efe3d510078f88baf4715150a333399efefd52076fd"},
+    "results/p17_risk_coverage_full.csv": {"exists": true, "bytes": 47287, "sha256": "a703c568187f66b4503eb1a45413a68720734e3686348a6026e1b429fa6774ee"},
+    "results/p17_claim_check_full.json": {"exists": true, "bytes": 2249, "sha256": "d7dcb44253b960af0389996478f1af78757bb28938f84793f25101c0a5d3da5e"},
+    "results/p17_config_full.json": {"exists": true, "bytes": 795, "sha256": "eb50cdd0b4bcd318331e60bc0e57e70b38ad886ee63779b2d60328cc9bf095a7"},
+    "logs/p17_sanity.log": {"exists": true, "bytes": 8591, "sha256": "a0a279bc0626f4b1ad8649eb3043cf01f950fc36f26228b7fb22d55c9ae9ea8e"},
+    "logs/p17_full.log": {"exists": true, "bytes": 12162, "sha256": "9573f0f753a8742ce49f15959b62929747e3004ccbdbc270b87ea8eb19b3aca7"},
+    "results/P17_实验报告.md": {"exists": true, "bytes": 13119, "sha256": "2f2070baba8987ee56f5b1d3434c50e80f09a186a3c142c14ed3dc377156a2c5"},
+    "../../refine-logs/P17_EXPERIMENT_PLAN.md": {"exists": true, "bytes": 5961, "sha256": "1dbcf74308aede388f8d69a7537c65795aa028e32aa4b54a48f05aab86952b4a"},
+    "../../refine-logs/P17_EXPERIMENT_TRACKER.md": {"exists": true, "bytes": 2776, "sha256": "ee9587a6fe040a55ec126655aef66fd86a66b2d22019f327a957ac17df2a8cd5"}
+  }
+}
