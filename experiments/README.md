@@ -23,4 +23,6 @@ experiment folder.
 - `P16_ftir_block_weight/` — FTIR 块权重 + row-shuffled placebo；C1 PASS（FTIR8 有真实样品信号，full8−placebo +0.0357，Holm p=0.0072）；C2 FAIL（整块权重不如 full8，p=0.1035）；core4_w 0.5715±0.0135 仅探索性。
 - `P17_decision_metrics/` — T 弯决策指标转型；`three_way` false release 21.41%→3.66%，但 cost 仅 −0.0372、C1 FAIL；`selective` coverage 81.16%、QWK 0.6297，但全体 high recall −7.89 pp、C2 FAIL；无免费提升。
 - `P18_nested_decision_policy/` — 嵌套阈值 + 温度校准 + 成本/容量敏感性；C1 FAIL（均值接近，但 seed gate 3/10）、C2 FAIL（FR 相对 −22.52%、high recall −5.21 pp）；主设置 39/50 折无可行阈值，结论是当前 301 条下无稳定可部署策略。
+- `P19_data_layer/` — 数据层审计 + 训练折内 jitter/SMOTE/边界加权；C1/C2 FAIL（最佳 jitter25 ΔQWK +0.0070、boundary_w50 +0.0098，均未过 +0.020）；无重复 T、63.1% 在 ±1.8 mm 边界带、固化条件与系列混杂；合成数据不能替代新测量。
+- `P20_aux_target_transfer/` — 跨目标辅助表征（MEK/水煮 → T 弯）；C1/C2 FAIL，`aux_mek4` ΔQWK −0.0038、`aux_water3` −0.0067、`aux_both` −0.0146，三个真实辅助臂均低于 `full8_base`；`aux_both` vs shuffle 仅 +0.0093（6/10，p=.156）；stacked 辅助概率没有可迁移增益，不证明深度多任务共享编码器无效。
 - `P15_P16_REMOTE_ARCHIVE.md` — 远程归档范围与缺失大矩阵清单。
