@@ -22,10 +22,13 @@
 
 ## 仅本地保存的文件
 
-以下大文件没有推送到远程；远程保留可复核的汇总、claim、审计、文献记录与报告，完整证据链留在本地。脚本 `scripts/p19_data_layer.py`、预注册计划与 tracker 见本地提交 `f126086`；远程目录先保存可审阅的证据链，避免把 27 KB 单文件脚本与 1.5 MB OOF 原始表塞进 connector 单次写入。
+以下大文件 / 代码 / 逐 seed 表没有推送到远程；远程保留可复核的汇总、claim、审计、文献记录与报告，完整证据链留在本地提交 `f126086` / `b3e41b6`。
 
 | 文件 | 大小 | SHA256 |
 |---|---:|---|
+| `scripts/p19_data_layer.py` | 27 KB | 本地提交 |
+| `refine-logs/P19_EXPERIMENT_PLAN.md` | 13,743 B | 本地提交 |
+| `refine-logs/P19_EXPERIMENT_TRACKER.md` | 2,422 B | 本地提交 |
 | `results/p19_augmentation_audit_full.csv` | 18,277 B | `c61896b25c63541e70275bec7391764bf665c088a239ccbb72cfa7589022ca57` |
 | `results/p19_augmentation_audit_sanity.csv` | 1,892 B | `efb39c3546dd62bc208b633e4fd8db6b72281e8388e48b37abb3f9860d4ee145` |
 | `results/p19_claim_check_sanity.json` | 2,967 B | `ffeff67b2b4761f94006c5c797ccc4f46b22103c2b6bb6cc9d7f3a1e58f0ff7e` |
