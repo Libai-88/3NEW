@@ -21,4 +21,5 @@ experiment folder.
 - `P14_evidence_chain/` — **固定集条件最优实验**；T 的 10-seed 证据链：190 维（183+FTIR7）、nested C、模型族、drop-one、置换与 bootstrap；最终 T QWK 0.5707（nested），三目标平均 0.5609。
 - `P15_feature_robustness/` — FTIR 特征稳健性；把 FTIR 子集选择与 C 选择都放入外层训练折；10-seed nested QWK 0.5717±0.0231；P14 190 仅 14% 外层折被选中，说明 190 维不是稳定最优；P15-A 残差化仅 1-seed 探索。
 - `P16_ftir_block_weight/` — FTIR 块权重 + row-shuffled placebo；C1 PASS（FTIR8 有真实样品信号，full8−placebo +0.0357，Holm p=0.0072）；C2 FAIL（整块权重不如 full8，p=0.1035）；core4_w 0.5715±0.0135 仅探索性。
+- `P17_decision_metrics/` — T 弯决策指标转型；`three_way` false release 21.41%→3.66%，但 cost 仅 −0.0372、C1 FAIL；`selective` coverage 81.16%、QWK 0.6297，但全体 high recall −7.89 pp、C2 FAIL；无免费提升。
 - `P15_P16_REMOTE_ARCHIVE.md` — 远程归档范围与缺失大矩阵清单。
