@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-26",
+  "tag": "full",
+  "review_status": "REVIEW_UNAVAILABLE",
+  "note": "No external cross-model reviewer is available. This is a local deterministic claim check, not an acquittal.",
+  "baseline": {
+    "arm": "full8_base",
+    "mean_qwk": 0.573974479795886,
+    "mean_three_way_fr": 0.03661971830985916,
+    "mean_high_recall": 0.7873239436619719
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "name": "training-only augmentation",
+      "pass": false,
+      "arms": [
+        {"arm": "jitter10", "pass": false, "mean_delta_qwk": 0.0014330411042655865, "seed_wins_qwk": 4, "mean_delta_fr_pp": 1.6901408450704225, "mean_delta_high_recall_pp": -2.1126760563380307},
+        {"arm": "jitter25", "pass": false, "mean_delta_qwk": 0.0070329583731966626, "seed_wins_qwk": 6, "mean_delta_fr_pp": 2.3943661971830985, "mean_delta_high_recall_pp": -2.253521126760566},
+        {"arm": "smote_low", "pass": false, "mean_delta_qwk": 0.00016692178640892452, "seed_wins_qwk": 6, "mean_delta_fr_pp": 0.0, "mean_delta_high_recall_pp": 0.9859154929577452},
+        {"arm": "jitter10_smote_low", "pass": false, "mean_delta_qwk": 0.0040836035970988616, "seed_wins_qwk": 6, "mean_delta_fr_pp": 1.6901408450704225, "mean_delta_high_recall_pp": -1.4084507042253558}
+      ]
+    },
+    {
+      "id": "C2",
+      "name": "boundary-aware weighting",
+      "pass": false,
+      "arms": [
+        {"arm": "boundary_w50", "pass": false, "mean_delta_qwk": 0.00977736916094587, "seed_wins_qwk": 8, "mean_delta_fr_pp": 0.4225352112676056, "mean_delta_high_recall_pp": -1.1102230246251565e-15},
+        {"arm": "boundary_w25", "pass": false, "mean_delta_qwk": -0.0030272855225176865, "seed_wins_qwk": 5, "mean_delta_fr_pp": 1.8309859154929575, "mean_delta_high_recall_pp": -2.2535211267605653}
+      ]
+    },
+    {"id": "C3", "name": "data audit", "pass": true, "evidence": {"n_t_observed": 301, "n_t_missing": 44, "n_repeated_samples": 0, "boundary_union_1.8": 190}},
+    {"id": "C4", "name": "no external T rows merged", "pass": true, "evidence": "No external or literature T values were added to the 301-row modelling table."}
+  ],
+  "anti_claims": {
+    "A1": "Synthetic rows are training-only and are not counted as measurements.",
+    "A2": "Cure condition is confounded with series; no causal claim.",
+    "A3": "P19 does not test whether augmentation fixes label noise.",
+    "A4": "Evaluation uses observed T labels only, never synthetic validation."
+  }
+}

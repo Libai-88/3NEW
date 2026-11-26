@@ -1,0 +1,45 @@
+{
+  "experiment": "P19_data_layer",
+  "date": "2026-11-26",
+  "mode": "full",
+  "tag": "full",
+  "seeds": [
+    42,
+    202,
+    777,
+    1234,
+    2026,
+    31415,
+    2718,
+    1618,
+    5678,
+    9999
+  ],
+  "arms": [
+    "full8_base",
+    "jitter10",
+    "jitter25",
+    "smote_low",
+    "jitter10_smote_low",
+    "boundary_w50",
+    "boundary_w25",
+    "cure_meta"
+  ],
+  "model": {
+    "features": "P16 full8",
+    "n_features": 191,
+    "C": 2.0,
+    "w": 1.0
+  },
+  "cuts": [
+    15.0,
+    20.0
+  ],
+  "boundary_mm": 1.8,
+  "outer_folds": 5,
+  "group_field": "formula_id",
+  "augmentation": "training-only; after outer split; zero synthetic test rows",
+  "external_data": "none",
+  "review_status": "REVIEW_UNAVAILABLE",
+  "data_audit": "results/p19_data_audit_full.json"
+}
