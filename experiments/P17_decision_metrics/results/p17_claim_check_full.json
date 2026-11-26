@@ -1,0 +1,66 @@
+{
+  "full8": {
+    "C1_three_way": {
+      "system": "full8",
+      "operational_cost": 0.8823920265780731,
+      "base_cost": 0.9196013289036544,
+      "delta_cost": -0.037209302325581284,
+      "false_release": 0.036619718309859155,
+      "base_false_release": 0.2140845070422535,
+      "relative_false_release_reduction": 0.8289473684210525,
+      "test_rate": 0.213953488372093,
+      "cost_p": 0.031926544431177775,
+      "false_release_p": 8.241736425637014e-11,
+      "better_seeds_cost": 7,
+      "better_seeds_false_release": 10,
+      "pass": false
+    },
+    "C2_selective": {
+      "system": "full8",
+      "coverage": 0.8116279069767443,
+      "false_release": 0.14929577464788732,
+      "base_false_release": 0.2140845070422535,
+      "relative_false_release_reduction": 0.3026315789473684,
+      "high_recall": 0.7070422535211268,
+      "base_high_recall": 0.7859154929577465,
+      "qwk": 0.6296744763746378,
+      "base_qwk": 0.5667784775407572,
+      "qwk_delta": 0.06289599883388064,
+      "false_release_p": 1.3680920472682738e-05,
+      "better_seeds_false_release": 10,
+      "pass": false
+    }
+  },
+  "p14_190": {
+    "C1_three_way": {
+      "system": "p14_190",
+      "operational_cost": 0.8561461794019933,
+      "base_cost": 0.8986710963455149,
+      "delta_cost": -0.04252491694352156,
+      "false_release": 0.0352112676056338,
+      "base_false_release": 0.20985915492957746,
+      "relative_false_release_reduction": 0.832214765100671,
+      "test_rate": 0.20398671096345514,
+      "cost_p": 0.03328337791310658,
+      "false_release_p": 2.747595496684767e-09,
+      "better_seeds_cost": 7,
+      "better_seeds_false_release": 10,
+      "pass": false
+    },
+    "C2_selective": {
+      "system": "p14_190",
+      "coverage": 0.8232558139534885,
+      "false_release": 0.15352112676056337,
+      "base_false_release": 0.20985915492957746,
+      "relative_false_release_reduction": 0.26845637583892623,
+      "high_recall": 0.7084507042253521,
+      "base_high_recall": 0.7901408450704225,
+      "qwk": 0.6284641513570292,
+      "base_qwk": 0.5796898984413759,
+      "qwk_delta": 0.04877425291565329,
+      "false_release_p": 3.924786089797748e-05,
+      "better_seeds_false_release": 10,
+      "pass": false
+    }
+  }
+}

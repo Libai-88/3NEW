@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-26",
+  "experiment": "P17 decision metrics for T-bend",
+  "systems": [
+    "full8",
+    "p14_190"
+  ],
+  "seeds": [
+    42,
+    202,
+    777,
+    1234,
+    2026,
+    31415,
+    2718,
+    1618,
+    5678,
+    9999
+  ],
+  "target": "T three-grade, cuts [15,20]",
+  "n": 301,
+  "policies": [
+    "argmax",
+    "cost",
+    "high_guard",
+    "three_way",
+    "selective",
+    "cost_abstain"
+  ],
+  "thresholds": {
+    "high_guard": 0.35,
+    "three_way": [
+      0.1,
+      0.35
+    ],
+    "selective": 0.6,
+    "cost_abstain_test_cost": 1.0
+  },
+  "operational_cost": {
+    "false_release": 10.0,
+    "false_reject": 3.0,
+    "test": 1.0
+  },
+  "note": "No new data; OOF only; p14_190 is post-hoc fixed reference",
+  "external_reviewer": "unavailable; local deterministic only"
+}
