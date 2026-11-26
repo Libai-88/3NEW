@@ -1,0 +1,246 @@
+{
+  "audit_date": "2026-11-26",
+  "experiment": "P18_nested_decision_policy",
+  "auditor": "local deterministic checks; external reviewer unavailable",
+  "overall": "WARN",
+  "integrity_status": "warn",
+  "external_reviewer": "REVIEW_UNAVAILABLE",
+  "scope_note": "PROVISIONAL_LOCAL_AUDIT; no cross-model acquit",
+  "checks": {
+    "A_ground_truth": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p18_nested_decision.py:321-343"
+      ],
+      "note": "y from P17 load_data / p09.build_targets / grade_from_cuts; real labels"
+    },
+    "B_score_normalization": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p18_nested_decision.py:163-221"
+      ],
+      "note": "raw QWK/MAE/false-release/cost; no prediction-max normalization"
+    },
+    "C_result_existence": {
+      "status": "PASS",
+      "evidence": [
+        "results/p18_claim_check_full.json",
+        "results/p18_policy_summary_full.csv"
+      ],
+      "note": "all cited numbers matched; all listed files exist"
+    },
+    "D_dead_code": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p18_nested_decision.py:488-620"
+      ],
+      "note": "all metric/claim functions called; unused arm_label/qwk_d removed"
+    },
+    "E_scope": {
+      "status": "WARN",
+      "evidence": [
+        "refine-logs/P18_EXPERIMENT_PLAN.md"
+      ],
+      "note": "301 T samples, one endpoint, small inner OOF; no external validation"
+    },
+    "F_evaluation_type": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p18_nested_decision.py:321-343"
+      ],
+      "note": "real_gt; no synthetic reference"
+    }
+  },
+  "threshold_provenance": {
+    "outer_split": "StratifiedGroupKFold(5) by formula_id",
+    "inner_split": "StratifiedGroupKFold(4) inside each outer train fold",
+    "outer_group_overlap_asserted": true,
+    "inner_group_overlap_asserted": true,
+    "outer_test_used_for_threshold_selection": false,
+    "outer_test_used_for_temperature_fit": false,
+    "temperature_fit_source": "inner OOF only",
+    "threshold_selection_source": "inner OOF only",
+    "note": "select_thresholds receives ytr/source, never y[te]"
+  },
+  "data_checks": {
+    "n": 301,
+    "y_distribution": [
+      33,
+      197,
+      71
+    ],
+    "oof_rows": 3010,
+    "seeds": 10,
+    "rows_per_seed": 301,
+    "per_seed_rows": 470,
+    "arms": 47,
+    "summary_rows": 47,
+    "threshold_rows": 2200,
+    "nested_arms": 44,
+    "threshold_rows_per_arm": 50,
+    "calibration_rows": 50,
+    "max_prob_sum_abs_dev": 1.0000011929633956e-10,
+    "qwk_argmax_mean": 0.5739744797958859,
+    "qwk_argmax_sd": 0.0246,
+    "qwk_p18_three_mean": 0.6070410751912528,
+    "qwk_p18_three_sd": 0.0241,
+    "rerun_note": "full re-run 2026-11-26 after dead-code removal; OOF/threshold/per-seed SHA unchanged; log SHA updated",
+    "full_run_elapsed_s": 48.7
+  },
+  "feasibility": {
+    "three_way_primary_feasible_folds": 11,
+    "three_way_primary_total_folds": 50,
+    "selective_primary_feasible_folds": 0,
+    "selective_primary_total_folds": 50,
+    "three_way_primary_infeasible_folds_mean": 3.9,
+    "selective_primary_infeasible_folds_mean": 5.0,
+    "thresholds_are_fallback_when_infeasible": true,
+    "note": "primary three_way has 11/50 feasible; selective has 0/50; results are least-violation fallback, not constrained optimum"
+  },
+  "calibration": {
+    "temperature_mean": 2.9642,
+    "temperature_min": 2.417075086,
+    "temperature_max": 2.999966439,
+    "temperature_at_upper_bound": 46,
+    "n_folds": 50,
+    "nll_raw_mean": 1.464,
+    "nll_cal_mean": 0.9612,
+    "ece_raw_mean": 0.1446,
+    "ece_cal_mean": 0.089
+  },
+  "claim_checks": {
+    "C1_nested_three_way": {
+      "pass": false,
+      "false_release": 0.04647887323943663,
+      "test_rate": 0.22159468438538205,
+      "high_recall": 0.7830985915492958,
+      "base_high_recall": 0.7873239436619718,
+      "cost_delta": -0.09269102990033229,
+      "pred_high_rate": 0.34584717607973425,
+      "high_precision": 0.5345899187068619,
+      "base_high_precision": 0.5794773691635375,
+      "false_release_p": 7.052290680727216e-10,
+      "better_seeds_false_release": 10,
+      "better_seeds_cost": 9,
+      "seed_gate_count": 3,
+      "failure_reasons": [
+        "4 seeds false release >5% (max 7.04%)",
+        "4 seeds high precision drop >5pp",
+        "2718 cost not lower",
+        "1618 test rate >25%"
+      ]
+    },
+    "C2_nested_selective": {
+      "pass": false,
+      "coverage": 0.8700996677740864,
+      "relative_false_release_reduction": 0.22516556291390724,
+      "false_release": 0.1647887323943662,
+      "high_recall": 0.7352112676056338,
+      "base_high_recall": 0.7873239436619718,
+      "qwk_delta": 0.03531958788511247,
+      "pred_high_rate": 0.2900332225913621,
+      "seed_gate_count": 1,
+      "failure_reasons": [
+        "relative FR reduction 22.52% <30%",
+        "high recall -5.21pp",
+        "seed gate 1/10",
+        "0/50 folds feasible"
+      ]
+    },
+    "anti_claim": {
+      "three_way_pred_high_cap_pass": true,
+      "three_way_high_precision_drop_pp": 4.49,
+      "note": "pred high 34.58% under 38.59%; but C1 still fails seed-level stability"
+    }
+  },
+  "cost_sensitivity": {
+    "primary_cap_0_25_cfr_5_10_20_same_decisions": true,
+    "primary_false_release_mean": 0.0465,
+    "primary_test_mean": 0.2216,
+    "cap_0_35_false_release_mean": 0.031,
+    "cap_0_35_test_mean": 0.2721,
+    "cap_0_15_false_release_mean": 0.0634,
+    "cap_0_15_test_mean": 0.1429,
+    "note": "no combination meets FR<=5% and test<=25%; cost weights do not identify a different policy at cap 25%"
+  },
+  "files": {
+    "scripts/p18_nested_decision.py": {
+      "exists": true,
+      "size": 31616,
+      "sha256": "07d8ae6b5a2a2526db11feca9783133885434d936a0c3bf77a381146d78508e5"
+    },
+    "results/p18_oof_proba_full.csv": {
+      "exists": true,
+      "size": 321176,
+      "sha256": "6c3dd04acfe19bed11ca2009c7e9668d6390a403b095b0812a43ca5e15f7e950"
+    },
+    "results/p18_policy_per_seed_full.csv": {
+      "exists": true,
+      "size": 110183,
+      "sha256": "85bb0c56e9c6ef3f3bdf9432da4f8ecbd777bc1eddab7401f3b543d391f68465"
+    },
+    "results/p18_policy_summary_full.csv": {
+      "exists": true,
+      "size": 20068,
+      "sha256": "b49b7c0d17ebc9c691c494fa7806332705efc8a1f92ec1a028e6f653d31f2006"
+    },
+    "results/p18_policy_delta_full.csv": {
+      "exists": true,
+      "size": 5400,
+      "sha256": "f994e7c023202d1fc1bbaac0176e5fc1fcdec9fe76cdfdae587468b24e8a0a5c"
+    },
+    "results/p18_cost_sensitivity_full.csv": {
+      "exists": true,
+      "size": 18184,
+      "sha256": "7204ace0593dd4329a1f2e57731372cce11ae76acc8e9ae0be74ca8f465f1926"
+    },
+    "results/p18_thresholds_full.csv": {
+      "exists": true,
+      "size": 437487,
+      "sha256": "a5eb300e92bcaa7255a28f228ce2943d0eb5e95851954208384b121cf502a364"
+    },
+    "results/p18_calibration_full.csv": {
+      "exists": true,
+      "size": 3895,
+      "sha256": "c3be670d3c7bb31a4e655ef5d1324ca18c1ba6ca8ac34a371ccd57745cd38736"
+    },
+    "results/p18_claim_check_full.json": {
+      "exists": true,
+      "size": 2662,
+      "sha256": "31e29bd81cb19e1fd9a9d296846613d7011611c9efc59bc31f720a5d707d4b68"
+    },
+    "results/p18_config_full.json": {
+      "exists": true,
+      "size": 1660,
+      "sha256": "316e0424ec6ff7f68a8630af3fe47e9875983d65c70af8985a189d1c7ff4377c"
+    },
+    "logs/p18_sanity.log": {
+      "exists": true,
+      "size": 4294,
+      "sha256": "d67126e9a0b5279105969aaeda153a5fa12400a83d0b8cd9dc68cd2135f8ecb2"
+    },
+    "logs/p18_full.log": {
+      "exists": true,
+      "size": 6970,
+      "sha256": "e990ff1d3230982fe74c47b00ed7c741e343b9c7ffd0272662c9d34e1625c0da"
+    },
+    "results/P18_实验报告.md": {
+      "exists": true,
+      "size": 8733,
+      "sha256": "1534684cd0428df7aaf0f28d369f139cd33ddbcf400891e1c80e481571bd4377"
+    },
+    "results/P18_CLAIMS_FROM_RESULTS.md": {
+      "exists": true,
+      "size": 3438,
+      "sha256": "06f071ddbece65ab4abb122b253f13c945532f0e3d55c24cb10b4843cbb1e853"
+    }
+  },
+  "limitations": [
+    "No external cross-model reviewer; provisional local audit only.",
+    "Inner OOF ~240 samples; low class ~26; threshold selection noisy.",
+    "Primary three_way 11/50 feasible folds; selective 0/50; fallback not constrained optimum.",
+    "Cost weights are relative example values, not confirmed business amounts.",
+    "Only T-bend; no MEK/water endpoint.",
+    "OOF probabilities are not production probabilities; no drift monitoring."
+  ]
+}

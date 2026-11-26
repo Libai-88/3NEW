@@ -1,0 +1,72 @@
+{
+  "nested_three_way_temp_primary": {
+    "C1": {
+      "arm": "nested_three_way_temp_primary",
+      "false_release": 0.04647887323943663,
+      "base_false_release": 0.21267605633802816,
+      "relative_false_release_reduction": 0.7814569536423841,
+      "test_rate": 0.22159468438538205,
+      "high_grade_recall": 0.7830985915492958,
+      "base_high_grade_recall": 0.7873239436619718,
+      "pred_high_rate": 0.34584717607973425,
+      "high_precision": 0.5345899187068619,
+      "base_high_precision": 0.5794773691635375,
+      "operational_cost": 0.8146179401993356,
+      "base_operational_cost": 0.9073089700996679,
+      "cost_delta": -0.09269102990033229,
+      "qwk": 0.6070410751912528,
+      "base_qwk": 0.5739744797958859,
+      "qwk_delta": 0.03306659539536694,
+      "coverage": 0.778405315614618,
+      "false_release_p": 7.052290680727216e-10,
+      "cost_p": 0.0024790047962097665,
+      "better_seeds_false_release": 10,
+      "better_seeds_cost": 9,
+      "seed_gate_count": 3,
+      "pass": false
+    }
+  },
+  "nested_selective_temp_primary": {
+    "C1": {
+      "arm": "nested_selective_temp_primary",
+      "false_release": 0.1647887323943662,
+      "base_false_release": 0.21267605633802816,
+      "relative_false_release_reduction": 0.22516556291390724,
+      "test_rate": 0.12990033222591363,
+      "high_grade_recall": 0.7352112676056338,
+      "base_high_grade_recall": 0.7873239436619718,
+      "pred_high_rate": 0.2900332225913621,
+      "high_precision": 0.5986549474423849,
+      "base_high_precision": 0.5794773691635375,
+      "operational_cost": 0.8684385382059802,
+      "base_operational_cost": 0.9073089700996679,
+      "cost_delta": -0.038870431893687774,
+      "qwk": 0.6092940676809984,
+      "base_qwk": 0.5739744797958859,
+      "qwk_delta": 0.03531958788511247,
+      "coverage": 0.8700996677740864,
+      "false_release_p": 0.00010765027603855114,
+      "cost_p": 0.08633774046192304,
+      "better_seeds_false_release": 10,
+      "better_seeds_cost": 7,
+      "seed_gate_count": 0,
+      "pass": false
+    },
+    "C2": {
+      "arm": "nested_selective_temp_primary",
+      "coverage": 0.8700996677740864,
+      "false_release": 0.1647887323943662,
+      "relative_false_release_reduction": 0.22516556291390724,
+      "high_grade_recall": 0.7352112676056338,
+      "base_high_grade_recall": 0.7873239436619718,
+      "qwk": 0.6092940676809984,
+      "base_qwk": 0.5739744797958859,
+      "qwk_delta": 0.03531958788511247,
+      "pred_high_rate": 0.2900332225913621,
+      "false_release_p": 0.00010765027603855114,
+      "better_seeds_false_release": 10,
+      "seed_gate_count": 1,
+      "pass": false
+    }
+  }
+}

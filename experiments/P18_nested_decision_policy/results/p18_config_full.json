@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-26",
+  "experiment": "P18 nested calibrated decision policy",
+  "data": "301 epoxy-phenolic T, cuts [15,20], formula_id groups",
+  "outer_cv": "StratifiedGroupKFold(5)",
+  "inner_cv": "StratifiedGroupKFold(4)",
+  "seeds": [
+    42,
+    202,
+    777,
+    1234,
+    2026,
+    31415,
+    2718,
+    1618,
+    5678,
+    9999
+  ],
+  "model": {
+    "features": "P16 full8 (183+8)",
+    "C": 2.0,
+    "w": 1.0,
+    "note": "feature/model family frozen; no new features"
+  },
+  "calibration": "temperature scaling on inner OOF; bounded [0.5,3.0]",
+  "threshold_grid": {
+    "three_way_high": [
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8
+    ],
+    "three_way_low": [
+      0.0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3
+    ],
+    "selective_tau": [
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.9
+    ]
+  },
+  "operational_cost": {
+    "false_release": "sensitivity 5/10/20",
+    "false_reject": "sensitivity 2/3/5",
+    "test": 1.0
+  },
+  "primary": {
+    "cfr": 10.0,
+    "crej": 3.0,
+    "cap": 0.25,
+    "arms": [
+      "nested_three_way_temp_primary",
+      "nested_selective_temp_primary"
+    ]
+  },
+  "feasibility": {
+    "false_release_max": 0.05,
+    "test_capacity_primary": 0.25,
+    "high_recall_drop_max": 0.05,
+    "high_precision_drop_max": 0.05,
+    "pred_high_max": 0.38588,
+    "coverage_min": 0.7
+  },
+  "external_reviewer": "unavailable; local deterministic only",
+  "note": "outer test never selects T or thresholds"
+}
