@@ -22,4 +22,5 @@ experiment folder.
 - `P15_feature_robustness/` — FTIR 特征稳健性；把 FTIR 子集选择与 C 选择都放入外层训练折；10-seed nested QWK 0.5717±0.0231；P14 190 仅 14% 外层折被选中，说明 190 维不是稳定最优；P15-A 残差化仅 1-seed 探索。
 - `P16_ftir_block_weight/` — FTIR 块权重 + row-shuffled placebo；C1 PASS（FTIR8 有真实样品信号，full8−placebo +0.0357，Holm p=0.0072）；C2 FAIL（整块权重不如 full8，p=0.1035）；core4_w 0.5715±0.0135 仅探索性。
 - `P17_decision_metrics/` — T 弯决策指标转型；`three_way` false release 21.41%→3.66%，但 cost 仅 −0.0372、C1 FAIL；`selective` coverage 81.16%、QWK 0.6297，但全体 high recall −7.89 pp、C2 FAIL；无免费提升。
+- `P18_nested_decision_policy/` — 嵌套阈值 + 温度校准 + 成本/容量敏感性；C1 FAIL（均值接近，但 seed gate 3/10）、C2 FAIL（FR 相对 −22.52%、high recall −5.21 pp）；主设置 39/50 折无可行阈值，结论是当前 301 条下无稳定可部署策略。
 - `P15_P16_REMOTE_ARCHIVE.md` — 远程归档范围与缺失大矩阵清单。
