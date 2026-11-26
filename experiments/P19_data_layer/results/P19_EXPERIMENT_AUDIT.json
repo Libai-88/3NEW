@@ -1,0 +1,86 @@
+{
+  "audit_date": "2026-11-26",
+  "experiment": "P19_data_layer",
+  "auditor": "local deterministic checks; external reviewer unavailable",
+  "overall": "WARN",
+  "integrity_status": "warn",
+  "external_reviewer": "REVIEW_UNAVAILABLE",
+  "scope_note": "PROVISIONAL_LOCAL_AUDIT; no cross-model acquit",
+  "checks": {
+    "A_ground_truth": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p19_data_layer.py:80-122 (load_all / p17_load_data / raw_t)",
+        "scripts/p19_data_layer.py:240-320 (make_train_arm only receives outer train indices)",
+        "results/p19_augmentation_audit_full.csv"
+      ],
+      "note": "y comes from observed T labels via p09.grade_from_cuts; synthetic rows are training-only; n_synthetic_test = 0 in all 50 folds."
+    },
+    "B_score_normalization": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p19_data_layer.py:329-356 (metrics_for)",
+        "results/p19_summary_full.csv"
+      ],
+      "note": "Raw QWK/MAE/false-release/high-recall/test-rate; no prediction-derived denominator."
+    },
+    "C_result_existence": {
+      "status": "PASS",
+      "evidence": [
+        "results/p19_summary_full.csv",
+        "results/p19_delta_full.csv",
+        "results/p19_per_seed_full.csv",
+        "results/p19_oof_proba_full.csv",
+        "results/p19_augmentation_audit_full.csv",
+        "results/p19_data_audit_full.json",
+        "results/p19_claim_check_full.json",
+        "results/p19_label_noise_simulation_full.csv"
+      ],
+      "note": "All cited files exist; report numbers match the CSV/JSON values."
+    },
+    "D_dead_code": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p19_data_layer.py:359-441 (run_seed)",
+        "scripts/p19_data_layer.py:444-486 (paired_summary)",
+        "scripts/p19_data_layer.py:489-558 (claim check)"
+      ],
+      "note": "All metric/claim functions are called. Unused `sanity` argument is a harmless cleanup item."
+    },
+    "E_scope": {
+      "status": "WARN",
+      "evidence": [
+        "refine-logs/P19_EXPERIMENT_PLAN.md",
+        "results/p19_data_audit_full.json"
+      ],
+      "note": "301 observed T samples, one endpoint, 10 seeds; no external validation, no repeated T, substrate not recorded; cure condition confounded with series."
+    },
+    "F_evaluation_type": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p19_data_layer.py:80-122",
+        "results/p19_augmentation_audit_full.csv"
+      ],
+      "note": "real_gt; zero synthetic test rows; no pseudo-label evaluation."
+    }
+  },
+  "augmentation_audit": {
+    "n_folds": 50,
+    "n_synthetic_train_total": 38760,
+    "n_synthetic_test_total": 0,
+    "max_real_train_rows": 241,
+    "max_augmented_train_rows": 513
+  },
+  "claims": [
+    {"id": "C1", "impact": "unsupported", "reason": "best augmentation mean ΔQWK +0.00703 < +0.020; 6/10 seed wins; FR +2.39 pp; high recall -2.25 pp"},
+    {"id": "C2", "impact": "unsupported", "reason": "best boundary_w50 mean ΔQWK +0.00978 < +0.020; 8/10 seed wins; FR +0.42 pp; high recall unchanged; p=0.063"},
+    {"id": "C3", "impact": "supported", "reason": "audit counts reproduce from workbook: 301 observed T, 44 missing T, 0 repeated T, 190/301 within ±1.8 mm"},
+    {"id": "C4", "impact": "supported", "reason": "no external/literature T rows merged; literature used only as reference band"}
+  ],
+  "anti_claims": {
+    "A1": "Synthetic rows are training-only; not measurements.",
+    "A2": "Cure condition is confounded with series; no causal claim.",
+    "A3": "P19 does not test whether augmentation fixes label noise.",
+    "A4": "Evaluation uses observed T labels only."
+  }
+}

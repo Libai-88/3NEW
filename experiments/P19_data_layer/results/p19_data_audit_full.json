@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-26",
+  "source": "/home/user/3new-refactor/合并版数据集.xlsx",
+  "sheets": ["建模输入", "性能结果", "工艺条件"],
+  "n_epoxy": 345,
+  "n_t_observed": 301,
+  "n_t_missing": 44,
+  "grade_counts": {"low": 33, "mid": 197, "high": 71},
+  "raw_t": {"min": 10.7833, "max": 60.0, "mean": 18.695265116279067, "sd": 5.479061312592307, "n_equal_60": 4},
+  "boundaries": {
+    "0.5": {"near_15": 17, "near_20": 38, "union": 55, "fraction_union": 0.18272425249169436},
+    "1.0": {"near_15": 39, "near_20": 64, "union": 103, "fraction_union": 0.34219269102990035},
+    "1.33": {"near_15": 51, "near_20": 81, "union": 132, "fraction_union": 0.43853820598006643},
+    "1.8": {"near_15": 75, "near_20": 115, "union": 190, "fraction_union": 0.6312292358803987},
+    "2.5": {"near_15": 118, "near_20": 154, "union": 272, "fraction_union": 0.9036544850498339}
+  },
+  "missing_t": {"n": 44, "mek_nonnull": 41, "water_nonnull": 22, "T_label_status": {"实测": 41, "无标签": 3}, "series": {"R01": 21, "R10": 20, "R02": 1, "D7": 1, "R9": 1}},
+  "replicates": {"n_t_performance_rows": 301, "n_unique_samples": 301, "n_repeated_samples": 0, "max_rows_per_sample": 1},
+  "condition": {
+    "counts": {"205℃ 17min": 182, "200℃ 10min": 119},
+    "by_series": {"C4": {"205℃ 17min": 8}, "C5": {"205℃ 17min": 16}, "C6": {"205℃ 17min": 8}, "C7": {"205℃ 17min": 8}, "D1": {"205℃ 17min": 24}, "D2": {"205℃ 17min": 24}, "D3": {"205℃ 17min": 24}, "D4": {"205℃ 17min": 16}, "D5": {"205℃ 17min": 8}, "D6": {"205℃ 17min": 12}, "D7": {"205℃ 17min": 34}, "R01": {"200℃ 10min": 4}, "R02": {"200℃ 10min": 15}, "R03": {"200℃ 10min": 16}, "R4": {"200℃ 10min": 16}, "R5": {"200℃ 10min": 12}, "R6": {"200℃ 10min": 16}, "R7": {"200℃ 10min": 5}, "R8": {"200℃ 10min": 16}, "R9": {"200℃ 10min": 19}},
+    "n_series": 20,
+    "condition_series_confounded": true
+  },
+  "features": {
+    "n": 191, "n_constant": 67,
+    "constant_indices": ["f0","f2","f4","f5","f6","f7","f8","f9","f10","f12","f13","f14","f15","f16","f17","f18","f19","f20","f22","f23","f24","f25","f26","f27","f34","f35","f36","f37","f38","f39","f40","f41","f42","f43","f44","f45","f46","f48","f51","f52","f53","f54","f55","f56","f57","f58","f59","f60","f61","f62","f63","f64","f65","f70","f75","f76","f77","f78","f79","f117","f162","f163","f167","f168","f170","f179","f180"],
+    "n_missing_values": 45,
+    "n_duplicate_rows_including_first": 0
+  },
+  "groups": {"n_groups": 301, "n_samples": 301},
+  "literature_reference": {"method": "ASTM D4145", "galvanized_sd_mm": 1.33, "galvanized_repeatability_mm": 1.8, "aluminum_sd_mm": 0.55, "aluminum_repeatability_mm": 0.4, "note": "Substrate not recorded in this dataset; 1.8 mm is a conservative reference band, not measured noise."}
+}
