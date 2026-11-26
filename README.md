@@ -4,7 +4,7 @@
 
 > 2026-11-23 完成仓库重构：原 `generalization/` 提升为根目录，Phase 1 旧结构、旧 Web 整理界面和桌面 GUI 均已移出主树。当前主树只保留跨体系泛化这一条开发主线，以及无界面的数据/建模核心。
 
-> **`experiment/p14-best` 远程归档边界**：该分支完整保存 P14（P10–P14 中当前最优）的代码、证据汇总表、最终表、模型配置、数据审计与特征名；P10/P11/P12 完整目录、P13 大矩阵和 P14 日志留在本地完整归档。远程分支可复现 P14 的代码与证据链，运行前需按 `experiments/P14_evidence_chain/REMOTE_DATA.md` 补齐两个特征矩阵。P15/P16 的结论与归档范围见 `experiments/P15_P16_REMOTE_ARCHIVE.md`。
+> **`experiment/p14-best` 远程归档边界**：该分支完整保存 P14（P10–P14 中当前最优）的代码、证据汇总表、最终表、模型配置、数据审计与特征名；P10/P11/P12 完整目录、P13 大矩阵和 P14 日志留在本地完整归档。远程分支可复现 P14 的代码与证据链，运行前需按 `experiments/P14_evidence_chain/REMOTE_DATA.md` 补齐两个特征矩阵。
 
 ## 当前数据快照
 
@@ -44,7 +44,7 @@
 ├── raw/                                # 5 份原始实验记录（重录数据源）
 ├── data/
 │   └── merged_data.pkl                 # 中间产物：456 样本配方 + 描述符
-├── experiments/                        # P10 以后专题实验，一批一目录，P14 为当前最优
+├── experiments/                        # P10 以后专题实验，一批一目录；P14 190 为特征层参考，P17 为决策层
 │   ├── README.md                       # 实验索引、目录约定、复现入口
 │   ├── P10_ftir_v3/                    # 原料 FTIR 特征与基准
 │   ├── P11_feature_search/             # 219 公式搜索
@@ -52,7 +52,9 @@
 │   ├── P13_feature_opt/                # 特征层优化（初筛）
 │   ├── P14_evidence_chain/             # 最优实验：T 190 维证据链
 │   ├── P15_feature_robustness/          # FTIR 特征稳健性：残差化试点 + 嵌套子集选择
-│   └── P16_ftir_block_weight/           # FTIR 块权重 + row-shuffled placebo
+│   ├── P16_ftir_block_weight/           # FTIR 块权重 + row-shuffled placebo
+│   ├── P17_decision_metrics/            # T 弯决策指标：风险闸门 + 选择性预测
+│   └── P18_nested_decision_policy/       # T 弯嵌套阈值 + 温度校准 + 成本敏感性
 ├── tooling/                            # 依赖锁 + 统一启动器，不放进实验目录
 ├── TDS-SDS/                            # 供应商 TDS/SDS 档案 291 份（描述符实测出处）
 ├── core/                               # 无 GUI 的数据/建模核心
@@ -173,7 +175,7 @@ print(X.shape)  # (456, 313)
 
 ### P0.5 无烘烤工艺特征基线（2026-11-23）
 
-针对烘烤条件 provenance 不确定的问题，`scripts/p05_no_process_baseline.py` 在 P0 协议上彻底移除工艺信息：删除 `烘烤温度`、`烘烤时间`，以及 6 个依赖烘烤时间的机理特征 `t_eff_min`、`ne_effective`、`cure_drive`、`cure_margin`、`cure_margin_eff`、`cure_margin_neg`。current 从 313 维降到 305 维，clean 从 269 维降到 262 维；其余特征、目标、配方分组和模型参数不变。
+针对烘烤条件 provenance 不确定的问题，`scripts/p05_no_process_baseline.py` 在 P0 协议上彻底移除工艺信息：删除 `烘烤温度`、`烘烤时间`，以及 6 个依赖烘烤时间的机理特征 `t_eff_min`、`ne_effective`、`cure_drive`、`cure_margin`、`cure_margin_eff`、`cure_margin_neg`。电流从 313 维降到 305 维，clean 从 269 维降到 262 维；其余特征、目标、配方分组和模型参数不变。
 
 结论是 **去工艺后模型仍可用，但没有变好**：T 弯环氧酚醛 GroupKFold R² 从 0.1293 降到 0.1001（MAE 2.1862→2.2332）；平衡 SGKF 从 0.3656 到 0.3607；10 次 80/20 重复划分从 −0.0133±0.5168 到 −0.0671±0.5502。水煮 W4 的 acc/AUC 从 0.7401/0.8153 到 0.7365/0.8018，MEK 边界 acc/AUC 从 0.9034/0.9157 到 0.8977/0.9139；MEK 未截尾回归 R² 从 0.2645 到 0.2090。工艺特征不是当前性能的主要来源，但也说明当前配方特征本身不足以把 T 弯和 MEK 未截尾回归做稳。
 
@@ -217,8 +219,10 @@ print(X.shape)  # (456, 313)
 | **P14** | **T 190 维证据链（固定集条件最优）** | `experiments/P14_evidence_chain/` | **10 seeds nested QWK 0.5707，+0.0256（p=0.0046）；三目标平均 0.5609** |
 | **P15** | **FTIR 特征稳健性** | `experiments/P15_feature_robustness/` | **嵌套子集+C 选择 QWK 0.5717±0.0231；P14 190 fixed 高 0.0080（p=0.090，3/10 seeds 正）；子集选择分散，190 仅 14%，不能称稳定最优** |
 | **P16** | **FTIR 块权重 + 安慰剂对照** | `experiments/P16_ftir_block_weight/` | **C1 PASS：FTIR8 有真实样品信号（full8−placebo +0.0357，Holm p=0.0072）；C2 FAIL：整块权重不能替代子集选择（ftir8_w−full8 −0.0092，p=0.1035）；core4_w 0.5715 仅探索性** |
+| **P17** | **T 弯决策指标转型** | `experiments/P17_decision_metrics/` | **决策指标可行但无免费提升：three_way false release 21.41%→3.66%，但 cost −0.0372、C1 FAIL；selective coverage 81.16%、QWK 0.6297，但全体 high recall −7.89 pp、C2 FAIL** |
+| **P18** | **T 弯嵌套决策策略** | `experiments/P18_nested_decision_policy/` | **C1 FAIL（均值 FR 4.65% 但 seed gate 3/10）、C2 FAIL（FR 相对 −22.52%、high recall −5.21 pp）；39/50 折无可行阈值；结论：当前 301 条下无稳定可部署策略** |
 
-每个实验目录固定包含 `README.md`、`scripts/`、`data/`、`results/`、`logs/`；共享依赖只在 `tooling/`，不复制进实验目录。P14 的固定 190 维方案与证据链见 [`experiments/P14_evidence_chain/README.md`](experiments/P14_evidence_chain/README.md)；P15 的稳健性结论见 [`experiments/P15_feature_robustness/results/P15_实验报告.md`](experiments/P15_feature_robustness/results/P15_实验报告.md)；P16 的安慰剂/权重结论见 [`experiments/P16_ftir_block_weight/results/P16_实验报告.md`](experiments/P16_ftir_block_weight/results/P16_实验报告.md)；远程归档边界见 [`experiments/P15_P16_REMOTE_ARCHIVE.md`](experiments/P15_P16_REMOTE_ARCHIVE.md)。
+每个实验目录固定包含 `README.md`、`scripts/`、`data/`、`results/`、`logs/`；共享依赖只在 `tooling/`，不复制进实验目录。P14 的固定 190 维方案与证据链见 [`experiments/P14_evidence_chain/README.md`](experiments/P14_evidence_chain/README.md)；P15 的稳健性结论见 [`experiments/P15_feature_robustness/results/P15_实验报告.md`](experiments/P15_feature_robustness/results/P15_实验报告.md)；P16 的安慰剂/权重结论见 [`experiments/P16_ftir_block_weight/results/P16_实验报告.md`](experiments/P16_ftir_block_weight/results/P16_实验报告.md)；P17 的决策指标结论见 [`experiments/P17_decision_metrics/results/P17_实验报告.md`](experiments/P17_decision_metrics/results/P17_实验报告.md)；远程归档边界见 [`experiments/P15_P16_REMOTE_ARCHIVE.md`](experiments/P15_P16_REMOTE_ARCHIVE.md)。
 
 每个脚本都固定随机种子；大多数实验支持 `--s1/--s2/--seeds/--arms` 等参数，具体以 `--help` 为准。P0~P9 的结果 JSON 在 `scripts/*_result.json`，P10 以后在 `experiments/<批次>/results/`。
 
