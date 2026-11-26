@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-26",
+  "tag": "full",
+  "review_status": "REVIEW_UNAVAILABLE",
+  "note": "No external cross-model reviewer is available. This is a local deterministic claim check, not an acquittal.",
+  "claims": [
+    {"id": "C1", "name": "MEK auxiliary representation", "pass": false, "mean_delta_qwk": -0.003823683121644106, "seed_wins_qwk": 3, "mean_delta_fr_pp": 1.2676056338028168, "mean_delta_high_recall_pp": -1.5492957746478895, "specificity_warning": false, "placebo_arm": "aux_mek4_shuffle", "placebo_delta_qwk": -0.0048631652397140065},
+    {"id": "C2", "name": "joint MEK+water auxiliary representation", "pass": false, "base_gate_pass": false, "specificity_gate_pass": false, "mean_delta_qwk": -0.014572772984799486, "seed_wins_qwk": 3, "mean_delta_fr_pp": 2.5352112676056335, "mean_delta_high_recall_pp": -3.3802816901408455, "specificity": {"comparison": "aux_both_vs_aux_both_shuffle", "n_seeds": 10, "mean_delta_qwk": 0.009348461776944827, "sd_delta_qwk": 0.019100954295285764, "seed_wins_qwk": 6, "paired_t_p": 0.15610186525510708, "wilcoxon_p": 0.16015625, "mean_delta_fr_pp": 0.42253521126760585, "mean_delta_high_recall_pp": -0.14084507042253397}},
+    {"id": "C3", "name": "auxiliary coverage and arm-level audit", "pass": true, "evidence": {"n_t": 301, "n_mek_observed": 298, "n_water_observed": 239, "mek_grades": {"0": 89, "1": 97, "2": 61, "3": 51}, "water_grades": {"0": 86, "1": 55, "2": 98}}},
+    {"id": "C4", "name": "no test auxiliary labels used", "pass": true, "evidence": {"n_fold_records": 300, "n_aux_test_labels_used_max": 0}}
+  ],
+  "anti_claims": {
+    "A1": "If aux_mek4_shuffle also passes the base gate, C1 is downgraded to extra-feature capacity, not MEK target information.",
+    "A2": "C2 requires aux_both to beat both full8_base and aux_both_shuffle.",
+    "A3": "MEK/water are not causal parents of T-bend; no mechanism claim.",
+    "A4": "No test-time auxiliary ground truth and no oracle arm.",
+    "A5": "301 T samples, single model family; no external generalization."
+  }
+}

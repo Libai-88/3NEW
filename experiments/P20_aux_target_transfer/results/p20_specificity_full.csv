@@ -1,0 +1,2 @@
+comparison,n_seeds,mean_delta_qwk,sd_delta_qwk,seed_wins_qwk,paired_t_p,wilcoxon_p,mean_delta_fr_pp,mean_delta_high_recall_pp
+aux_both_vs_aux_both_shuffle,10,0.009348461777,0.0191009543,6,0.1561018653,0.16015625,0.4225352113,-0.1408450704

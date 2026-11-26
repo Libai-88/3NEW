@@ -1,0 +1,20 @@
+{
+  "experiment": "P20_aux_target_transfer",
+  "date": "2026-11-26",
+  "mode": "full",
+  "tag": "full",
+  "seeds": [42, 202, 777, 1234, 2026, 31415, 2718, 1618, 5678, 9999],
+  "arms": ["full8_base", "aux_mek4", "aux_water3", "aux_both", "aux_mek4_shuffle", "aux_both_shuffle"],
+  "target": "T three-grade cuts [15,20]",
+  "n": 301,
+  "features": "P16 full8 (183+8=191), C=2.0, w=1.0",
+  "aux_targets": {
+    "MEK": {"k": 4, "cuts": [50.0, 100.0, 200.0], "observed": 298, "missing": 3, "bins": "left-closed"},
+    "water": {"k": 3, "cuts": [2.0, 3.0], "observed": 239, "missing": 62, "bins": "right-closed"}
+  },
+  "aux_representation": "inner 3-fold grouped OOF probabilities of auxiliary cumulative logistic models; outer test auxiliary probabilities predicted from features only",
+  "hard_boundary": "outer test auxiliary labels never used; no oracle arm",
+  "outer_folds": 5,
+  "group_field": "formula_id",
+  "review_status": "REVIEW_UNAVAILABLE"
+}

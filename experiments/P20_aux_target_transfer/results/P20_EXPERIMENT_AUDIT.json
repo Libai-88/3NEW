@@ -1,0 +1,76 @@
+{
+  "audit_date": "2026-11-26",
+  "experiment": "P20_aux_target_transfer",
+  "auditor": "local deterministic checks; external reviewer unavailable",
+  "overall": "WARN",
+  "integrity_status": "warn",
+  "external_reviewer": "REVIEW_UNAVAILABLE",
+  "scope_note": "PROVISIONAL_LOCAL_AUDIT; no cross-model acquit",
+  "checks": {
+    "A_ground_truth": {
+      "status": "PASS",
+      "evidence": [
+        "scripts/p20_aux_transfer.py:92-114 (load_all: T labels from p19.load_all; MEK/water from 建模输入 by sample ID)",
+        "scripts/p20_aux_transfer.py:250-308 (make_aux_features: only y_mek_tr/y_water_tr and Xte passed to auxiliary models)",
+        "scripts/p20_aux_transfer.py:315-360 (run_seed: outer group leakage assertion and fold-level audit)"
+      ],
+      "note": "Real observed T labels are the only evaluation GT; auxiliary labels are real observed MEK/water labels used in training only; no test auxiliary label read in code."
+    },
+    "B_score_normalization": {
+      "status": "PASS",
+      "evidence": ["scripts/p20_aux_transfer.py:311-312 (metrics_for delegates to p19 raw metrics)", "results/p20_summary_full.csv"],
+      "note": "Raw QWK/MAE/false-release/high-recall/test-rate; no prediction-derived denominator."
+    },
+    "C_result_existence": {
+      "status": "PASS",
+      "evidence": ["results/p20_summary_full.csv", "results/p20_delta_full.csv", "results/p20_specificity_full.csv", "results/p20_per_seed_full.csv", "results/p20_oof_proba_full.csv", "results/p20_aux_audit_full.csv", "results/p20_claim_check_full.json", "results/p20_config_full.json"],
+      "note": "All cited files exist; base QWK 0.573974 matches P19 full8_base; sanity baseline 0.576128 differs by 0.002154 (< 0.005)."
+    },
+    "D_dead_code": {
+      "status": "PASS",
+      "evidence": ["scripts/p20_aux_transfer.py:92-308 (load/grade/aux OOF/aux test/AuxPrep)", "scripts/p20_aux_transfer.py:315-489 (run_seed/paired summaries/gates/claim check)"],
+      "note": "All six arms exercised; 300 fold records = 50 unique outer folds x 6 arms."
+    },
+    "E_scope": {
+      "status": "WARN",
+      "evidence": ["refine-logs/P20_EXPERIMENT_PLAN.md", "results/p20_config_full.json"],
+      "note": "301 T, one endpoint, one frozen full8 model family, 10 seeds; no external validation, no new series, no repeated T; water auxiliary coverage 239/301."
+    },
+    "F_evaluation_type": {
+      "status": "PASS",
+      "evidence": ["scripts/p20_aux_transfer.py:250-308", "results/p20_aux_audit_full.csv"],
+      "note": "real_gt; auxiliary labels are real observed MEK/water labels used training-only; test auxiliary labels not read."
+    }
+  },
+  "aux_audit": {
+    "n_fold_records": 300,
+    "n_unique_outer_folds": 50,
+    "n_arms": 6,
+    "n_aux_test_labels_used_max": 0,
+    "n_aux_test_labels_used_field": "declared 0 by construction; code inspection confirms no te auxiliary label read; not a dynamic taint proof"
+  },
+  "coverage": {
+    "n_t": 301,
+    "n_mek_observed": 298,
+    "n_mek_missing": 3,
+    "n_water_observed": 239,
+    "n_water_missing": 62,
+    "mek_grades": {"0": 89, "1": 97, "2": 61, "3": 51},
+    "water_grades": {"0": 86, "1": 55, "2": 98},
+    "mek_boundary": "left-closed bins: 50/100/200 go to the next grade",
+    "water_boundary": "right-closed bins: 1-2 / 3 / 4-5; 2.5 mapped to 3"
+  },
+  "claims": [
+    {"id": "C1", "impact": "unsupported", "reason": "aux_mek4 mean ΔQWK -0.003824 < +0.020; 3/10 seed wins; FR +1.27 pp; high recall -1.55 pp"},
+    {"id": "C2", "impact": "unsupported", "reason": "aux_both mean ΔQWK -0.014573; base gate fails; specificity +0.009348 < +0.010, 6/10 seeds, p=0.156"},
+    {"id": "C3", "impact": "supported", "reason": "coverage and all arm metrics reproducible; MEK 298/301, water 239/301"},
+    {"id": "C4", "impact": "supported", "reason": "code inspection shows no test auxiliary label read; 300 fold records declared 0; audit strength WARN because field is declared, not dynamically tainted"}
+  ],
+  "anti_claims": {
+    "A1": "If aux_mek4_shuffle also passes the base gate, C1 would downgrade to extra-feature capacity; here both aux_mek4 and its shuffle are below base, so C1 is simply negative.",
+    "A2": "C2 requires aux_both to beat both full8_base and aux_both_shuffle; base gate fails, specificity gate fails.",
+    "A3": "MEK/water are not causal parents of T-bend; no mechanism claim.",
+    "A4": "No test-time auxiliary ground truth and no oracle arm.",
+    "A5": "301 T samples, single model family; no external generalization."
+  }
+}
