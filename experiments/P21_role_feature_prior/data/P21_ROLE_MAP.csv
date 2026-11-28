@@ -1,0 +1,192 @@
+feature,role_group,role_tier,role_weight_raw,rationale
+frac_10%135,solvent_additive,supporting,0.7,material fraction: 10%135
+frac_10%磷酸,catalyst_kinetics,critical,1.0,material fraction: 10%磷酸
+frac_14.28%炭黑浆料,filler_pigment,supporting,0.7,material fraction: 14.28%炭黑浆料
+frac_1510蜡,solvent_additive,supporting,0.7,material fraction: 1510蜡
+frac_3%气硅,solvent_additive,supporting,0.7,material fraction: 3%气硅
+frac_35.7%白浆,filler_pigment,supporting,0.7,material fraction: 35.7%白浆
+frac_35.7%白浆-新(无306),filler_pigment,supporting,0.7,material fraction: 35.7%白浆-新(无306)
+frac_40%50177,resin_network,critical,1.0,material fraction: 40%50177
+frac_AC040,catalyst_kinetics,critical,1.0,material fraction: AC040
+frac_AL710,solvent_additive,supporting,0.7,material fraction: AL710
+frac_AS400,solvent_additive,supporting,0.7,material fraction: AS400
+frac_AZ088,solvent_additive,supporting,0.7,material fraction: AZ088
+frac_AZ135,catalyst_kinetics,critical,1.0,material fraction: AZ135
+frac_AZ306,solvent_additive,supporting,0.7,material fraction: AZ306
+frac_AZ551,solvent_additive,supporting,0.7,material fraction: AZ551
+frac_DBE,solvent_additive,supporting,0.7,material fraction: DBE
+frac_DMP,solvent_additive,supporting,0.7,material fraction: DMP
+frac_FL815C,filler_pigment,supporting,0.7,material fraction: FL815C
+frac_IA151,resin_network,critical,1.0,material fraction: IA151
+frac_IA8000,resin_network,critical,1.0,material fraction: IA8000
+frac_IR557,resin_network,critical,1.0,material fraction: IR557
+frac_IR809,resin_network,critical,1.0,material fraction: IR809
+frac_IR842,resin_network,critical,1.0,material fraction: IR842
+frac_IR868,resin_network,critical,1.0,material fraction: IR868
+frac_IR877,resin_network,critical,1.0,material fraction: IR877
+frac_IR909,resin_network,critical,1.0,material fraction: IR909
+frac_MIBK,solvent_additive,supporting,0.7,material fraction: MIBK
+frac_RA009,cure_crosslink,critical,1.0,material fraction: RA009
+frac_RF160,cure_crosslink,critical,1.0,material fraction: RF160
+frac_RF401,cure_crosslink,critical,1.0,material fraction: RF401
+frac_RF516,cure_crosslink,critical,1.0,material fraction: RF516
+frac_RF950,cure_crosslink,critical,1.0,material fraction: RF950
+frac_RF956,cure_crosslink,critical,1.0,material fraction: RF956
+frac_RH601,resin_network,critical,1.0,material fraction: RH601
+frac_RJ173M,resin_network,critical,1.0,material fraction: RJ173M
+frac_RJ362,resin_network,critical,1.0,material fraction: RJ362
+frac_RJ561,resin_network,critical,1.0,material fraction: RJ561
+frac_RX170-140,resin_network,critical,1.0,material fraction: RX170-140
+frac_RY075N,resin_network,critical,1.0,material fraction: RY075N
+frac_RY078,filler_pigment,supporting,0.7,material fraction: RY078
+frac_RY460,resin_network,critical,1.0,material fraction: RY460
+frac_TF022,resin_network,critical,1.0,material fraction: TF022
+frac_TF100,resin_network,critical,1.0,material fraction: TF100
+frac_TM004,solvent_additive,supporting,0.7,material fraction: TM004
+frac_TZ161,solvent_additive,supporting,0.7,material fraction: TZ161
+frac_TZ221,solvent_additive,supporting,0.7,material fraction: TZ221
+frac_TZ425,solvent_additive,supporting,0.7,material fraction: TZ425
+frac_住友55754G,resin_network,critical,1.0,material fraction: 住友55754G
+frac_日本151-PVC,filler_pigment,supporting,0.7,material fraction: 日本151-PVC
+frac_正丁醇,solvent_additive,supporting,0.7,material fraction: 正丁醇
+frac_补加混合液,solvent_additive,supporting,0.7,material fraction: 补加混合液
+frac_rare_total,other,neutral,1.0,material fraction: rare_total
+rare_present_100#溶剂油,solvent_additive,supporting,0.7,rare material indicator: 100#溶剂油
+rare_present_20%CAB,solvent_additive,supporting,0.7,rare material indicator: 20%CAB
+rare_present_209-基料,solvent_additive,supporting,0.7,rare material indicator: 209-基料
+rare_present_25%5100,resin_network,critical,1.0,rare material indicator: 25%5100
+rare_present_40%818,resin_network,critical,1.0,rare material indicator: 40%818
+rare_present_50170M,resin_network,critical,1.0,rare material indicator: 50170M
+rare_present_6#炭黑-阿克苏,filler_pigment,supporting,0.7,rare material indicator: 6#炭黑-阿克苏
+rare_present_AL525,solvent_additive,supporting,0.7,rare material indicator: AL525
+rare_present_AL800,resin_network,critical,1.0,rare material indicator: AL800
+rare_present_IA800,resin_network,critical,1.0,rare material indicator: IA800
+rare_present_R170M,resin_network,critical,1.0,rare material indicator: R170M
+rare_present_RA083,cure_crosslink,critical,1.0,rare material indicator: RA083
+rare_present_RA824,cure_crosslink,critical,1.0,rare material indicator: RA824
+rare_present_RJ183,resin_network,critical,1.0,rare material indicator: RJ183
+resin_frac,resin_network,critical,1.0,resin/network descriptor
+xlink_frac,cure_crosslink,critical,1.0,crosslinker fraction
+solvent_frac,solvent_additive,supporting,0.7,solvent/additive descriptor
+additive_frac,solvent_additive,supporting,0.7,solvent/additive descriptor
+pigment_frac,filler_pigment,supporting,0.7,pigment/filler descriptor
+oh_epoxy_eq_ratio,resin_network,critical,1.0,resin/network descriptor
+n_components,formulation_balance,supporting,0.7,formulation balance descriptor
+avg_func,formulation_balance,supporting,0.7,formulation balance descriptor
+rtype_环氧,resin_network,critical,1.0,resin type indicator
+rtype_聚酯,resin_network,critical,1.0,resin type indicator
+rtype_乙烯基,resin_network,critical,1.0,resin type indicator
+rtype_丙烯酸,resin_network,critical,1.0,resin type indicator
+rtype_聚氨酯,resin_network,critical,1.0,resin type indicator
+rtype_氨基,cure_crosslink,critical,1.0,amino curing-agent type
+rtype_其他,other,neutral,1.0,other resin type
+w_NV,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_Mw,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_EEW,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_AV,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_OHV,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_Tg,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_bp,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_dD,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_dP,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_dH,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_pol,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_evap,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_C,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_H,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_O,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_fg_epoxy,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_fg_ester,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_fg_amide,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_fg_arom,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_fg_ether,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+w_wax,formulation_balance,supporting,0.7,mixture-weighted material descriptor
+树脂_w_EEW,resin_network,critical,1.0,resin-weighted material descriptor
+树脂_w_AV,resin_network,critical,1.0,resin-weighted material descriptor
+树脂_w_OHV,resin_network,critical,1.0,resin-weighted material descriptor
+树脂_w_fg_epoxy,resin_network,critical,1.0,resin-weighted material descriptor
+树脂_w_fg_arom,resin_network,critical,1.0,resin-weighted material descriptor
+树脂_w_Mw,resin_network,critical,1.0,resin-weighted material descriptor
+树脂_w_NV,resin_network,critical,1.0,resin-weighted material descriptor
+固化剂_w_AV,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+固化剂_w_OHV,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+固化剂_w_Tg,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+固化剂_w_func,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+固化剂_w_fg_arom,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+固化剂_w_fg_ether,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+固化剂_w_Mw,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+固化剂_w_NV,cure_crosslink,critical,1.0,curing-agent-weighted descriptor
+溶剂_w_AV,solvent_additive,supporting,0.7,solvent-weighted descriptor
+溶剂_w_OHV,solvent_additive,supporting,0.7,solvent-weighted descriptor
+溶剂_w_Tg,solvent_additive,supporting,0.7,solvent-weighted descriptor
+溶剂_w_fg_arom,solvent_additive,supporting,0.7,solvent-weighted descriptor
+溶剂_w_fg_ether,solvent_additive,supporting,0.7,solvent-weighted descriptor
+溶剂_w_Mw,solvent_additive,supporting,0.7,solvent-weighted descriptor
+arom_density,solvent_additive,supporting,0.7,solvent/additive descriptor
+solvent_evap_frac,solvent_additive,supporting,0.7,solvent/additive descriptor
+ratio_03,formulation_balance,supporting,0.7,explicit formulation ratio
+ratio_04,formulation_balance,supporting,0.7,explicit formulation ratio
+ratio_05,formulation_balance,supporting,0.7,explicit formulation ratio
+ratio_07,formulation_balance,supporting,0.7,explicit formulation ratio
+ratio_08,formulation_balance,supporting,0.7,explicit formulation ratio
+ratio_09,formulation_balance,supporting,0.7,explicit formulation ratio
+ratio_10,formulation_balance,supporting,0.7,explicit formulation ratio
+ratio_11,formulation_balance,supporting,0.7,explicit formulation ratio
+wmean_rdkit_BalabanJ,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_BertzCT,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_Kappa1,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_Kappa2,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_Kappa3,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_NOCount,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_PEOE_VSA2,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_SlogP_VSA2,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wmean_rdkit_TPSA,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_BalabanJ,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_BertzCT,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_Chi0,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_Chi0n,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_EState_VSA2,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_Kappa1,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_Kappa2,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_Kappa3,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_NOCount,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_NumRotatableBonds,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_PEOE_VSA1,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_PEOE_VSA2,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_SlogP_VSA2,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+wstd_rdkit_TPSA,molecular_descriptor,descriptive,0.4,SMILES/RDKit descriptor
+solids_frac,formulation_balance,supporting,0.7,formulation balance descriptor
+binder_solids_frac,formulation_balance,supporting,0.7,formulation balance descriptor
+eq_oh_phenol,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+eq_oh_ali,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+eq_oh_all,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+eq_cooh,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+eq_nco,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+eq_amine,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+eq_cat,catalyst_kinetics,critical,1.0,catalyst equivalent / per-epoxy ratio
+r_phenol_epoxy,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+r_oh_epoxy,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+r_nco_oh,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+r_amino_oh,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+stoich_dev_epoxy,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+stoich_dev_nco,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+f_bar,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+ne_potential,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+xlink_per_binder,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+tg_fox_solids,cure_crosslink,critical,1.0,cure/network mechanism descriptor
+h_d_resin_solvent,solvent_additive,supporting,0.7,solvent/additive descriptor
+h_d_min_pair,solvent_additive,supporting,0.7,solvent/additive descriptor
+solvent_power,solvent_additive,supporting,0.7,solvent/additive descriptor
+evap_solvent_w,solvent_additive,supporting,0.7,solvent/additive descriptor
+pvc,filler_pigment,supporting,0.7,pigment/filler descriptor
+dbp_w_pigment,filler_pigment,supporting,0.7,pigment/filler descriptor
+cat_per_epoxy_eq,catalyst_kinetics,critical,1.0,catalyst equivalent / per-epoxy ratio
+wax_frac,solvent_additive,supporting,0.7,solvent/additive descriptor
+ftir_oh_phen,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
+ftir_oh_epox,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
+ftir_meoh_phen,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
+ftir_aroc_phen,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
+ftir_coc_all,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
+ftir_arsub_all,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
+ftir_ch_all,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
+ftir_co_all,ftir_band,diagnostic,1.0,FTIR band; diagnostic role weight is separate
