@@ -22,8 +22,11 @@ cross-model review is unavailable, so the claim remains
 
 ## Remote commits
 
-- `PENDING` — key report, claim, audit, summaries and config.
-- `PENDING` — feature triage, pre-registration, tracker and archive manifest update.
+- `951b8dc3d0c35dcc74dcbe05e5b12d7f034697b5` — key report, claim, audit and README.
+- `1b2492316394b437d939b9a2d1dc811a5fd29564` — machine gate, audit JSON and result summaries.
+- `8e52bfc13a0554b5f6b451e7a0ea8d36e9a63a90` — feature triage and execution tracker.
+- `b013db8e7d8ba2425c75aace63bc5c5ae23c0f14` — pre-registration plan.
+- Manifest and tracker update are in the next commit.
 
 ## Archived key files
 

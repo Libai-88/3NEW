@@ -12,7 +12,7 @@
 | R008 | M3 | audit | deterministic local checks | n/a | audit checklist | MUST | DONE | 24/24 pass; `PROVISIONAL_LOCAL_AUDIT`; dimensions/OOF/prep/placebo checks |
 | R009 | M3 | claim | C1/C2/C3 | n/a | gate JSON | MUST | DONE | C1/C2 fail; C3 supporting pass; `claim_supported=false`; `REVIEW_UNAVAILABLE` |
 | R010 | M3 | report | P22 report + README | n/a | numbers | MUST | DONE | `results/P22_实验报告.md`, `README.md`, claim, audit |
-| R011 | M4 | archive | GitHub remote | n/a | key files | MUST | IN_PROGRESS | user confirmed; key-result archive via GitHub connector |
+| R011 | M4 | archive | GitHub remote | n/a | key files | MUST | DONE | GitHub connector; commits `951b8dc`, `1b24923`, `8e52bfc`, `b013db8`; key-result archive |
 
 ## Status notes
 
