@@ -1,0 +1,13 @@
+{
+  "n_features": 191,
+  "n_base": 183,
+  "n_ftir": 8,
+  "group_counts": {"resin_network": 40, "cure_crosslink": 34, "catalyst_kinetics": 5, "filler_pigment": 10, "solvent_additive": 36, "formulation_balance": 33, "molecular_descriptor": 23, "ftir_band": 8, "other": 2},
+  "tier_counts": {"critical": 79, "descriptive": 23, "diagnostic": 8, "neutral": 2, "supporting": 79},
+  "unknown_or_other": ["frac_rare_total", "rtype_其他"],
+  "mass_shares": {"resin_network": 0.6780585983572582, "cure_crosslink": 0.15619555655109826, "catalyst_kinetics": 0.012077244873885949, "filler_pigment": 0.0, "solvent_additive": 0.15366860021775805},
+  "role_normalized": {"resin_network": 1.2, "cure_crosslink": 1.2, "catalyst_kinetics": 1.2, "filler_pigment": 0.8399999999999999, "solvent_additive": 0.8399999999999999, "formulation_balance": 0.8399999999999999, "molecular_descriptor": 0.48, "ftir_band": 1.2, "other": 1.2},
+  "mass_normalized": {"resin_network": 1.4883850113937036, "cure_crosslink": 0.34285993243088814, "catalyst_kinetics": 0.026510378738317002, "filler_pigment": 0.00021950684129655375, "solvent_additive": 0.3373130904026298, "formulation_balance": 1.5365478890758761, "molecular_descriptor": 0.878027365186215, "ftir_band": 2.1950684129655373, "other": 2.1950684129655373},
+  "map_sha256": "f2435e0be8ffc4cd66711f8f9d36335564443b7635a084a7cdd5b969db4ae451",
+  "target_used": false
+}

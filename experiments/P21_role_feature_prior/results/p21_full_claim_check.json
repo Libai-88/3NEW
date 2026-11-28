@@ -1,0 +1,38 @@
+{
+  "verdict": "REVIEW_UNAVAILABLE",
+  "claim_supported": false,
+  "C1": {
+    "role_vs_mass": {"pass": true, "a": "role_prior", "b": "mass_prior", "n_seeds": 20, "mean_delta_qwk": 0.022757979184684706, "sd_delta_qwk": 0.019509742542099775, "seed_wins_qwk": 19, "paired_t_p": 4.9108211488228065e-05, "wilcoxon_p": 6.29425048828125e-05, "mean_delta_fr_pp": 0.2112676056338028, "mean_delta_high_recall_pp": 2.957746478873241, "mean_a_qwk": 0.5103035719262317, "mean_b_qwk": 0.48754559274154696, "comparison": "role_prior_vs_mass_prior", "holm_p": 0.0001473246344646842},
+    "role_vs_shuffle": {"pass": true, "a": "role_prior", "b": "role_prior_shuffle", "n_seeds": 20, "mean_delta_qwk": 0.009394136998137275, "sd_delta_qwk": 0.015968409093097827, "seed_wins_qwk": 17, "paired_t_p": 0.016459969624910847, "wilcoxon_p": 0.00485992431640625, "mean_delta_fr_pp": 0.4929577464788732, "mean_delta_high_recall_pp": 1.0563380281690153, "mean_a_qwk": 0.5103035719262317, "mean_b_qwk": 0.5009094349280943, "comparison": "role_prior_vs_role_prior_shuffle", "holm_p": 0.03291993924982169},
+    "role_vs_gn_base": {"pass": false, "a": "role_prior", "b": "full8_gn_base", "n_seeds": 20, "mean_delta_qwk": 0.0026266144945734315, "sd_delta_qwk": 0.010805136723271417, "seed_wins_qwk": 11, "paired_t_p": 0.29057936853413524, "wilcoxon_p": 0.3143893322216611, "mean_delta_fr_pp": 0.5633802816901408, "mean_delta_high_recall_pp": 0.4929577464788747, "mean_a_qwk": 0.5103035719262317, "mean_b_qwk": 0.5076769574316582, "comparison": "role_prior_vs_full8_gn_base", "holm_p": 0.29057936853413524},
+    "role_vs_base_noninferior": {"pass": false, "a": "role_prior", "b": "full8_base", "n_seeds": 20, "mean_delta_qwk": -0.05987758854034493, "sd_delta_qwk": 0.02240425726518105, "seed_wins_qwk": 0, "paired_t_p": 2.771392579286875e-10, "wilcoxon_p": 1.9073486328125e-06, "mean_delta_fr_pp": -0.2816901408450705, "mean_delta_high_recall_pp": 0.3521126760563387, "mean_a_qwk": 0.5103035719262317, "mean_b_qwk": 0.5701811604665765, "comparison": "role_prior_vs_full8_base", "holm_p": null},
+    "pass": false
+  },
+  "C2": {
+    "two_part_vs_base": {"pass": false, "a": "two_part_cat", "b": "full8_base", "n_seeds": 20, "mean_delta_qwk": 9.025693723038741e-05, "sd_delta_qwk": 0.009183716355318968, "seed_wins_qwk": 8, "paired_t_p": 0.9654014213788027, "wilcoxon_p": 0.9479148130096964, "mean_delta_fr_pp": 0.4929577464788732, "mean_delta_high_recall_pp": 0.07042253521126751, "mean_a_qwk": 0.5702714174038068, "mean_b_qwk": 0.5701811604665765, "comparison": "two_part_cat_vs_full8_base", "holm_p": 1.0},
+    "two_part_vs_log": {"pass": false, "a": "two_part_cat", "b": "log_cat", "n_seeds": 20, "mean_delta_qwk": -0.0004858080242489349, "sd_delta_qwk": 0.009077437041990951, "seed_wins_qwk": 9, "paired_t_p": 0.8134043323752005, "wilcoxon_p": 0.982627294725416, "mean_delta_fr_pp": 0.4929577464788732, "mean_delta_high_recall_pp": 0.0, "mean_a_qwk": 0.5702714174038068, "mean_b_qwk": 0.5707572254280558, "comparison": "two_part_cat_vs_log_cat", "holm_p": 1.0},
+    "pass": false
+  },
+  "C3": {
+    "interact_vs_shuffle": {"pass": false, "a": "interact", "b": "interact_shuffle", "n_seeds": 20, "mean_delta_qwk": 0.004054596184844344, "sd_delta_qwk": 0.019648133279940652, "seed_wins_qwk": 11, "paired_t_p": 0.36764592750310626, "wilcoxon_p": 0.38837623596191406, "mean_delta_fr_pp": 2.2204460492503132e-17, "mean_delta_high_recall_pp": 0.5633802816901406, "mean_a_qwk": 0.5710321022781927, "mean_b_qwk": 0.5669775060933484, "comparison": "interact_vs_interact_shuffle", "holm_p": 0.7352918550062125},
+    "interact_vs_base": {"pass": false, "a": "interact", "b": "full8_base", "n_seeds": 20, "mean_delta_qwk": 0.0008509418116162293, "sd_delta_qwk": 0.010179250759910526, "seed_wins_qwk": 11, "paired_t_p": 0.7126540410303834, "wilcoxon_p": 0.47490501403808594, "mean_delta_fr_pp": 1.1267605633802817, "mean_delta_high_recall_pp": -0.4225352112676061, "mean_a_qwk": 0.5710321022781927, "mean_b_qwk": 0.5701811604665765, "comparison": "interact_vs_full8_base", "holm_p": 0.7352918550062125},
+    "pass": false
+  },
+  "C4": {
+    "band_role_vs_intensity": {"pass": false, "a": "ftir_band_role", "b": "ftir_band_intensity", "n_seeds": 20, "mean_delta_qwk": -0.0014811833740840607, "sd_delta_qwk": 0.01358847987135549, "seed_wins_qwk": 9, "paired_t_p": 0.631498361057193, "wilcoxon_p": 0.7771175732880233, "mean_delta_fr_pp": -0.1408450704225353, "mean_delta_high_recall_pp": -1.2676056338028174, "mean_a_qwk": 0.5735632729204184, "mean_b_qwk": 0.5750444562945024, "comparison": "ftir_band_role_vs_ftir_band_intensity", "holm_p": 0.631498361057193},
+    "band_role_vs_shuffle": {"pass": false, "a": "ftir_band_role", "b": "ftir_band_shuffle", "n_seeds": 20, "mean_delta_qwk": 0.004851590206759404, "sd_delta_qwk": 0.01014199583072252, "seed_wins_qwk": 14, "paired_t_p": 0.04560696466669061, "wilcoxon_p": 0.017582795345746867, "mean_delta_fr_pp": -0.07042253521126762, "mean_delta_high_recall_pp": 0.3521126760563381, "mean_a_qwk": 0.5735632729204184, "mean_b_qwk": 0.5687116827136589, "comparison": "ftir_band_role_vs_ftir_band_shuffle", "holm_p": 0.09121392933338122},
+    "pass": false
+  },
+  "interpretation": {
+    "C1": "role criticality vs mass dose; requires both mass and shuffle controls",
+    "C2": "catalyst two-part vs base and vs plain log; primary transform claim",
+    "C3": "catalyst interactions vs shuffled products; supporting",
+    "C4": "FTIR band diagnostic role vs intensity and shuffle; supporting"
+  },
+  "date": "2026-11-28",
+  "tag": "full",
+  "n_seeds": 20,
+  "n_arms": 15,
+  "integrity_status": "WARN",
+  "audit_status": "PROVISIONAL_LOCAL_AUDIT"
+}

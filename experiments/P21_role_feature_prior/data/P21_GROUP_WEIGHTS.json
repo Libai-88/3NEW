@@ -1,0 +1,85 @@
+{
+  "role_group_order": [
+    "resin_network",
+    "cure_crosslink",
+    "catalyst_kinetics",
+    "filler_pigment",
+    "solvent_additive",
+    "formulation_balance",
+    "molecular_descriptor",
+    "ftir_band",
+    "other"
+  ],
+  "role_tier": {
+    "resin_network": "critical",
+    "cure_crosslink": "critical",
+    "catalyst_kinetics": "critical",
+    "filler_pigment": "supporting",
+    "solvent_additive": "supporting",
+    "formulation_balance": "supporting",
+    "molecular_descriptor": "descriptive",
+    "ftir_band": "diagnostic",
+    "other": "neutral"
+  },
+  "role_raw": {
+    "resin_network": 1.0,
+    "cure_crosslink": 1.0,
+    "catalyst_kinetics": 1.0,
+    "filler_pigment": 0.7,
+    "solvent_additive": 0.7,
+    "formulation_balance": 0.7,
+    "molecular_descriptor": 0.4,
+    "ftir_band": 1.0,
+    "other": 1.0
+  },
+  "role_normalized": {
+    "resin_network": 1.2,
+    "cure_crosslink": 1.2,
+    "catalyst_kinetics": 1.2,
+    "filler_pigment": 0.8399999999999999,
+    "solvent_additive": 0.8399999999999999,
+    "formulation_balance": 0.8399999999999999,
+    "molecular_descriptor": 0.48,
+    "ftir_band": 1.2,
+    "other": 1.2
+  },
+  "mass_shares": {
+    "resin_network": 0.6780585983572582,
+    "cure_crosslink": 0.15619555655109826,
+    "catalyst_kinetics": 0.012077244873885949,
+    "filler_pigment": 0.0,
+    "solvent_additive": 0.15366860021775805
+  },
+  "mass_raw": {
+    "resin_network": 0.6780585983572582,
+    "cure_crosslink": 0.15619555655109826,
+    "catalyst_kinetics": 0.012077244873885949,
+    "filler_pigment": 0.0001,
+    "solvent_additive": 0.15366860021775805,
+    "formulation_balance": 0.7,
+    "molecular_descriptor": 0.4,
+    "ftir_band": 1.0,
+    "other": 1.0
+  },
+  "mass_normalized": {
+    "resin_network": 1.4883850113937036,
+    "cure_crosslink": 0.34285993243088814,
+    "catalyst_kinetics": 0.026510378738317002,
+    "filler_pigment": 0.00021950684129655375,
+    "solvent_additive": 0.3373130904026298,
+    "formulation_balance": 1.5365478890758761,
+    "molecular_descriptor": 0.878027365186215,
+    "ftir_band": 2.1950684129655373,
+    "other": 2.1950684129655373
+  },
+  "ftir_role_raw": {
+    "ftir_oh_phen": 0.8,
+    "ftir_oh_epox": 1.0,
+    "ftir_meoh_phen": 0.6,
+    "ftir_aroc_phen": 0.8,
+    "ftir_coc_all": 1.0,
+    "ftir_arsub_all": 0.8,
+    "ftir_ch_all": 0.6,
+    "ftir_co_all": 1.0
+  }
+}
