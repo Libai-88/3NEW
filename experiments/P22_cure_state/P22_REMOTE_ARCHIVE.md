@@ -26,7 +26,9 @@ cross-model review is unavailable, so the claim remains
 - `1b2492316394b437d939b9a2d1dc811a5fd29564` — machine gate, audit JSON and result summaries.
 - `8e52bfc13a0554b5f6b451e7a0ea8d36e9a63a90` — feature triage and execution tracker.
 - `b013db8e7d8ba2425c75aace63bc5c5ae23c0f14` — pre-registration plan.
-- Manifest and tracker update are in the next commit.
+- `3bf2fd8c1be5ad5dde7bbcf378bcc8c9e1d1797c` — archive manifest and tracker completion.
+- `c335cee131d1a73422c6871d8ec398abd4be65fd` — report archive note.
+- This manifest update follows in a final follow-up commit.
 
 ## Archived key files
 
