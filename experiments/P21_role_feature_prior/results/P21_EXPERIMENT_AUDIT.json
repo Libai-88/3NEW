@@ -1,0 +1,43 @@
+{
+  "audit_status": "PROVISIONAL_LOCAL_AUDIT",
+  "external_review": "REVIEW_UNAVAILABLE",
+  "checks": [
+    {"check": "role_map_rows", "pass": true, "detail": {"rows": 191}},
+    {"check": "role_map_unique", "pass": true, "detail": {"unique": 191}},
+    {"check": "role_map_groups", "pass": true, "detail": {"groups": ["catalyst_kinetics", "cure_crosslink", "filler_pigment", "formulation_balance", "ftir_band", "molecular_descriptor", "other", "resin_network", "solvent_additive"]}},
+    {"check": "role_map_other", "pass": true, "detail": {"other": ["frac_rare_total", "rtype_其他"]}},
+    {"check": "catalyst_group", "pass": true, "detail": {"features": ["frac_10%磷酸", "frac_AC040", "frac_AZ135", "eq_cat", "cat_per_epoxy_eq"]}},
+    {"check": "role_weight_mean1", "pass": true, "detail": {"mean": 0.9999999999999998}},
+    {"check": "mass_weight_mean1", "pass": true, "detail": {"mean": 1.0}},
+    {"check": "mass_share_sum", "pass": true, "detail": {"sum": 1.0000000000000004, "shares": {"resin_network": 0.6780585983572582, "cure_crosslink": 0.15619555655109826, "catalyst_kinetics": 0.012077244873885949, "filler_pigment": 0.0, "solvent_additive": 0.15366860021775805}}},
+    {"check": "per_seed_rows", "pass": true, "detail": {"rows": 300}},
+    {"check": "per_seed_unique", "pass": true, "detail": {"max_group": 1}},
+    {"check": "arms", "pass": true, "detail": {"arms": ["ftir_band_intensity", "ftir_band_role", "ftir_band_shuffle", "full8_base", "full8_gn_base", "interact", "interact_shuffle", "log_cat", "log_cat_ratio", "mass_prior", "mass_prior_direct", "role_prior", "role_prior_direct", "role_prior_shuffle", "two_part_cat"]}},
+    {"check": "seeds", "pass": true, "detail": {"n": 20, "config_seeds": [42, 202, 777, 1234, 2026, 31415, 2718, 1618, 5678, 9999, 123, 456, 789, 1011, 1213, 1415, 1617, 1819, 2021, 2223]}},
+    {"check": "oof_rows", "pass": true, "detail": {"rows": 90300}},
+    {"check": "oof_per_arm_seed", "pass": true, "detail": {"sizes": [301]}},
+    {"check": "oof_probability_sum", "pass": true, "detail": {"max_abs_err": 1.0000011929633956e-10}},
+    {"check": "oof_finite", "pass": true, "detail": {"nan": {"p0": 0, "p1": 0, "p2": 0}}},
+    {"check": "label_distribution", "pass": true, "detail": {"counts": {"0": 33, "1": 197, "2": 71}}},
+    {"check": "audit_rows", "pass": true, "detail": {"rows": 1500}},
+    {"check": "audit_flags", "pass": true, "detail": {"test_transform_fitted": [false], "target_used_in_weights": [false]}},
+    {"check": "audit_norm_finite", "pass": true, "detail": {"nan": {"baseline_norm": 0, "train_weighted_norm": 0, "norm_scale": 0}}},
+    {"check": "arm_dimensions", "pass": true, "detail": {"expected": {"full8_base": 191, "full8_gn_base": 191, "mass_prior": 191, "role_prior": 191, "role_prior_shuffle": 191, "mass_prior_direct": 191, "role_prior_direct": 191, "log_cat": 191, "log_cat_ratio": 191, "two_part_cat": 192, "interact": 195, "interact_shuffle": 195, "ftir_band_role": 191, "ftir_band_intensity": 191, "ftir_band_shuffle": 191}, "actual": {"ftir_band_intensity": 191, "ftir_band_role": 191, "ftir_band_shuffle": 191, "full8_base": 191, "full8_gn_base": 191, "interact": 195, "interact_shuffle": 195, "log_cat": 191, "log_cat_ratio": 191, "mass_prior": 191, "mass_prior_direct": 191, "role_prior": 191, "role_prior_direct": 191, "role_prior_shuffle": 191, "two_part_cat": 192}}},
+    {"check": "group_split_no_leakage", "pass": true, "detail": {"n_splits_checked": 100}},
+    {"check": "p20_baseline_reproduction", "pass": true, "detail": {"shared_seeds": 10, "max_abs_diff": 0.0, "p21_shared_mean": 0.5739744798099999, "p20_shared_mean": 0.5739744798099999}},
+    {"check": "no_aux_labels", "pass": true, "detail": {"no_aux_labels": true}},
+    {"check": "fixed_c", "pass": true, "detail": {"c_fixed": 2.0}},
+    {"check": "claim_verdict", "pass": true, "detail": {"verdict": "REVIEW_UNAVAILABLE", "claim_supported": false}},
+    {"check": "claim_gate_structure", "pass": true, "detail": {"C1": false, "C2": false, "C3": false, "C4": false}}
+  ],
+  "summary": {
+    "n_checks": 27,
+    "n_pass": 27,
+    "n_fail": 0,
+    "worst_issue": [],
+    "claims": {"C1": false, "C2": false, "C3": false, "C4": false},
+    "p20_shared_baseline_diff": 0.0,
+    "audit_status": "PROVISIONAL_LOCAL_AUDIT",
+    "external_review": "REVIEW_UNAVAILABLE"
+  }
+}
