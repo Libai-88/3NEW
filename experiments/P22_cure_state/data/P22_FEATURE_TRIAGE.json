@@ -1,0 +1,202 @@
+{
+  "n": 301,
+  "grade_counts": [
+    33,
+    197,
+    71
+  ],
+  "base_dim": 191,
+  "catalyst_code_counts_in_301": {
+    "10%磷酸": 251,
+    "AC040": 0,
+    "AZ135": 0
+  },
+  "acid_vs_eq_cat_spearman": 0.9999903851472404,
+  "volatile_vs_solids_spearman": -0.9999999999999999,
+  "cure205_counts": {
+    "0": 119,
+    "1": 182
+  },
+  "cure2": [
+    "cure_drive",
+    "cure_margin_eff"
+  ],
+  "cure3_exploratory": [
+    "cure_drive",
+    "cure_margin_eff",
+    "tg_rise_est"
+  ],
+  "cure2_stats": {
+    "cure_drive": {
+      "min": 0.007127,
+      "median": 0.07309,
+      "max": 0.168254,
+      "sd": 0.03697460321149516
+    },
+    "cure_margin_eff": {
+      "min": 70.553219,
+      "median": 82.864997,
+      "max": 104.493503,
+      "sd": 4.94470341132291
+    }
+  },
+  "triage": [
+    {
+      "feature": "m_solids",
+      "nonconstant_values": 300,
+      "reconstruct_r2_mean": 0.9978361397003319,
+      "reconstruct_r2_folds": [
+        0.9994819163851765,
+        0.9981268678451408,
+        0.9949796756379133,
+        0.9979208912056313,
+        0.9986713474277978
+      ],
+      "spearman_with_t_grade": 0.4595631858319041
+    },
+    {
+      "feature": "volatile_frac",
+      "nonconstant_values": 294,
+      "reconstruct_r2_mean": 0.9999522850634321,
+      "reconstruct_r2_folds": [
+        0.9999404886570784,
+        0.9999456393498788,
+        0.9999735516562583,
+        0.9999797921346565,
+        0.999921953519289
+      ],
+      "spearman_with_t_grade": -0.19106598561628887
+    },
+    {
+      "feature": "eq_epoxy",
+      "nonconstant_values": 293,
+      "reconstruct_r2_mean": 0.9998340591556921,
+      "reconstruct_r2_folds": [
+        0.999872053282887,
+        0.9998142663457213,
+        0.999671784629829,
+        0.9999201585752043,
+        0.999892032944819
+      ],
+      "spearman_with_t_grade": -0.10469491684682854
+    },
+    {
+      "feature": "ne_effective",
+      "nonconstant_values": 274,
+      "reconstruct_r2_mean": 0.42100298809414805,
+      "reconstruct_r2_folds": [
+        0.466895971126301,
+        0.46218387524660154,
+        0.448813470251624,
+        0.3333538581505898,
+        0.39376776569562366
+      ],
+      "spearman_with_t_grade": 0.22889260851549703
+    },
+    {
+      "feature": "tg_linear_solids",
+      "nonconstant_values": 301,
+      "reconstruct_r2_mean": 0.9998414088887158,
+      "reconstruct_r2_folds": [
+        0.9998977842259059,
+        0.9998779666875319,
+        0.9996535233863,
+        0.9998938766387941,
+        0.999883893505047
+      ],
+      "spearman_with_t_grade": -0.43865844406791543
+    },
+    {
+      "feature": "tg_rise_est",
+      "nonconstant_values": 301,
+      "reconstruct_r2_mean": 0.9546114402472881,
+      "reconstruct_r2_folds": [
+        0.9904480460065244,
+        0.9857677104307807,
+        0.987985031761852,
+        0.9844688769828863,
+        0.8243875360543975
+      ],
+      "spearman_with_t_grade": 0.29367855492069017
+    },
+    {
+      "feature": "cure_margin",
+      "nonconstant_values": 301,
+      "reconstruct_r2_mean": 0.8529719560773842,
+      "reconstruct_r2_folds": [
+        0.8572217575725075,
+        0.8491464947891725,
+        0.8513523324589427,
+        0.869278416177521,
+        0.8378607793887769
+      ],
+      "spearman_with_t_grade": 0.3994040503553446
+    },
+    {
+      "feature": "cure_margin_eff",
+      "nonconstant_values": 301,
+      "reconstruct_r2_mean": 0.723552961526897,
+      "reconstruct_r2_folds": [
+        0.7330595082623446,
+        0.694820539911537,
+        0.7697279470013202,
+        0.7800736740587881,
+        0.6400831384004946
+      ],
+      "spearman_with_t_grade": 0.3599390115527712
+    },
+    {
+      "feature": "cure_margin_neg",
+      "nonconstant_values": 1,
+      "reconstruct_r2_mean": NaN,
+      "reconstruct_r2_folds": [],
+      "spearman_with_t_grade": NaN
+    },
+    {
+      "feature": "t_eff_min",
+      "nonconstant_values": 2,
+      "reconstruct_r2_mean": -0.011587163589198335,
+      "reconstruct_r2_folds": [
+        0.006155173199232977,
+        -0.008345685750329457,
+        0.03815945083931904,
+        0.035798097047323396,
+        -0.12970285328153763
+      ],
+      "spearman_with_t_grade": 0.012944070937834442
+    },
+    {
+      "feature": "cure_drive",
+      "nonconstant_values": 300,
+      "reconstruct_r2_mean": 0.2887093508366951,
+      "reconstruct_r2_folds": [
+        0.3359523175109549,
+        0.31144525980326876,
+        0.31542652664382687,
+        0.20042778337971145,
+        0.2802948668457135
+      ],
+      "spearman_with_t_grade": 0.20439780879268424
+    },
+    {
+      "feature": "pvc_over_binder_vol",
+      "nonconstant_values": 1,
+      "reconstruct_r2_mean": NaN,
+      "reconstruct_r2_folds": [],
+      "spearman_with_t_grade": NaN
+    },
+    {
+      "feature": "acid_phosphate_frac",
+      "nonconstant_values": 249,
+      "reconstruct_r2_mean": 0.9999648232666338,
+      "reconstruct_r2_folds": [
+        0.999971805259788,
+        0.999967235848571,
+        0.9999569917750152,
+        0.9999602429049929,
+        0.9999678405448029
+      ],
+      "spearman_with_t_grade": 0.34876659504266755
+    }
+  ]
+}
