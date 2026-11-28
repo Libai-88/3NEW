@@ -1,6 +1,6 @@
 # P21 Remote Archive
 
-**Local commit**: `23b8255` (`P21: test role-criticality priors and importance-aware features (negative result)`)  
+**Local commits**: `23b8255` (experiment), `53a9971` (archive manifest)  
 **Remote branch**: `experiment/p14-best`  
 **Repository**: `https://github.com/Libai-88/3NEW`  
 **Date**: 2026-11-28
@@ -17,38 +17,49 @@ without group-size normalisation, role weights have no advantage over mass
 weights. C2/C3/C4 also fail. External review is unavailable; local audit is
 `PROVISIONAL_LOCAL_AUDIT`, 27/27 checks pass.
 
-## Archived files
+## Remote commits
+
+- `13d494773e5cbd7d65167be7b620e20ab403863b` — README, report, claim, audit and this manifest
+- `01be105239fd05493297d89c72df3146b9ecc302` — group weights, summary, delta, specificity, claim JSON, config, map audit
+- `42131820e8a823f89c4f7f5c2334bfec2df1d338` — role map, pre-registration, weight rubric, tracker
+
+## Archived key files
 
 - `experiments/P21_role_feature_prior/README.md`
+- `experiments/P21_role_feature_prior/P21_REMOTE_ARCHIVE.md`
 - `experiments/P21_role_feature_prior/data/P21_ROLE_MAP.csv`
 - `experiments/P21_role_feature_prior/data/P21_GROUP_WEIGHTS.json`
-- `experiments/P21_role_feature_prior/scripts/p21_role_feature_prior.py`
-- `experiments/P21_role_feature_prior/scripts/p21_audit.py`
 - `experiments/P21_role_feature_prior/results/P21_实验报告.md`
 - `experiments/P21_role_feature_prior/results/P21_CLAIMS_FROM_RESULTS.md`
 - `experiments/P21_role_feature_prior/results/P21_EXPERIMENT_AUDIT.md`
 - `experiments/P21_role_feature_prior/results/P21_EXPERIMENT_AUDIT.json`
 - `experiments/P21_role_feature_prior/results/p21_full_summary.csv`
-- `experiments/P21_role_feature_prior/results/p21_full_per_seed.csv`
 - `experiments/P21_role_feature_prior/results/p21_full_delta.csv`
 - `experiments/P21_role_feature_prior/results/p21_full_specificity.csv`
 - `experiments/P21_role_feature_prior/results/p21_full_claim_check.json`
 - `experiments/P21_role_feature_prior/results/p21_full_config.json`
-- `experiments/P21_role_feature_prior/results/p21_full_audit.csv`
 - `experiments/P21_role_feature_prior/results/p21_map_audit.json`
-- `experiments/P21_role_feature_prior/logs/p21_map.log`
-- `experiments/P21_role_feature_prior/logs/p21_sanity.log`
-- `experiments/P21_role_feature_prior/logs/p21_full.log`
-- `experiments/P21_role_feature_prior/logs/p21_audit.log`
 - `refine-logs/P21_EXPERIMENT_PLAN.md`
 - `refine-logs/P21_WEIGHT_RUBRIC.md`
 - `refine-logs/P21_EXPERIMENT_TRACKER.md`
 
-The 5.9 MB `p21_full_oof_proba.csv` stays local (as P19/P20 did for large
-OOF artifacts); the 90,300-row OOF is reproducible with the commands in the
-README. The 15-arm full run uses only the 301 observed T labels and 20 seeds.
+## Local-only artifacts
 
-## Reproduction
+As with P19/P20, the large/reproducible artifacts stay in the local repository
+rather than in the remote archive:
+
+- `scripts/p21_role_feature_prior.py` — 15-arm runner.
+- `scripts/p21_audit.py` — 27-check local audit.
+- `results/p21_full_per_seed.csv` — 300 per-seed rows.
+- `results/p21_full_audit.csv` — 1,500 fold-level audit rows.
+- `results/p21_full_oof_proba.csv` — 90,300 OOF rows (5.9 MB).
+- `logs/` — map/sanity/full/audit logs.
+
+The remote archive is intentionally key-result only. The local commits above
+contain the full runnable tree; the remote commits contain the data, reports
+and gate outputs needed to read the result without the 5.9 MB OOF.
+
+## Reproduction (local tree)
 
 ```bash
 python3 experiments/P21_role_feature_prior/scripts/p21_role_feature_prior.py --mode map
