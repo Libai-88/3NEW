@@ -9,7 +9,7 @@
 | R005 | M2 | audit | local deterministic | n/a | 27 checks | MUST | DONE | 27/27 pass; `PROVISIONAL_LOCAL_AUDIT`; external `REVIEW_UNAVAILABLE` |
 | R006 | M2 | claim | C1–C4 | n/a | gate JSON | MUST | DONE | C1/C2/C3/C4 all fail; claim_supported=false |
 | R007 | M2 | report | P21 report | n/a | numbers | MUST | DONE | `results/P21_实验报告.md`, README, claim, audit |
-| R008 | M2 | archive | GitHub remote | n/a | files | MUST | DONE | GitHub connector; remote commits `13d4947`, `01be105` |
+| R008 | M2 | archive | GitHub remote | n/a | files | MUST | DONE | GitHub connector; remote commits `13d4947`, `01be105`, `4213182`, `3355a85`; key-result archive |
 
 ## Status notes
 
