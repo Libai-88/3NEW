@@ -1,0 +1,86 @@
+{
+  "experiment": "P22_cure_state",
+  "date": "2026-11-28",
+  "dataset": "合并版数据集.xlsx",
+  "n_samples": 301,
+  "grade_counts": [
+    33,
+    197,
+    71
+  ],
+  "cuts": [
+    15.0,
+    20.0
+  ],
+  "base_raw_dim": 191,
+  "base_pipeline": "P21Prep(n_base=183, all weights=1, group_norm=False)",
+  "cure2": [
+    "cure_drive",
+    "cure_margin_eff"
+  ],
+  "cure3_exploratory": [
+    "cure_drive",
+    "cure_margin_eff",
+    "tg_rise_est"
+  ],
+  "bake_control": "cure_205 (205C/17min=1, 200C/10min=0)",
+  "arms": [
+    "full8_base",
+    "cure_state",
+    "cure_state_shuffle",
+    "bake_control",
+    "cure_state_plus_bake",
+    "cure_state_tg"
+  ],
+  "raw_dims": {
+    "full8_base": 191,
+    "cure_state": 193,
+    "cure_state_shuffle": 193,
+    "bake_control": 192,
+    "cure_state_plus_bake": 194,
+    "cure_state_tg": 194
+  },
+  "effective_dims": {
+    "full8_base": 194,
+    "cure_state": 196,
+    "cure_state_shuffle": 196,
+    "bake_control": 195,
+    "cure_state_plus_bake": 197,
+    "cure_state_tg": 197
+  },
+  "seeds": [
+    42,
+    202,
+    777,
+    1234,
+    2026,
+    31415,
+    2718,
+    1618,
+    5678,
+    9999,
+    123,
+    456,
+    789,
+    1011,
+    1213,
+    1415,
+    1617,
+    1819,
+    2021,
+    2223
+  ],
+  "n_seeds": 20,
+  "outer_cv": "StratifiedGroupKFold(5) by formula_id",
+  "model": "ordinal cumulative logistic, C=2.0, balanced, L2, max_iter=3000",
+  "stress": {
+    "loco": [
+      "200C/10min",
+      "205C/17min"
+    ],
+    "loso": "skipped because C1 failed (pre-registered stop/go)"
+  },
+  "sanity_seed": 42,
+  "sanity_full8_base_qwk": 0.5761275403,
+  "compare_to_p20_sanity": 0.576128
+}
